@@ -28,12 +28,26 @@ someone has to do work before it does.
 | Brand | Models | Level | Transport | Prototype status | What's needed |
 |---|---|---|---|---|---|
 | **Creality** | K2, K2 Plus | ⚙️ | WebSocket `:9999` | 🟢 proven on hardware | **LAN mode must be on** in the printer's network settings, or port 9999 refuses connections. |
-| **FlashForge** | Creator 5 / 5 Pro | ⚙️ | HTTP `:8898` | 🟢 proven on hardware | Serial number **and check code**, both from the printer's network info screen. Imported automatically if the printer is in your TigerTag account. |
+| **FlashForge** | Creator 5 / 5 Pro, **AD5X** | ⚙️ | HTTP `:8898` | 🟢 proven on hardware | Serial number **and check code**, both from the printer's network info screen. Imported automatically if the printer is in your TigerTag account. |
 | **Bambu Lab** | A1, A1 mini, A2L | ⚙️ | MQTT/TLS `:8883` | 🟢 proven on hardware | **LAN mode on**, plus the serial and the 8-character access code from the printer screen. Imported automatically from your account. |
 | **Snapmaker** | Artisan, J1, J1s, U1 | ⚙️ | Moonraker WebSocket `:7125` | 🟢 proven on hardware | Nothing — Moonraker needs no authentication on the LAN. The printer's IP is all it takes. |
 | **Bambu Lab (cloud)** | X1, P1, and any printer not on your LAN | 🧪 | MQTT/TLS to Bambu's broker | 🟡 partly implemented | Depends on a Bambu session token that **Tiger Studio** obtains and stores in your account; the device never signs in to Bambu itself. The token expires roughly every three months and has to be renewed in Studio. Not a finished experience. |
 | **Elegoo** | Centauri Carbon 2 and others | 🧪 | MQTT `:1883` (plain TCP) | 🔵 protocol documented, firmware not written | Serial number and the MQTT password (an "Access Code" on the printer). Imported automatically from your account. |
 | **Anycubic (cloud)** | any Anycubic not in LAN mode | 🧪 | signed REST + MQTT to Anycubic's cloud | 🔵 protocol documented, firmware not written | Nothing on the printer — but it is a **second, heavier code path** than LAN, and whether it belongs in v1 is undecided. |
+
+> **Anycubic TLS — the supposed blocker does not exist.** Tiger Studio's protocol
+> notes say the broker must be pinned to TLS 1.2 because it requests an optional
+> client certificate that a TLS 1.3 stack aborts on. Probed directly against a
+> **Kobra X (modelId 20030)** in LAN mode, that is not what happens: the broker
+> completes **both** TLS 1.3 (`TLS_AES_256_GCM_SHA384`) and TLS 1.2
+> (`ECDHE-RSA-AES256-GCM-SHA384`), sends **no** certificate request at all, and
+> accepts every mbedTLS-friendly suite tried — including
+> `ECDHE-RSA-AES128-GCM-SHA256`, the ESP32's default. Its certificate is
+> self-signed, as expected.
+>
+> This may vary by model or firmware, so it is recorded as an observation rather
+> than a rule. But on this hardware the ESP32 will handshake, and the largest
+> stated risk for the Anycubic backend is not present.
 | **Anycubic** | Kobra 3 V2, Kobra X, ACE units | 🧪 | MQTT/TLS `:9883` | 🔵 protocol documented, firmware not written | **The printer must be paired in AnycubicSlicerNext at least once** — its broker credentials exist nowhere else. Tiger Studio reads them from there into your account. |
 
 **Legend for implementation status:** 🟢 implemented in the firmware prototype
@@ -128,6 +142,13 @@ slot to show it on screen.
   a tag's colour is snapped to the nearest one. Bambu Lab accepts exact RGB.
 - **Any material name you like.** Each printer has a fixed vocabulary. Materials
   the printer does not know are mapped to the closest one it does.
+
+> **What that looks like in practice.** A verified end-to-end assignment on a
+> FlashForge AD5X: the tag said **PLA High Speed, R3D, `#DC123F`**; the printer
+> ended up showing **PLA, `#F82D29`**. The colour was snapped to the palette's
+> nearest entry and the "High Speed" variant was dropped, because those are the
+> only values the printer accepts. Nothing failed — but the device must **say**
+> the colour was adapted, or a user will read a correct result as a bug.
 - **Working during a print.** Changing slot configuration mid-print is not
   supported and may be refused by the printer.
 

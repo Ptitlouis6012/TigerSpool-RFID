@@ -244,6 +244,14 @@ colour — read back from the printer, not assumed. On some printers a command i
 acknowledged and ignored ([PRINTER-COMPATIBILITY.md](PRINTER-COMPATIBILITY.md)),
 and a success screen that lied is worse than an error.
 
+**When the printer changed what it was given, say so.** Several printers accept
+only their own fixed palette and material list, so the colour that lands may not
+be the colour on the spool — verified on a FlashForge, where `#DC123F`
+became `#F82D29` and "PLA High Speed" became "PLA". That is the printer's limit,
+not a fault, but a result screen that reports plain success teaches the user to
+distrust the device the first time they walk over and look at it. A line — *"colour
+adapted to the printer's palette"* — costs nothing and prevents a bug report.
+
 ---
 
 ## Principles

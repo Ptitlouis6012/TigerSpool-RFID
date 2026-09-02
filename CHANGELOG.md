@@ -90,6 +90,22 @@ structure and decisions only.
 - Identifiers fixed: `tigerspool.local`, `TigerSpool-Setup`, PlatformIO env
   `tigerspool`, NVS namespace `tigerspool`.
 
+### Verified on hardware
+
+Recorded because they were measured rather than assumed.
+
+- **End-to-end assignment on a FlashForge AD5X** — a model the prototype's
+  FlashForge backend was not written for. The tag was read on the first attempt,
+  the assignment was sent, and the change was **confirmed by re-reading the
+  printer's own slot state**, not by trusting its acknowledgement.
+- **Fidelity loss is real and user-visible.** `PLA High Speed / #DC123F` arrived
+  as `PLA / #F82D29`. The result screen has to say the colour was adapted.
+- **The reader works on the first try at GPIO43/44**, with no retry and no
+  rejected reads, on a second board.
+- **Anycubic's broker does not require TLS 1.2 or a client certificate**, at
+  least on a Kobra X — contradicting the ecosystem's own protocol notes and
+  removing the largest stated risk for that backend.
+
 ### Not yet done
 
 - No firmware. Nothing in this repository builds, flashes or runs.
