@@ -9,19 +9,21 @@ Talk to us on **[Discord](https://discord.gg/3Qv5TSqnJH)**.
 
 ## What would help most, in order
 
-### 1. Elegoo and Anycubic protocols
+### 1. Elegoo and Anycubic, on printers we haven't captured
 
-**The largest unknown in the project.** Both are targeted for v1 and neither has
-any implementation. Nothing is known yet about how either brand exposes filament
-slot configuration over the network.
+Both are targeted for v1 and neither has a firmware backend yet. Unlike the other
+protocols here, though, **neither needs reverse-engineering**: both are documented
+and working in
+[Tiger Studio](https://github.com/TigerTag-Project/TigerTag-Studio-Manager)
+(`renderer/printers/{elegoo,anycubic}/PROTOCOL.md`), from live captures of the
+vendors' slicers.
 
-Both printers are on the maintainer's bench, so this is scheduled work rather
-than a search for hardware. What would still shorten it:
+Those captures come from **specific machines**. What is genuinely useful:
 
-- **Existing reverse-engineering notes** for either brand.
-- **Captures from models we do not have** — a protocol that holds across a
-  brand's range is worth much more than one that fits a single printer.
-- **Testing** once a first implementation exists.
+- **Confirming the protocol holds on other models** in each brand's range.
+- **Testing** once the backends exist — particularly Anycubic, whose broker
+  insists on TLS 1.2 and requests an optional client certificate. Whether the
+  ESP32's TLS stack handles that can only be answered on hardware.
 
 See [docs/PRINTER-COMPATIBILITY.md](docs/PRINTER-COMPATIBILITY.md).
 

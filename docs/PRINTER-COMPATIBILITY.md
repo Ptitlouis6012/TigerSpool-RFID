@@ -32,38 +32,71 @@ someone has to do work before it does.
 | **Bambu Lab** | A1, A1 mini, A2L | ⚙️ | MQTT/TLS `:8883` | 🟢 proven on hardware | **LAN mode on**, plus the serial and the 8-character access code from the printer screen. Imported automatically from your account. |
 | **Snapmaker** | Artisan, J1, J1s, U1 | ⚙️ | Moonraker WebSocket `:7125` | 🟢 proven on hardware | Nothing — Moonraker needs no authentication on the LAN. The printer's IP is all it takes. |
 | **Bambu Lab (cloud)** | X1, P1, and any printer not on your LAN | 🧪 | MQTT/TLS to Bambu's broker | 🟡 partly implemented | Depends on a Bambu session token that **Tiger Studio** obtains and stores in your account; the device never signs in to Bambu itself. The token expires roughly every three months and has to be renewed in Studio. Not a finished experience. |
-| **Elegoo** | — | 🧪 | unknown | 🔴 **nothing implemented** | The protocol has not been investigated. See below. |
-| **Anycubic** | — | 🧪 | unknown | 🔴 **nothing implemented** | The protocol has not been investigated. See below. |
+| **Elegoo** | Centauri Carbon 2 and others | 🧪 | MQTT `:1883` (plain TCP) | 🔵 protocol documented, firmware not written | Serial number and the MQTT password (an "Access Code" on the printer). Imported automatically from your account. |
+| **Anycubic** | Kobra 3 V2, Kobra X, ACE units | 🧪 | MQTT/TLS `:9883` | 🔵 protocol documented, firmware not written | **The printer must be paired in AnycubicSlicerNext at least once** — its broker credentials exist nowhere else. Tiger Studio reads them from there into your account. |
 
-**Legend for prototype status:** 🟢 implemented and verified against a physical
-printer · 🟡 implemented, not fully verified · 🔴 not implemented.
+**Legend for implementation status:** 🟢 implemented in the firmware prototype
+and verified against a physical printer · 🟡 implemented, not fully verified ·
+🔵 protocol fully documented and proven on real hardware **elsewhere**
+([Tiger Studio](https://github.com/TigerTag-Project/TigerTag-Studio-Manager)), but
+no firmware backend written yet · 🔴 nothing at all.
 
 ---
 
 ## Elegoo and Anycubic
 
-Both are **targeted for v1** and **neither has a single line of code today**.
-Nothing is yet known about how either brand exposes filament slot configuration
-over the network — whether there is a LAN API at all, whether it is
-authenticated, whether it can be written to rather than only read.
+Both are **targeted for v1**. Neither has a firmware backend yet — but unlike
+every other protocol in this project, **neither needs to be reverse-engineered
+either.** Both are already documented and working in
+[Tiger Studio](https://github.com/TigerTag-Project/TigerTag-Studio-Manager), from
+live captures of the vendors' own slicers against real printers:
 
-**Both printers are physically available to the maintainer**, so this is
-scheduled reverse-engineering work rather than a search for hardware. It is still
-the largest unknown in the project: the effort depends entirely on what the
-protocols turn out to be, and "there is no writable LAN API" remains a possible
-answer for either brand.
+- `renderer/printers/elegoo/PROTOCOL.md`
+- `renderer/printers/anycubic/PROTOCOL.md`
 
-**Still useful from the community**, and it would shorten the work considerably:
+That turns v1 support from open-ended research into a porting job. What remains is
+real work — a JavaScript desktop client and an ESP32 firmware backend are not the
+same thing — but the unknowns are now specific rather than total.
 
-1. **Existing reverse-engineering notes** for either brand. Both have active
-   communities and published protocol work would save days.
-2. **Captures from other models** than the ones on the bench — a protocol that
-   holds across a brand's range is worth far more than one that fits a single
-   printer.
-3. **Testers** once a first implementation exists.
+### What is already known
 
-Open an issue if you have any of these. See
-[CONTRIBUTING.md](../CONTRIBUTING.md).
+| | Elegoo | Anycubic |
+|---|---|---|
+| Transport | MQTT over **plain TCP**, port 1883 | MQTT over **TLS**, port 9883, self-signed |
+| Auth | broker username `elegoo` + password, plus the serial number | `deviceId` + username + password |
+| Read slots | method `2005` (with Canvas) / `1061` (single extruder) | `getInfo` on the `multiColorBox` topic |
+| Write a slot | method `2003` (Canvas) / `1055` (single extruder) | `setInfo` on the same topic |
+| Colour | `#RRGGBB`, uppercase | `[r, g, b]` array |
+| Materials | a captured 50-entry `filament_code` table keyed by type × name | ~30 accepted names, sent verbatim |
+| Discovery | UDP broadcast, port 52700 | `GET http://<ip>:18910/info`, no auth |
+
+Elegoo is in some ways **simpler than Bambu Lab** — no TLS at all.
+
+### The two things that will bite
+
+**Anycubic's broker demands TLS 1.2.** It requests an *optional* client
+certificate, and a TLS 1.3 stack aborts the handshake when none is offered. The
+version has to be pinned. Whether the ESP32's TLS stack negotiates this correctly
+is the single biggest open question for this backend, and it can only be answered
+on hardware.
+
+**Anycubic credentials cannot be obtained from the printer.** The `/info`
+endpoint does not expose them and they cannot be derived from what it does expose
+— that was established exhaustively, not assumed. They exist only in
+AnycubicSlicerNext's own config file, which Tiger Studio decodes on the desktop
+and writes to your TigerTag account.
+
+For TigerSpool that is not an obstacle, it is the product working as designed:
+the desktop does the part that is impossible on a 2.0" screen, and the device
+imports the result. But it means **an Anycubic printer must have been paired in
+AnycubicSlicerNext at least once**, and the documentation has to say so plainly
+rather than letting a user discover it as a failure.
+
+### Still useful from the community
+
+- **Other models.** The captures come from specific printers. A protocol that
+  holds across a brand's range is worth far more than one that fits one machine.
+- **Testing** once the backends exist.
 
 ## What "supported" does and does not mean
 

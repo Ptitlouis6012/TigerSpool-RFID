@@ -96,8 +96,8 @@ backend's entire job, and it is where the per-brand ugliness lives — see below
 ### Transport vs. protocol
 
 These are separated because they vary independently. Two printers can share a
-transport and share nothing else; the same protocol family shows up over
-different transports.
+transport and share nothing else — Bambu Lab, Elegoo and Anycubic all speak MQTT
+and agree on nothing above it, including whether there is any TLS.
 
 | Backend | Transport | Protocol |
 |---|---|---|
@@ -105,6 +105,8 @@ different transports.
 | FlashForge | HTTP POST, port 8898 | JSON with credentials in every request body |
 | Bambu Lab | MQTT over TLS, port 8883 | JSON commands on `device/{SN}/request` |
 | Snapmaker | WebSocket, port 7125 | Moonraker JSON-RPC 2.0, no auth |
+| Elegoo | MQTT, port 1883, **plain TCP** | numbered JSON methods on `elegoo/{sn}/…` topics |
+| Anycubic | MQTT over TLS, port 9883 | JSON actions on an `anycubic/…/multiColorBox` topic |
 
 The transport layer answers: how do bytes get there, how does the connection
 recover, what does authentication look like. The protocol layer answers: what
@@ -125,6 +127,12 @@ only what they already know about, and each is differently stubborn:
   6-digit hex.
 - **Snapmaker** takes G-code arguments, so any space in a vendor or material name
   has to become an underscore or the command is silently mis-parsed.
+- **Elegoo** wants a `filament_code` looked up from a 50-entry table keyed by
+  material type *and* variant name, and a `filament_type` stripped back to its
+  base token — `"PLA+ Silk"` has to become `"PLA"`.
+- **Anycubic** takes a `[r, g, b]` array and accepts only `{index, type, color}`;
+  richer fields are acknowledged and silently dropped. Pure black `[0,0,0]`
+  renders as *empty* on the ACE display and has to be nudged to `[1,1,1]`.
 
 This translation is a first-class part of every backend, not an afterthought.
 Each one needs its own tests, and each is a place where a printer firmware update
@@ -224,6 +232,19 @@ form exists to correct an import or to add a printer the account does not know
 about, and it merges rather than overwrites, so a value a user corrected by hand
 is not clobbered by the next sync.
 
+**A printer's credentials are not a fixed shape, and the config must stop
+pretending they are.** The prototype models every printer as
+`{type, name, host, sn, cc}` — enough for a serial and one access code, which
+covers Creality, FlashForge, Bambu Lab, Snapmaker and Elegoo. **Anycubic does
+not fit**: it needs a broker `deviceId`, a `username`, a `password` and a numeric
+`acuModelId` that forms part of the MQTT topic. Cloud-mode printers carry
+different fields again.
+
+Bolting `sn2`/`cc2` onto the struct is how this ends up unreadable by the third
+brand. The credential set belongs to the backend that consumes it — a small
+key/value bag the account layer fills and the backend reads by name — so adding a
+brand with unusual authentication stays a change inside that brand.
+
 **The account token is stored in encrypted NVS.** A refresh token is a
 long-lived credential to someone's account. It does not sit in plaintext flash
 where a `esptool read_flash` recovers it. See [SECURITY.md](../SECURITY.md).
@@ -271,7 +292,9 @@ firmware/
     │   ├── creality/
     │   ├── flashforge/
     │   ├── bambulab/
-    │   └── snapmaker/
+    │   ├── snapmaker/
+    │   ├── elegoo/         ported from Tiger Studio's PROTOCOL.md
+    │   └── anycubic/       ported from Tiger Studio's PROTOCOL.md
     ├── account/            pairing, session, printer import
     ├── net/                Wi-Fi, captive portal, web config, mDNS, OTA
     └── platform/           NVS, display, touch, logging

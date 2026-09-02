@@ -49,9 +49,16 @@ structure and decisions only.
 - **The captive portal is a state in the main firmware**, never a separate binary
   to flash. ([docs/WIFI-PROVISIONING.md](docs/WIFI-PROVISIONING.md))
 - **Nine languages**, aligned with TigerScale V3.
-- **Elegoo and Anycubic are targeted for v1** and have no implementation. Both
-  printers are available for the protocol reverse-engineering work, which has not
-  started.
+- **Elegoo and Anycubic are targeted for v1 as a port, not a
+  reverse-engineering exercise.** Both protocols are documented and working in
+  Tiger Studio from live slicer captures: Elegoo is MQTT over plain TCP on 1883,
+  Anycubic is MQTT/TLS on 9883. No firmware backend exists for either yet.
+  ([docs/PRINTER-COMPATIBILITY.md](docs/PRINTER-COMPATIBILITY.md))
+- **An Anycubic printer must have been paired in AnycubicSlicerNext once.** Its
+  broker credentials exist nowhere else and cannot be derived from the printer.
+  Tiger Studio reads them into the account; TigerSpool imports them. This is the
+  product working as designed, and it is documented rather than left to surface
+  as a failure.
 - **The partition table is set before the first public release**, because
   changing it afterwards costs every user a USB reflash.
   ([docs/OTA.md](docs/OTA.md))
@@ -77,6 +84,6 @@ structure and decisions only.
 - No CI beyond placeholders.
 - No 3D models.
 - No web installer page.
-- Elegoo and Anycubic protocols unknown — reverse-engineering not started.
+- No Elegoo or Anycubic firmware backend, though both protocols are documented.
 
 [Unreleased]: https://github.com/TigerTag-Project/TigerSpool-RFID/commits/main

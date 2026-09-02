@@ -63,10 +63,12 @@ which grades each one on three levels — ✅ automatic, ⚙️ one setup step,
 🧪 experimental. Read it before buying parts for a specific printer.
 
 Four brands have a protocol implementation proven on real hardware in the
-prototype: **Creality**, **FlashForge**, **Bambu Lab** and **Snapmaker**.
-**Elegoo** and **Anycubic** are targeted for v1 and have **no implementation at
-all yet** — their protocols still have to be reverse-engineered. The compatibility
-matrix is the source of truth; this paragraph is a summary of it.
+firmware prototype: **Creality**, **FlashForge**, **Bambu Lab** and
+**Snapmaker**. **Elegoo** and **Anycubic** are targeted for v1: their protocols
+are fully documented and already working in
+[Tiger Studio](https://github.com/TigerTag-Project/TigerTag-Studio-Manager), but
+**no firmware backend has been written for them yet**. The compatibility matrix
+is the source of truth; this paragraph is a summary of it.
 
 ## Hardware
 
@@ -154,11 +156,10 @@ Related projects: **[TigerTag-RFID-Guide](https://github.com/TigerTag-Project/Ti
 The firmware isn't here yet, so the most useful contributions right now are
 **not code**:
 
-- **Know anything about Elegoo or Anycubic network protocols?** They are the
-  largest unknown in this project. The printers are on the bench, so the work is
-  scheduled — but published reverse-engineering notes, or captures from models we
-  do not have, would shorten it a lot. See
-  [docs/PRINTER-COMPATIBILITY.md](docs/PRINTER-COMPATIBILITY.md).
+- **Own an Elegoo or an Anycubic we haven't captured?** Both protocols are
+  documented, from live captures of specific machines. Confirming they hold
+  across each brand's range is worth much more than another capture of the same
+  printer. See [docs/PRINTER-COMPATIBILITY.md](docs/PRINTER-COMPATIBILITY.md).
 - **Read the architecture** and tell us where it's wrong —
   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - **Design a case** for a printer that doesn't have one — [models/](models/).
