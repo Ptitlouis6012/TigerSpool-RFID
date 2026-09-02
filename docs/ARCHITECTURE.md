@@ -1,0 +1,299 @@
+# Architecture
+
+What the firmware is made of, and why it is divided the way it is.
+
+This describes the **target** architecture. The prototype it derives from is
+close but not identical; [MIGRATION.md](MIGRATION.md) is the diff.
+
+---
+
+## The one idea
+
+A printer backend knows one thing: **how to put a material, a colour and two
+temperatures into slot _n_ of one specific printer.** It knows nothing about NFC,
+nothing about the screen, and nothing about Wi-Fi.
+
+Everything above it — the UI, the reader, the account — is written once and works
+for every printer. Everything below it is per-brand and stays contained. Adding
+Elegoo means writing one class, not touching the application.
+
+---
+
+## Layers
+
+```
+┌───────────────────────────────────────────────────────────────┐
+│  ui/            screens, touch handling, rendering            │
+│                 knows: state machine, layout                  │
+│                 knows nothing about: NFC, MQTT, HTTP, Firebase│
+├───────────────────────────────────────────────────────────────┤
+│  app/           state machine, device orchestration           │
+│                 owns the transitions and the selected printer │
+├───────────────┬──────────────┬────────────────┬───────────────┤
+│  reader/      │  printers/   │  account/      │  net/         │
+│  PN532 HSU    │  backends    │  TigerTag      │  Wi-Fi, portal│
+│  TigerTag     │  + registry  │  session,      │  mDNS, OTA,   │
+│  decode       │              │  printer import│  web config   │
+├───────────────┴──────────────┴────────────────┴───────────────┤
+│  platform/      NVS, display driver, touch, time, logging     │
+└───────────────────────────────────────────────────────────────┘
+```
+
+Each layer may call downwards. Nothing calls upwards; a backend that wants to
+tell the user something returns a status, it does not draw.
+
+### Why `net/` is one layer and not per-feature
+
+Wi-Fi provisioning, the configuration web server, mDNS and OTA all share the same
+scarce resource — the radio and one TCP stack — and all of them have to behave
+when the network goes away mid-operation. Keeping them adjacent is what stops
+four independent reconnection policies from fighting each other.
+
+---
+
+## Printer abstraction
+
+### The interface
+
+Every printer implements the same small surface. The prototype's version, which
+has survived four protocols unchanged, is the starting point:
+
+```cpp
+class PrinterBackend {
+public:
+    virtual void begin(const PrinterCfg& cfg) = 0;  // open the connection
+    virtual void loop()                       = 0;  // pump the transport
+    virtual void stop()                       = 0;  // close, free the heap
+    virtual bool connected()                  = 0;
+
+    virtual int         slotCount()           = 0;  // how many slots exist
+    virtual const char* slotLabel(int i)      = 0;  // "Ext", "1A", "T3"…
+    virtual const SlotState& slot(int i)      = 0;  // what's in slot i now
+    virtual bool assign(int i, const TagInfo& t) = 0;  // put this filament there
+
+    virtual String status()                   = 0;
+    virtual void   refresh()                  = 0;  // re-read slot state
+};
+```
+
+Three things make this work across protocols as different as MQTT and HTTP
+polling:
+
+**Slots are a flat 0-based list to the UI.** Real printers do not agree on
+addressing — Creality has box+slot pairs, Bambu has AMS unit + tray with special
+values for the external spool, FlashForge has 1-based slot ids, Snapmaker has
+extruder indices. Every one of those mappings lives *inside* its backend. The
+grid on screen iterates `0 … slotCount()-1` and never learns the difference.
+
+**`slotCount()` is dynamic.** A Bambu Lab printer's slot count is not known until
+its first status report arrives — one AMS unit or four, plus the external spool.
+The UI paginates whatever number it is told.
+
+**`assign()` takes a decoded tag, not a protocol payload.** Translating "PETG,
+Polymaker, #1A5C0C, 230/240 °C" into whatever the printer will accept is the
+backend's entire job, and it is where the per-brand ugliness lives — see below.
+
+### Transport vs. protocol
+
+These are separated because they vary independently. Two printers can share a
+transport and share nothing else; the same protocol family shows up over
+different transports.
+
+| Backend | Transport | Protocol |
+|---|---|---|
+| Creality | WebSocket, port 9999 | proprietary JSON, `get`/`set` envelopes |
+| FlashForge | HTTP POST, port 8898 | JSON with credentials in every request body |
+| Bambu Lab | MQTT over TLS, port 8883 | JSON commands on `device/{SN}/request` |
+| Snapmaker | WebSocket, port 7125 | Moonraker JSON-RPC 2.0, no auth |
+
+The transport layer answers: how do bytes get there, how does the connection
+recover, what does authentication look like. The protocol layer answers: what
+does "set the filament in slot 2" spell out to.
+
+### The part nobody expects: material and colour translation
+
+Backends are not thin. The tag says exactly what the filament is; printers accept
+only what they already know about, and each is differently stubborn:
+
+- **Bambu Lab** wants a `tray_info_idx` code (`GFL99` for generic PLA, `GFG99`
+  for PETG…) and accepts **any** RGB colour.
+- **FlashForge Creator 5** accepts only the **24 colours in its own palette** and
+  a material name from **its own list of 21**. Send anything else and it answers
+  "success" while silently resetting the slot to white. Colour has to be snapped
+  to the nearest palette entry, material to the nearest known name.
+- **Creality** wants a 7-digit `#0RRGGBB` colour — a `0` after the `#`, not a
+  6-digit hex.
+- **Snapmaker** takes G-code arguments, so any space in a vendor or material name
+  has to become an underscore or the command is silently mis-parsed.
+
+This translation is a first-class part of every backend, not an afterthought.
+Each one needs its own tests, and each is a place where a printer firmware update
+can break us.
+
+> **A lesson worth writing down:** on FlashForge, an unknown command is
+> acknowledged with `{code:0}` anyway. **Success is not evidence of effect.** Any
+> backend whose protocol can lie must confirm by re-reading state after a write.
+
+### The registry
+
+Backends register themselves; the application never contains a `switch` over
+brands. Adding one means adding a file and a registration line, and that is what
+keeps a new brand from touching the UI.
+
+---
+
+## State machine
+
+```
+                    ┌──────────┐
+     first boot ───▶│   LANG   │  pick a language, once
+                    └────┬─────┘
+                         ▼
+                    ┌──────────┐  credentials in NVS?
+              ┌────▶│   WIFI   │──── no / fails ──┐
+              │     └────┬─────┘                  ▼
+              │          │ connected      ┌──────────────┐
+              │          │                │  PROVISION   │  built-in captive
+              │          │                │              │  portal + Wi-Fi QR
+              │          │                └──────┬───────┘
+              │          │                       │ saved
+              │          │◀──────────────────────┘  (reboot)
+              │          ▼
+              │     ┌──────────┐  no account linked?
+              │     │  ACCOUNT │──────────────────┐
+              │     └────┬─────┘                  ▼
+              │          │ linked          ┌──────────────┐
+              │          │                 │   PAIRING    │  QR + short code,
+              │          │                 │              │  poll until approved
+              │          │                 └──────┬───────┘
+              │          │◀───────────────────────┘
+              │          ▼
+              │     ┌──────────┐  the printers imported from the account
+              │     │ PRINTERS │  paginated list, online/offline dots
+              │     └────┬─────┘
+              │          │ tap a printer  ──▶ backend->begin()
+              │          ▼
+              │     ┌──────────┐  slot grid, colours and materials read live
+              └─────│   GRID   │◀────────────────────────────┐
+             back   └────┬─────┘                             │
+                         │ tap a slot                        │
+                         ▼                                   │
+                    ┌──────────┐  "hold the spool to the box" │
+                    │   SCAN   │──── cancel ─────────────────▶│
+                    └────┬─────┘                              │
+                         │ tag decoded                        │
+                         ▼                                    │
+                    ┌──────────┐  colour swatch, material,    │
+                    │  REVIEW  │  brand, temperatures         │
+                    └────┬─────┘  [ No ]        [ Send ] ─────┤
+                         │ Send → backend->assign(slot, tag)  │
+                         ▼                                    │
+                    ┌──────────┐  OK / error + reason         │
+                    │  RESULT  │──── tap, or 2.5 s ──────────▶┘
+                    └──────────┘
+```
+
+**Design rules for the state machine:**
+
+- **The screen never blocks.** Anything that can take seconds — a network scan, an
+  account sync, an OTA download — either runs incrementally across `loop()` calls
+  or gets its own screen with progress. A frozen 2.0" screen is indistinguishable
+  from a crashed device.
+- **Every failure state names a way out.** "Printer offline" is not an error
+  message; "Printer offline — check it is on the same network" is.
+- **`PROVISION` and `PAIRING` are states, not separate firmwares.** See
+  [WIFI-PROVISIONING.md](WIFI-PROVISIONING.md) and
+  [ACCOUNT-PAIRING.md](ACCOUNT-PAIRING.md).
+
+---
+
+## Configuration and storage
+
+Everything persistent lives in NVS under the namespace **`tigerspool`**.
+
+| Key group | Holds |
+|---|---|
+| `ssid`, `pass` | Wi-Fi credentials |
+| `lang` | selected language |
+| `p0…p7` | up to eight printers: type, name, host, serial, access code |
+| `psel` | which printer is selected |
+| account | refresh token, uid, email — encrypted, see below |
+
+**Printers are imported, not typed.** The account sync writes `p0…p7`; the web
+form exists to correct an import or to add a printer the account does not know
+about, and it merges rather than overwrites, so a value a user corrected by hand
+is not clobbered by the next sync.
+
+**The account token is stored in encrypted NVS.** A refresh token is a
+long-lived credential to someone's account. It does not sit in plaintext flash
+where a `esptool read_flash` recovers it. See [SECURITY.md](../SECURITY.md).
+
+**No credentials are ever compiled in.** Not Wi-Fi, not printer access codes, not
+API keys with any authority. The published firmware binary is identical for every
+user.
+
+---
+
+## Identifiers
+
+Fixed now so that nothing has to be renamed later. The prototype's `k2`/`tigertag`
+names belong to a Creality-only ancestor and do not survive.
+
+| | Value |
+|---|---|
+| mDNS hostname | `tigerspool.local` |
+| Setup AP SSID | `TigerSpool-Setup` |
+| Firmware binary | `tigerspool-v1.0.0.bin` |
+| PlatformIO env | `tigerspool` |
+| MQTT client id | `tigerspool-<mac6>` |
+| NVS namespace | `tigerspool` |
+
+---
+
+## Directory layout
+
+```
+firmware/
+├── platformio.ini
+├── partitions.csv          two OTA slots — see docs/OTA.md
+├── include/                board headers, build-time configuration
+├── lib/
+│   └── PN532/              the vendored reader driver, ONE copy
+├── data/                   web config UI, uploaded to LittleFS
+└── src/
+    ├── main.cpp            setup(), loop(), and nothing else
+    ├── app/                state machine, orchestration
+    ├── ui/                 screens, rendering, touch
+    ├── reader/             PN532 driver use, TigerTag decoding
+    ├── printers/
+    │   ├── backend.h       the interface above
+    │   ├── registry.*      brand → backend
+    │   ├── creality/
+    │   ├── flashforge/
+    │   ├── bambulab/
+    │   └── snapmaker/
+    ├── account/            pairing, session, printer import
+    ├── net/                Wi-Fi, captive portal, web config, mDNS, OTA
+    └── platform/           NVS, display, touch, logging
+```
+
+**One copy of the PN532 library.** The prototype carries three, which have
+already drifted apart from each other. See
+[MIGRATION.md](MIGRATION.md#the-vendored-pn532-library).
+
+---
+
+## Open questions
+
+Recorded here rather than answered wrongly.
+
+- **Recovering a wedged reader at runtime.** The reset line helps at init. Whether
+  it can recover a reader that stops responding after hours, without a power
+  cycle, is untested.
+- **Backend memory ceiling.** Bambu Lab's full status report can reach ~50 KB and
+  needs a large MQTT buffer. Only one backend is active at a time, which is what
+  makes this fit; whether that constraint should be enforced by the registry
+  rather than by convention is undecided.
+- **Behaviour during a print.** Reassigning a slot mid-print is at best ignored
+  and at worst harmful on some printers. Whether the firmware should detect and
+  refuse it, and how it learns the printer is printing, is not designed yet.

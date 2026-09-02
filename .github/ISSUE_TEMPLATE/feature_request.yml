@@ -1,0 +1,42 @@
+name: Feature request
+description: Suggest something
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Two constraints worth knowing before you write, because they rule out a
+        lot of otherwise reasonable ideas:
+
+        - **There is no keyboard on the device, and there will not be one.**
+          Anything requiring text entry has to happen on a phone or in Tiger
+          Studio. See [docs/ONBOARDING.md](../blob/main/docs/ONBOARDING.md).
+        - **The target user is not a hacker.** Features that need a config file,
+          a YAML edit or a rebuild are not a fit. See the
+          [README](../blob/main/README.md).
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you actually trying to do, and what stops you today?
+    validations: { required: true }
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you have in mind
+    validations: { required: true }
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What else you considered
+
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Fit
+      options:
+        - label: This does not require typing on the device
+        - label: This does not require the user to edit a config file or rebuild

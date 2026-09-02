@@ -1,0 +1,75 @@
+# ---------------------------------------------------------------------------
+# TigerSpool RFID — ignored paths
+# ---------------------------------------------------------------------------
+
+# Internal working documents. French-language audit, roadmap and open
+# questions for the maintainer. NEVER published — see _internal/README.md.
+_internal/
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE & editor
+.vscode/
+.idea/
+.claude/
+*.swp
+*.swo
+*~
+
+# PlatformIO
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# Build artifacts
+build/
+*.bin
+*.elf
+*.hex
+*.map
+*.o
+*.a
+*.zip
+*.tmp
+*.bak
+
+# Secrets & local config — the firmware must never carry credentials.
+# See SECURITY.md.
+.env
+.env.local
+secrets.h
+config_secret.h
+firebase_config.h
+google-services.json
+serviceAccountKey.json
+
+# Firmware binaries for the web installer are built by CI and deployed to
+# GitHub Pages. They are never committed.
+installer/firmware/*.bin
+installer/version.json
+
+# Node (installer tooling)
+node_modules/
+npm-debug.log*
+yarn-error.log*
+dist/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Logs
+*.log
+
+# Local scratchpads
+local_*.md
+NOTES.md
+TODO.local.md

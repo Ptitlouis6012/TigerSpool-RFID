@@ -1,0 +1,52 @@
+# Deploy the web installer to GitHub Pages.
+#
+# PLACEHOLDER — installer/ has a README and no page yet. See installer/README.md.
+#
+# When enabled, this deploys installer/ together with the firmware binaries built
+# by release.yml. Binaries are NEVER committed to the repository: they exist only
+# in the deployed Pages artifact and in the GitHub release, so the installer and
+# the OTA channel cannot serve different builds.
+#
+# Prerequisite, once: Settings -> Pages -> Source = "GitHub Actions".
+
+name: pages
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Not yet implemented
+        run: |
+          echo "installer/ has no page yet. See installer/README.md."
+          exit 1
+
+  # deploy:
+  #   runs-on: ubuntu-latest
+  #   environment:
+  #     name: github-pages
+  #     url: ${{ steps.deploy.outputs.page_url }}
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/download-artifact@v4
+  #       with:
+  #         name: firmware
+  #         path: installer/firmware
+  #     - uses: actions/configure-pages@v5
+  #     - uses: actions/upload-pages-artifact@v3
+  #       with:
+  #         path: installer
+  #     - id: deploy
+  #       uses: actions/deploy-pages@v4

@@ -1,0 +1,48 @@
+name: Printer support
+description: Ask for a printer to be supported, or report protocol findings
+labels: [printer-support]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The honest state of every brand is in
+        [docs/PRINTER-COMPATIBILITY.md](../blob/main/docs/PRINTER-COMPATIBILITY.md).
+
+        **Elegoo and Anycubic are the priority** and neither has any
+        implementation — nothing is known yet about how they expose filament slot
+        configuration over the network.
+
+        A request without a capture or existing protocol notes is a wish. A
+        request with one is something we can act on this week.
+
+  - type: input
+    id: brand
+    attributes:
+      label: Brand and model
+    validations: { required: true }
+
+  - type: input
+    id: fw
+    attributes:
+      label: Printer firmware version
+
+  - type: dropdown
+    id: help
+    attributes:
+      label: What you can contribute
+      multiple: true
+      options:
+        - A packet capture of the vendor slicer setting a filament slot
+        - Existing reverse-engineering notes or links
+        - Access to the printer for testing
+        - I can write and test the backend
+        - Nothing right now, just asking
+    validations: { required: true }
+
+  - type: textarea
+    id: findings
+    attributes:
+      label: What you already know
+      description: >
+        Ports, transport (HTTP? MQTT? WebSocket?), authentication, any command
+        shapes. Paste captures or links. Redact serials and access codes.

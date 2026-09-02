@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Discord
+    url: https://discord.gg/3Qv5TSqnJH
+    about: Questions, help and community builds — faster than an issue.
+  - name: Security vulnerability
+    url: https://github.com/TigerTag-Project/TigerSpool-RFID/security/advisories/new
+    about: Report privately. Do not open a public issue.
+  - name: The TigerTag protocol
+    url: https://github.com/TigerTag-Project/TigerTag-RFID-Guide
+    about: Questions about the tags themselves belong there.

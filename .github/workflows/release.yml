@@ -1,0 +1,90 @@
+# Publish a release.
+#
+#     git tag v1.0.0 && git push origin v1.0.0
+#
+# PLACEHOLDER — no firmware to release yet. Everything below is commented, but
+# the design is settled and documented in docs/OTA.md.
+#
+# Two rules this workflow exists to enforce, once it is enabled:
+#
+#   1. ONE source of truth for the version — a macro in the firmware source. The
+#      workflow refuses to publish if the git tag disagrees with it.
+#   2. The manifest is GENERATED, never hand-edited. The OTA channel and the web
+#      installer read the same generated file, which is what stops them drifting
+#      apart because someone forgot a step.
+#
+# Prerequisite, once: Settings -> Pages -> Source = "GitHub Actions".
+# Prerequisite for signing: a signing key in repository secrets. Never in git.
+
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Not yet implemented
+        run: |
+          echo "There is no firmware in this repository yet."
+          echo "See docs/MIGRATION.md for the plan, docs/OTA.md for the release design."
+          exit 1
+
+  # build:
+  #   runs-on: ubuntu-latest
+  #   outputs:
+  #     version: ${{ steps.version.outputs.version }}
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-python@v5
+  #       with: { python-version: '3.12' }
+  #
+  #     - name: Check the tag matches the firmware version
+  #       id: version
+  #       run: |
+  #         MACRO=$(grep -m1 'TIGERSPOOL_FW_VERSION' firmware/src/*.cpp | sed 's/.*"\(.*\)".*/\1/')
+  #         TAG=${GITHUB_REF_NAME#v}
+  #         if [ "$MACRO" != "$TAG" ]; then
+  #           echo "::error::tag v$TAG disagrees with TIGERSPOOL_FW_VERSION=$MACRO"
+  #           exit 1
+  #         fi
+  #         echo "version=$MACRO" >> "$GITHUB_OUTPUT"
+  #
+  #     - run: pip install --upgrade platformio
+  #     - working-directory: firmware
+  #       run: |
+  #         pio run -e tigerspool
+  #         pio run -e tigerspool -t buildfs
+  #
+  #     - name: Stage, sign and checksum
+  #       run: |
+  #         # tigerspool-v<version>.bin           OTA image
+  #         # tigerspool-v<version>.factory.bin   first flash
+  #         # bootloader.bin partitions.bin boot_app0.bin littlefs.bin
+  #         # SHA256SUMS.txt
+  #         # signature over the OTA image, with the key from secrets
+  #         :
+  #
+  #     - name: Generate installer manifest and version.json
+  #       run: python scripts/make-manifest.py --version "${{ steps.version.outputs.version }}"
+  #
+  #     - uses: softprops/action-gh-release@v2
+  #       with:
+  #         files: dist/*
+  #         generate_release_notes: true
+  #
+  # deploy-pages:
+  #   needs: build
+  #   uses: ./.github/workflows/pages.yml

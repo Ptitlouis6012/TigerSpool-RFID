@@ -1,0 +1,85 @@
+name: Bug report
+description: Something does not work
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Before you file a reader problem** — a tag that is not detected, a UID
+        that changes every read, "read unstable" — please walk the bring-up
+        checklist in [docs/WIRING.md](../blob/main/docs/WIRING.md#bringing-a-new-build-up).
+        It resolves most of them in a minute, and tells us something either way.
+
+        **Before you file a printer problem** — check LAN mode is enabled on the
+        printer. It is off by default on Creality, FlashForge and Bambu Lab, and
+        it is the most common cause of "offline".
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: And what you expected instead.
+    validations: { required: true }
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to reproduce
+      placeholder: |
+        1. …
+        2. …
+        3. …
+    validations: { required: true }
+
+  - type: input
+    id: fw
+    attributes:
+      label: TigerSpool firmware version
+      description: Shown on the settings screen.
+    validations: { required: true }
+
+  - type: input
+    id: board
+    attributes:
+      label: Board
+      value: Waveshare ESP32-S3-Touch-LCD-2
+    validations: { required: true }
+
+  - type: input
+    id: reader
+    attributes:
+      label: PN532 module
+      description: Which variant, and where you bought it. Clones differ.
+    validations: { required: true }
+
+  - type: input
+    id: printer
+    attributes:
+      label: Printer model
+      description: Leave blank if this is not printer-related.
+
+  - type: input
+    id: printerfw
+    attributes:
+      label: Printer firmware version
+      description: >
+        Matters more than you would think — every protocol except Snapmaker's is
+        reverse-engineered, and vendors change them without notice.
+
+  - type: textarea
+    id: serial
+    attributes:
+      label: Serial log
+      description: >
+        `pio device monitor -b 115200`, from boot to the failure. Redact your
+        Wi-Fi password and any printer access code before pasting.
+      render: text
+
+  - type: checkboxes
+    id: checked
+    attributes:
+      label: Checked
+      options:
+        - label: I walked the wiring checklist (reader problems)
+        - label: LAN mode is enabled on the printer (printer problems)
+        - label: The device and the printer are on the same network segment

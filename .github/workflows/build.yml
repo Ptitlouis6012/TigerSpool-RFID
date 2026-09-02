@@ -1,0 +1,117 @@
+# Build the firmware on every push and pull request.
+#
+# PLACEHOLDER — there is no firmware in this repository yet. The build steps are
+# commented out rather than deleted so that enabling them is one edit, and so the
+# intended shape is reviewable now. See docs/MIGRATION.md.
+#
+# The docs job below is NOT a placeholder: it runs today and checks that the
+# documentation does not rot.
+
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    name: check documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: No internal documents committed
+        run: |
+          # _internal/ is French-language working material for the maintainer
+          # and must never reach the public repository.
+          if git ls-files --error-unmatch _internal 2>/dev/null; then
+            echo "::error::_internal/ is tracked by git. It must stay ignored."
+            exit 1
+          fi
+          echo "OK — _internal/ is not tracked."
+
+      - name: No broken relative links
+        run: |
+          # Every ](path) pointing inside the repository must resolve.
+          python3 - <<'PY'
+          import pathlib, re, sys
+          bad = []
+          for f in pathlib.Path('.').rglob('*.md'):
+              if '_internal' in f.parts or '.git' in f.parts:
+                  continue
+              for link in re.findall(r'\]\(([^)\s]+)\)', f.read_text()):
+                  if link.startswith(('http://', 'https://', 'mailto:', '#')):
+                      continue
+                  target = link.split('#')[0]
+                  if not target:
+                      continue
+                  if not (f.parent / target).exists():
+                      bad.append(f'{f}: {link}')
+          for b in bad:
+              print(f'::error::broken link -> {b}')
+          sys.exit(1 if bad else 0)
+          PY
+          echo "OK - no broken relative links."
+
+      - name: The wrong pinout is not prescribed anywhere
+        run: |
+          # GPIO6/7 is the most expensive mistake in this project's history: it
+          # produces a reader that looks alive and returns garbage. Mentioning it
+          # to warn against it is fine. Presenting it as a wiring instruction --
+          # a line that pairs it with TXD, RXD or a UART macro -- is not.
+          if grep -rn --include='*.md' -E 'GPIO ?-?[67]' . \
+               | grep -vE '^\./_internal/' \
+               | grep -E 'TXD|RXD|PN532_UART|UART ?RX|UART ?TX'; then
+            echo "::error::GPIO6/7 presented as a PN532 wiring instruction. It is not. See docs/WIRING.md."
+            exit 1
+          fi
+          echo "OK."
+
+  # firmware:
+  #   name: build firmware
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #
+  #     - uses: actions/setup-python@v5
+  #       with:
+  #         python-version: '3.12'
+  #
+  #     - name: Cache PlatformIO
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: |
+  #           ~/.platformio
+  #           ~/.cache/pip
+  #         key: ${{ runner.os }}-pio-${{ hashFiles('firmware/platformio.ini') }}
+  #         restore-keys: ${{ runner.os }}-pio-
+  #
+  #     - name: Install PlatformIO
+  #       run: pip install --upgrade platformio
+  #
+  #     - name: Build
+  #       working-directory: firmware
+  #       run: pio run -e tigerspool
+  #
+  #     - name: Build the LittleFS image
+  #       working-directory: firmware
+  #       run: pio run -e tigerspool -t buildfs
+  #
+  #     - name: Report size
+  #       working-directory: firmware
+  #       run: pio run -e tigerspool --silent 2>&1 | grep -E 'RAM:|Flash:' || true
+  #
+  #     - name: Upload artifacts
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: tigerspool-${{ github.sha }}
+  #         path: |
+  #           firmware/.pio/build/tigerspool/firmware.bin
+  #           firmware/.pio/build/tigerspool/littlefs.bin
+  #         retention-days: 30
