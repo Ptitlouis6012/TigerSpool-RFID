@@ -68,9 +68,21 @@ public release is what avoids ever having to ask users to re-flash.
 The rollback is the part that makes OTA safe enough to enable by default.
 
 A newly flashed slot is marked **pending verification**, not valid. The new
-firmware must reach a known-good state — display up, touch responding, Wi-Fi
-associated — and only then mark itself valid. If it crashes or panics before
-that, the bootloader reverts to the previous slot on the next boot.
+firmware must reach a known-good state — display up, touch responding — and only
+then mark itself valid. If it crashes or panics before that, the bootloader
+reverts to the previous slot on the next boot.
+
+> **This does not come for free, and it is easy to believe it does.** Two OTA
+> partitions make an update *possible*; they do not make it *reversible*. Genuine
+> rollback needs `CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE` in the bootloader **and**
+> an explicit `esp_ota_mark_app_valid_cancel_rollback()` call once the new
+> firmware has proved itself. Without both, a freshly flashed image that boots and
+> then misbehaves is simply kept.
+>
+> TigerScale V3 has neither, while its source comments assert that the ESP32
+> "auto-rolls-back if the new firmware doesn't boot cleanly". It does not.
+> TigerSpool must implement this deliberately and test it by shipping a
+> deliberately broken build to a bench device.
 
 A device that bricks itself on a bad update is worse than a device that never
 updates. A user cannot recover one that lives behind a printer, and they should
@@ -113,23 +125,64 @@ intermediate release rather than ending up with unreadable NVS.
 
 ---
 
-## Signing
+## Integrity and authenticity
 
-**The firmware verifies a signature before it boots a downloaded image.** A
-SHA-256 checksum only proves the download was not corrupted; it proves nothing
-about who produced it. Without a signature, anyone who can answer for the update
-host — a hijacked DNS answer, a captive portal, a compromised CDN — can install
-arbitrary firmware on every device in the field.
+Two different problems, often confused. TigerSpool has to solve both.
 
-- Signing key lives in GitHub Actions secrets. Never in the repository.
+**Integrity** — did the image arrive intact? A SHA-256 over the download answers
+this. It catches truncation, corruption and a half-finished transfer.
+
+**Authenticity** — did *we* produce this image? A hash cannot answer this. If an
+attacker controls what the device downloads, they control the hash it is compared
+against too, unless that hash arrives over a channel the device can authenticate.
+
+### What the ecosystem does today
+
+TigerScale V3 verifies **SHA-256 only, over TLS with certificate validation
+disabled**. Its own code says so:
+
+```c
+// We use WiFiClientSecure with setInsecure() for TLS — relying on SHA-256
+// integrity rather than CA validation. This is acceptable because:
+//   — The expected hash comes from Firestore (already auth'd to the user)
+//   — A MITM swapping the binary would fail SHA verification -> no install.
+```
+
+**That reasoning does not hold, and it is worth being precise about why:** the
+expected hash is fetched with `setInsecure()` as well. An attacker positioned to
+swap the binary is positioned to swap the hash it is checked against — it is the
+same connection, with the same absence of certificate validation. The hash
+protects against a corrupted download. It does not protect against an adversary.
+
+There is also no fallback: when no expected hash is supplied, verification is
+**skipped** and the image installs anyway.
+
+**There is no TigerTag firmware signing key.** No public key is compiled into V3,
+no signing step exists in its release workflow, and its published artifacts carry
+only a `SHA256SUMS.txt`. Nothing exists to reuse — whatever TigerSpool does here
+is new.
+
+### What TigerSpool does
+
+**Validate TLS certificates.** This is the cheaper half of the fix and it closes
+most of the gap on its own: a hash delivered over an authenticated channel is
+meaningfully a hash *from us*. A pinned root CA bundle, with a plan for rotating
+it before it expires.
+
+**Then verify a signature before boot.** TLS authenticates the *server*; a
+signature authenticates the *image*, and keeps holding if the host is
+compromised, if a CDN is poisoned, or if a certificate is mis-issued. For a
+device that lives behind a printer and updates itself unattended, that is the
+property worth having.
+
+- The signing key lives in GitHub Actions secrets. Never in the repository.
 - The **public** key is compiled into the firmware.
-- The bootloader's own secure boot is a separate, later decision — it is
-  irreversible per device and must not be enabled casually.
+- **Never skip verification when a signature is absent.** An unsigned image is
+  refused, not installed. A verification step that can be bypassed by omitting
+  the thing being verified is not a verification step.
 
-**TODO — to confirm with Benoit:** whether TigerTag has an existing firmware
-signing key and process to reuse, or whether one is created for TigerSpool.
-
----
+The ESP32's own secure boot is a separate, later decision — it is irreversible
+per device and must not be enabled casually.
 
 ## Channels
 

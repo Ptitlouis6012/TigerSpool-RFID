@@ -154,9 +154,10 @@ Related projects: **[TigerTag-RFID-Guide](https://github.com/TigerTag-Project/Ti
 The firmware isn't here yet, so the most useful contributions right now are
 **not code**:
 
-- **Own an Elegoo or an Anycubic?** Their network protocols are the single
-  biggest unknown in this project. A packet capture of the vendor slicer setting
-  a filament slot would unblock both. See
+- **Know anything about Elegoo or Anycubic network protocols?** They are the
+  largest unknown in this project. The printers are on the bench, so the work is
+  scheduled — but published reverse-engineering notes, or captures from models we
+  do not have, would shorten it a lot. See
   [docs/PRINTER-COMPATIBILITY.md](docs/PRINTER-COMPATIBILITY.md).
 - **Read the architecture** and tell us where it's wrong —
   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

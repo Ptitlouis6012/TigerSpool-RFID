@@ -11,20 +11,19 @@ Talk to us on **[Discord](https://discord.gg/3Qv5TSqnJH)**.
 
 ### 1. Elegoo and Anycubic protocols
 
-**The single biggest unknown in the project.** Both are targeted for v1 and
-neither has any implementation. Nothing is known about how either brand exposes
-filament slot configuration over the network.
+**The largest unknown in the project.** Both are targeted for v1 and neither has
+any implementation. Nothing is known yet about how either brand exposes filament
+slot configuration over the network.
 
-What unblocks them:
+Both printers are on the maintainer's bench, so this is scheduled work rather
+than a search for hardware. What would still shorten it:
 
-- **A packet capture** of the vendor's slicer or app setting a filament type and
-  colour on a slot. One capture is usually enough to identify the transport, the
-  authentication and the command shape.
-- **Existing reverse-engineering notes** from either community.
-- **Access to a printer** for iteration once there is a first guess.
+- **Existing reverse-engineering notes** for either brand.
+- **Captures from models we do not have** — a protocol that holds across a
+  brand's range is worth much more than one that fits a single printer.
+- **Testing** once a first implementation exists.
 
-If you own one of these, open an issue. See
-[docs/PRINTER-COMPATIBILITY.md](docs/PRINTER-COMPATIBILITY.md).
+See [docs/PRINTER-COMPATIBILITY.md](docs/PRINTER-COMPATIBILITY.md).
 
 ### 2. Read the architecture and argue with it
 

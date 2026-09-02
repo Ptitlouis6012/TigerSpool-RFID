@@ -134,13 +134,8 @@ not have to find a URL on another device first.
 
 ## Endpoints
 
-> **Status: to be confirmed with the TigerTag backend.** Two shapes exist in the
-> ecosystem today and they do not agree. This must be settled before the account
-> layer is written — it is tracked as a blocking dependency, not an implementation
-> detail.
-
-**What the prototype actually calls,** and what is therefore known to be deployed
-and working:
+These are the endpoints **TigerScale V3 actually calls in shipped firmware**, and
+the prototype calls the same ones. They are the deployed, working surface.
 
 | | |
 |---|---|
@@ -150,16 +145,11 @@ and working:
 | Refresh | `POST https://securetoken.googleapis.com/v1/token` |
 | Printers | Firestore REST, `users/{uid}/printers/*` |
 
-**What TigerScale V3's documentation specifies** — a first-party API path rather
-than raw Cloud Function URLs:
-
-| | |
-|---|---|
-| Start | `POST /api/device/pair/start` |
-| Poll | `POST /api/device/pair/poll` |
-
-TigerSpool should target whichever of these is the intended long-term surface.
-**TODO — to confirm with Benoit.**
+> **On `/api/device/pair/*`.** TigerScale V3's own documentation describes a
+> first-party API path rather than raw Cloud Function URLs. Its firmware does not
+> use it — the shipped code hardcodes the two Cloud Function URLs above. Treat
+> `/api/device/pair/*` as an intended future surface, not something to code
+> against today. If it is ever built, moving to it is a two-constant change.
 
 ### `pair/start`
 

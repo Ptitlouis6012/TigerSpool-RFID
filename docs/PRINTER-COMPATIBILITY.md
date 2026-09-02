@@ -43,26 +43,27 @@ printer · 🟡 implemented, not fully verified · 🔴 not implemented.
 ## Elegoo and Anycubic
 
 Both are **targeted for v1** and **neither has a single line of code today**.
-This is the largest open risk in the project, and it is stated plainly rather
-than buried.
+Nothing is yet known about how either brand exposes filament slot configuration
+over the network — whether there is a LAN API at all, whether it is
+authenticated, whether it can be written to rather than only read.
 
-Nothing is known yet about how either brand exposes filament slot configuration
-over the network — whether there is a LAN API at all, whether it is authenticated,
-whether it can be written to rather than only read.
+**Both printers are physically available to the maintainer**, so this is
+scheduled reverse-engineering work rather than a search for hardware. It is still
+the largest unknown in the project: the effort depends entirely on what the
+protocols turn out to be, and "there is no writable LAN API" remains a possible
+answer for either brand.
 
-**What would unblock them,** in descending order of usefulness:
+**Still useful from the community**, and it would shorten the work considerably:
 
-1. **A packet capture** of the vendor's own slicer or app setting a filament type
-   and colour on a slot. That single capture is usually enough to identify the
-   transport, the authentication and the command shape.
-2. **Existing reverse-engineering work.** Both brands have active communities;
-   published protocol notes would save weeks.
-3. **Physical access to a printer** for iteration once a first guess exists.
+1. **Existing reverse-engineering notes** for either brand. Both have active
+   communities and published protocol work would save days.
+2. **Captures from other models** than the ones on the bench — a protocol that
+   holds across a brand's range is worth far more than one that fits a single
+   printer.
+3. **Testers** once a first implementation exists.
 
-If you own one of these printers and can help, open an issue. It is the most
-valuable contribution available to this project right now.
-
----
+Open an issue if you have any of these. See
+[CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ## What "supported" does and does not mean
 

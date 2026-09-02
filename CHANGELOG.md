@@ -50,10 +50,24 @@ structure and decisions only.
   to flash. ([docs/WIFI-PROVISIONING.md](docs/WIFI-PROVISIONING.md))
 - **Nine languages**, aligned with TigerScale V3.
 - **Elegoo and Anycubic are targeted for v1** and have no implementation. Both
-  are blocked on protocol reverse-engineering that has not started.
+  printers are available for the protocol reverse-engineering work, which has not
+  started.
 - **The partition table is set before the first public release**, because
   changing it afterwards costs every user a USB reflash.
   ([docs/OTA.md](docs/OTA.md))
+- **Pairing targets the deployed Cloud Functions** (`pairStart` / `pairPoll`),
+  which is what TigerScale V3 calls in shipped firmware. The `/api/device/pair/*`
+  path in V3's documentation is not implemented anywhere and is treated as a
+  future surface. ([docs/ACCOUNT-PAIRING.md](docs/ACCOUNT-PAIRING.md#endpoints))
+- **OTA images are signed, and TLS certificates are validated.** No TigerTag
+  signing key exists to reuse: V3 verifies a SHA-256 fetched over the same
+  unauthenticated TLS connection as the image itself, and skips verification
+  entirely when no hash is supplied. TigerSpool refuses an unsigned image rather
+  than installing it. ([docs/OTA.md](docs/OTA.md#integrity-and-authenticity))
+- **Rollback is implemented deliberately, not assumed.** Two OTA partitions make
+  an update possible, not reversible; real rollback needs the bootloader option
+  *and* an explicit validity call. V3 has neither while its comments claim
+  otherwise. ([docs/OTA.md](docs/OTA.md#rollback))
 - Identifiers fixed: `tigerspool.local`, `TigerSpool-Setup`, PlatformIO env
   `tigerspool`, NVS namespace `tigerspool`.
 
@@ -63,6 +77,6 @@ structure and decisions only.
 - No CI beyond placeholders.
 - No 3D models.
 - No web installer page.
-- Elegoo and Anycubic protocols unknown.
+- Elegoo and Anycubic protocols unknown — reverse-engineering not started.
 
 [Unreleased]: https://github.com/TigerTag-Project/TigerSpool-RFID/commits/main

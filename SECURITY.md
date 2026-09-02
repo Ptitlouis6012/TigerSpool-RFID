@@ -41,7 +41,13 @@ rotating it before it expires.
 **Firmware updates are signature-verified before boot.** A checksum proves the
 download was not corrupted; it proves nothing about who produced it. Without a
 signature, anyone who can answer for the update host can install arbitrary
-firmware on every device in the field. See [docs/OTA.md](docs/OTA.md).
+firmware on every device in the field.
+
+> **No TigerTag firmware signing key exists to reuse.** TigerScale V3 verifies a
+> SHA-256 only, and fetches both the image and its expected hash over TLS with
+> certificate validation disabled — so the same attacker can swap the binary and
+> the hash it is checked against. Whatever TigerSpool does here is new work.
+> [docs/OTA.md](docs/OTA.md#integrity-and-authenticity)
 
 **The setup access point is temporary.** It exists only while the device has no
 known-good network, and it goes down as soon as it does.
