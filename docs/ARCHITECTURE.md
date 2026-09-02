@@ -33,7 +33,8 @@ Elegoo means writing one class, not touching the application.
 │  reader/      │  printers/   │  account/      │  net/         │
 │  PN532 HSU    │  backends    │  TigerTag      │  Wi-Fi, portal│
 │  TigerTag     │  + registry  │  session,      │  mDNS, OTA,   │
-│  decode       │              │  printer import│  web config   │
+│  decode       │              │  printers in,  │  web config   │
+│               │              │  slots out     │               │
 ├───────────────┴──────────────┴────────────────┴───────────────┤
 │  platform/      NVS, display driver, touch, time, logging     │
 └───────────────────────────────────────────────────────────────┘
@@ -82,8 +83,16 @@ polling:
 **Slots are a flat 0-based list to the UI.** Real printers do not agree on
 addressing — Creality has box+slot pairs, Bambu has AMS unit + tray with special
 values for the external spool, FlashForge has 1-based slot ids, Snapmaker has
-extruder indices. Every one of those mappings lives *inside* its backend. The
-grid on screen iterates `0 … slotCount()-1` and never learns the difference.
+extruder indices, Anycubic has box+slot with a four-slot box numbered `-1`.
+Every one of those mappings lives *inside* its backend. The grid on screen
+iterates `0 … slotCount()-1` and never learns the difference.
+
+> The TigerTag account already models slots this way, normalised across brands,
+> each entry carrying a `hw` object holding the printer's own address. The
+> firmware and Tiger Studio arrived at the same split independently, which is
+> decent evidence it is the right one — and it means the two can be aligned
+> rather than merely compatible.
+> [ACCOUNT-DATA.md](ACCOUNT-DATA.md#units--the-slot-model-the-ecosystem-already-agreed-on)
 
 **`slotCount()` is dynamic.** A Bambu Lab printer's slot count is not known until
 its first status report arrives — one AMS unit or four, plus the external spool.
@@ -212,6 +221,12 @@ keeps a new brand from touching the UI.
 - **`PROVISION` and `PAIRING` are states, not separate firmwares.** See
   [WIFI-PROVISIONING.md](WIFI-PROVISIONING.md) and
   [ACCOUNT-PAIRING.md](ACCOUNT-PAIRING.md).
+- **`RESULT` writes back to the account, in the background.** A confirmed
+  assignment updates the slot in the user's account — material, colour, vendor,
+  and the scanned tag's UID — so a spool scanned in the workshop is visible in
+  Tiger Studio and on a phone. It happens after the result screen, never blocks
+  it, and never runs for a cloud-mode printer whose state the vendor's cloud
+  already owns. [ACCOUNT-DATA.md](ACCOUNT-DATA.md#writing-back)
 
 ---
 
@@ -244,6 +259,10 @@ Bolting `sn2`/`cc2` onto the struct is how this ends up unreadable by the third
 brand. The credential set belongs to the backend that consumes it — a small
 key/value bag the account layer fills and the backend reads by name — so adding a
 brand with unusual authentication stays a change inside that brand.
+
+The observed field names, per brand, are in
+[ACCOUNT-DATA.md](ACCOUNT-DATA.md#credentials-are-not-one-shape). Six brands use
+six different vocabularies, and one of them shares no spelling with any other.
 
 **The account token is stored in encrypted NVS.** A refresh token is a
 long-lived credential to someone's account. It does not sit in plaintext flash
@@ -295,7 +314,7 @@ firmware/
     │   ├── snapmaker/
     │   ├── elegoo/         ported from Tiger Studio's PROTOCOL.md
     │   └── anycubic/       ported from Tiger Studio's PROTOCOL.md
-    ├── account/            pairing, session, printer import
+    ├── account/            pairing, session, printer import, slot write-back
     ├── net/                Wi-Fi, captive portal, web config, mDNS, OTA
     └── platform/           NVS, display, touch, logging
 ```

@@ -32,6 +32,8 @@ structure and decisions only.
 - Bill of materials ([hardware/BOM.md](hardware/BOM.md)).
 - 3D model directory structure and the rule that only the shell changes
   ([models/README.md](models/README.md)).
+- The account data model — what the device reads from a TigerTag account and
+  what it writes back after a scan ([docs/ACCOUNT-DATA.md](docs/ACCOUNT-DATA.md)).
 - Web installer design ([installer/README.md](installer/README.md)).
 - CI workflow placeholders, issue and PR templates.
 - MIT license, trademark policy, security policy, code of conduct, contributor
@@ -71,6 +73,16 @@ structure and decisions only.
   unauthenticated TLS connection as the image itself, and skips verification
   entirely when no hash is supplied. TigerSpool refuses an unsigned image rather
   than installing it. ([docs/OTA.md](docs/OTA.md#integrity-and-authenticity))
+- **The device writes slot changes back to the account.** A confirmed assignment
+  updates the slot's material, colour, vendor and the scanned tag's UID, so a
+  spool scanned in the workshop is visible in Tiger Studio and on a phone. Never
+  for cloud-mode printers, whose state the vendor's cloud already owns, and never
+  before the printer confirms.
+  ([docs/ACCOUNT-DATA.md](docs/ACCOUNT-DATA.md#writing-back))
+- **Credentials are a named bag, not a fixed struct.** Six brands use six
+  different credential vocabularies in the account, and a printer may be
+  cloud-only with no local address at all.
+  ([docs/ACCOUNT-DATA.md](docs/ACCOUNT-DATA.md#credentials-are-not-one-shape))
 - **Rollback is implemented deliberately, not assumed.** Two OTA partitions make
   an update possible, not reversible; real rollback needs the bootloader option
   *and* an explicit validity call. V3 has neither while its comments claim
