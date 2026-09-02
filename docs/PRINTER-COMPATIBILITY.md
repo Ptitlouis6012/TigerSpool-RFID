@@ -33,6 +33,7 @@ someone has to do work before it does.
 | **Snapmaker** | Artisan, J1, J1s, U1 | ⚙️ | Moonraker WebSocket `:7125` | 🟢 proven on hardware | Nothing — Moonraker needs no authentication on the LAN. The printer's IP is all it takes. |
 | **Bambu Lab (cloud)** | X1, P1, and any printer not on your LAN | 🧪 | MQTT/TLS to Bambu's broker | 🟡 partly implemented | Depends on a Bambu session token that **Tiger Studio** obtains and stores in your account; the device never signs in to Bambu itself. The token expires roughly every three months and has to be renewed in Studio. Not a finished experience. |
 | **Elegoo** | Centauri Carbon 2 and others | 🧪 | MQTT `:1883` (plain TCP) | 🔵 protocol documented, firmware not written | Serial number and the MQTT password (an "Access Code" on the printer). Imported automatically from your account. |
+| **Anycubic (cloud)** | any Anycubic not in LAN mode | 🧪 | signed REST + MQTT to Anycubic's cloud | 🔵 protocol documented, firmware not written | Nothing on the printer — but it is a **second, heavier code path** than LAN, and whether it belongs in v1 is undecided. |
 | **Anycubic** | Kobra 3 V2, Kobra X, ACE units | 🧪 | MQTT/TLS `:9883` | 🔵 protocol documented, firmware not written | **The printer must be paired in AnycubicSlicerNext at least once** — its broker credentials exist nowhere else. Tiger Studio reads them from there into your account. |
 
 **Legend for implementation status:** 🟢 implemented in the firmware prototype
@@ -91,6 +92,20 @@ the desktop does the part that is impossible on a 2.0" screen, and the device
 imports the result. But it means **an Anycubic printer must have been paired in
 AnycubicSlicerNext at least once**, and the documentation has to say so plainly
 rather than letting a user discover it as a failure.
+
+### LAN or cloud — an open scope question
+
+An Anycubic printer is reachable **either** over the LAN **or** through Anycubic's
+cloud, and the account says which. A cloud-mode printer keeps no open local ports
+at all: there is nothing on the network to connect to, and the only route is
+Anycubic's own service, with signed REST requests and a second MQTT broker.
+
+The two are separate implementations, not one with a flag. **Whether v1 supports
+both, or LAN only, is not decided.** Until it is, this page lists them as separate
+rows rather than implying a cloud printer works because a LAN one does.
+
+The same question already exists for Bambu Lab, whose cloud path is partly
+implemented in the prototype.
 
 ### Still useful from the community
 
