@@ -114,6 +114,7 @@ Run `pio pkg install` in `firmware/` once and the two agree again.
 | `is not a name this device answers to` | A document names a device the firmware does not build. The format lives in `webcfg.cpp`; the prose follows it, never the reverse. |
 | `this row wires PN532 ... but config.h declares ...` | A wiring table disagrees with the pin macros. Warning against GPIO6/7 in prose is fine; prescribing them in a table is not. |
 | `CRLF line ending(s)` | A file arrived converted. Convert it back to LF alone — a whole-file rewrite makes every later diff on it unreviewable. |
+| `has no release notes` | The version being built was never described. Write them from `WORKLOG.md`, which exists so they are not written from memory at tag time. |
 | any guard exiting `2` | Not a violation: the guard could not run. Its input set was empty or its anchor moved, so it is checking nothing. Fix the guard before trusting the tree. |
 | `broken link -> …` | A relative link in a tracked `.md` points at a file that does not exist. Fix the link or add the file. |
 | `GPIO6/7 presented as a PN532 wiring instruction` | A document gives those pins as reader connections. Warning against them is fine; prescribing them is not. See the pin row under Hardware facts. |

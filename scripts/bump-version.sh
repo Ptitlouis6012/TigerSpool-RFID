@@ -3,8 +3,8 @@
 #
 #   scripts/bump-version.sh 0.2.0
 #
-# It edits the one macro, writes a CHANGELOG heading for the release, and tells
-# you the two commands that publish it. It does not commit, tag or push: those
+# It edits the one macro, moves the accumulated CHANGELOG entries into a heading
+# for the release, and tells you the two commands that publish it. It does not commit, tag or push: those
 # are decisions, and a script that makes them for you is a script that
 # eventually makes them by accident.
 set -euo pipefail
@@ -35,8 +35,22 @@ if marker not in s:
 # Everything under Unreleased becomes the release; Unreleased starts empty
 # again. Writing release notes at tag time means writing them from memory.
 head, rest = s.split(marker, 1)
+
+# Everything accumulated under Unreleased becomes the release, and Unreleased
+# starts empty again. If nothing had accumulated, leave a scaffold line rather
+# than an empty section: check-release-notes.py rejects the scaffold, so the
+# release cannot go out with notes nobody wrote. An empty section would pass a
+# careless eye; a line saying "describe this" does not.
+body = rest.split("\n## ", 1)[0]
+substantive = [l for l in body.splitlines()
+               if l.strip() and not l.strip().startswith("#")]
+if not substantive:
+    rest = ("\n_Describe this release. See WORKLOG.md - that is what it is "
+            "for._\n" + rest)
+    print("CHANGELOG.md: nothing under Unreleased - scaffolded [%s]" % new)
+else:
+    print(f"CHANGELOG.md: moved Unreleased into [{new}]")
 p.write_text(f"{head}{marker}\n\n## [{new}] - {today}\n{rest}")
-print(f"CHANGELOG.md: moved Unreleased into [{new}]")
 PY
 fi
 
@@ -47,5 +61,6 @@ Next, if that is what you want:
   git commit -am "Release $NEW"
   git tag v$NEW && git push origin main --tags
 
-The release workflow refuses to publish if the tag and the macro disagree.
+The release workflow refuses to publish if the tag and the macro disagree, or
+if [$NEW] has no release notes. Write them from WORKLOG.md, not from memory.
 MSG

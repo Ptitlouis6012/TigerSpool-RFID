@@ -72,6 +72,7 @@ step "every drawn string is in a compiled font" "$PY" scripts/check-ui-fonts.py
 step "translation tables agree with their enums" "$PY" scripts/check-i18n.py
 step "generated files match their generator" "$PY" scripts/check-generated.py
 step "the version macro is the single source of truth" bash scripts/check-version.sh
+step "the current version has release notes" "$PY" scripts/check-release-notes.py
 
 if [ "$MODE" != "quick" ]; then
   step "firmware builds" bash -c 'cd firmware && pio run -e tigerspool'

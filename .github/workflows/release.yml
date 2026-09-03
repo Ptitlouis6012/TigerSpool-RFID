@@ -41,6 +41,11 @@ jobs:
       - name: The tag must agree with the version macro
         run: bash scripts/check-version.sh
 
+      # Refuse to publish a release nobody described. WORKLOG.md exists so
+      # these are written when the work happened rather than from memory now.
+      - name: The release must have notes
+        run: python3 scripts/check-release-notes.py --released
+
       - name: Cache PlatformIO
         uses: actions/cache@v4
         with:
@@ -99,8 +104,13 @@ jobs:
           # written when the work happened.
           m = re.search(rf"^## \[{re.escape(v)}\].*?$(.*?)(?=^## \[|\Z)",
                         text, re.S | re.M)
-          print(m.group(1).strip() if m else
-                f"No CHANGELOG section for {v}.")
+          if not m:
+              # check-release-notes.py --released ran before this and would
+              # have stopped the job; reaching here means the file changed
+              # underneath us, which is worth failing on rather than papering
+              # over with a placeholder.
+              raise SystemExit(f"no CHANGELOG section for {v}")
+          print(m.group(1).strip())
           PY
           cat release-notes.md
 

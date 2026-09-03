@@ -79,6 +79,10 @@ message, and reset it to this header.
   table, the manifest keys, and printer identity being an array index — and says
   explicitly that the mutex finding does not share it.
 
+- `scripts/check-release-notes.py` — the eleventh guard, and this file's
+  consumer. A release cannot publish without notes, and scaffold text counts as
+  none.
+
 ### Fixed
 
 - The reference-data generator could not run at all, wrote a Portuguese banner,
