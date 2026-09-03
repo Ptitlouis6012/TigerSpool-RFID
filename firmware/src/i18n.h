@@ -7,8 +7,8 @@
 // written in. The rest follow TigerScale's locale set so the two products speak
 // the same languages.
 //
-// Chinese is deliberately absent: Montserrat covers Latin-1 only, and offering a
-// language whose glyphs render as empty boxes is worse than not offering it.
+// Chinese is deliberately absent: the compiled font carries no CJK glyphs, and
+// offering a language that renders as empty boxes is worse than not offering it.
 // Adding it means generating a CJK subset font the way TigerScale does
 // (scripts/make-cjk-font.sh there) - tracked in docs/MIGRATION.md.
 enum Lang : uint8_t {

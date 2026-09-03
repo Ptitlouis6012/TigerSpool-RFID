@@ -4,9 +4,12 @@
 // One row per string, all languages side by side, in the order of enum Lang:
 //   EN, FR, DE, ES, IT, PL, PT-BR, PT-PT
 //
-// Accents are written normally. The prototype could not: its font was ASCII
-// only, so every language lost its diacritics. LVGL with Montserrat covers
-// Latin-1, so they render properly now.
+// These strings are written WITHOUT diacritics, and that is not an oversight.
+// The compiled Montserrat covers 0x20-0x7F plus degree and bullet - ASCII, not
+// Latin-1 - so an accent draws as a blank box and LVGL logs nothing. Restoring
+// them needs a generated Latin subset font first, and Polish needs Latin
+// Extended-A beyond that. scripts/check-ui-fonts.py enforces this, and widens
+// by itself once such a font exists.
 //
 // The screen is 240 px wide. A string that is half again as long in German as
 // in English gets cut off, so translations are kept short rather than literal.
