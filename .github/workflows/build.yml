@@ -1,17 +1,12 @@
-# Build the firmware on every push and pull request.
+# Build the firmware, and check that the documentation has not rotted.
 #
-# PLACEHOLDER — there is no firmware in this repository yet. The build steps are
-# commented out rather than deleted so that enabling them is one edit, and so the
-# intended shape is reviewable now. See docs/MIGRATION.md.
-#
-# The docs job below is NOT a placeholder: it runs today and checks that the
-# documentation does not rot.
+# Runs on every branch, not only main. A build that only runs once a branch is
+# already proposed for merge tells you too late.
 
 name: build
 
 on:
   push:
-    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
