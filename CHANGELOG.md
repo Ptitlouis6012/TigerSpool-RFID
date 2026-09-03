@@ -106,10 +106,29 @@ Recorded because they were measured rather than assumed.
   least on a Kobra X — contradicting the ecosystem's own protocol notes and
   removing the largest stated risk for that backend.
 
+### Added since the bootstrap
+
+The firmware landed on `phase-2/firmware-import` and the UI was rebuilt on
+LVGL. Highlights, in the order they matter to someone holding the device:
+
+- **First boot works end to end** — language in eight locales with their
+  accents, Wi-Fi over a QR and a captive portal that joins without
+  rebooting, then linking a TigerTag account by email or by Google.
+- **Settings**, eight entries: printers, Wi-Fi, account, screen, language,
+  update, restart, factory reset. Each shows its current value on the row.
+- **A printer picker.** An account can hold ten printers while the machine
+  next to the box is one of them. Hiding is not deleting, and visibility
+  belongs to the user rather than the account.
+- **The screen sleeps** — dim, dark, wake on touch. Only the light stops.
+- **Per-device names**: `tigerspool-XXXX.local` and `TigerSpool-Setup-XXXX`,
+  because two devices could not previously coexist on one network.
+- **Two OTA partitions** on a 16 MB layout. The prototype declared no table
+  and built against an 8 MB default, leaving half the flash unreachable.
+
 ### Not yet done
 
-- No firmware. Nothing in this repository builds, flashes or runs.
-- No CI beyond placeholders.
+- No OTA. The partitions are ready; the update code is not.
+- No web installer page.
 - No 3D models.
 - No web installer page.
 - No Elegoo or Anycubic firmware backend, though both protocols are documented.

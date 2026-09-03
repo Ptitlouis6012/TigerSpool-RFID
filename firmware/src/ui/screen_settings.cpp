@@ -1,0 +1,404 @@
+#include "screen_settings.h"
+#include "frame.h"
+#include "theme.h"
+#include "i18n.h"
+#include "version.h"
+#include <lvgl.h>
+
+namespace {
+screen_settings::Entry s_entry = screen_settings::E_NONE;
+bool s_back = false;
+int  s_toggled = -1;
+uint32_t s_menuSig = 0;
+uint32_t s_pickSig = 0;
+
+void onEntry(lv_event_t* e) {
+    s_entry = (screen_settings::Entry)(intptr_t)lv_event_get_user_data(e);
+}
+void onBack()  { s_back = true; }
+void onToggle(lv_event_t* e) { s_toggled = (int)(intptr_t)lv_event_get_user_data(e); }
+
+uint32_t hashOf(const char* s, uint32_t h = 2166136261u) {
+    for (; s && *s; s++) h = h * 16777619u ^ (uint8_t)*s;
+    return h;
+}
+}  // namespace
+
+namespace screen_settings {
+
+void invalidate() { s_menuSig = 0; s_pickSig = 0; }
+
+void showMenu(const char* network, const char* account,
+              int visiblePrinters, int totalPrinters) {
+    uint32_t sig = hashOf(network) ^ hashOf(account)
+                 ^ ((uint32_t)visiblePrinters << 8) ^ (uint32_t)totalPrinters;
+    if (sig == s_menuSig) return;
+    s_menuSig = sig;
+
+    lv_obj_t* body = frame::build(i18n::T(S_SETTINGS), onBack);
+    lv_obj_set_flex_align(body, LV_FLEX_ALIGN_START,
+                          LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_add_flag(body, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scroll_dir(body, LV_DIR_VER);
+    lv_obj_set_scrollbar_mode(body, LV_SCROLLBAR_MODE_AUTO);
+
+    char printersVal[16];
+    snprintf(printersVal, sizeof(printersVal), "%d/%d", visiblePrinters, totalPrinters);
+
+    struct Row { Entry id; const char* label; const char* value; };
+    const Row rows[] = {
+        { E_PRINTERS, i18n::T(S_PRINTER),      printersVal },
+        { E_WIFI,     "Wi-Fi",                 network     },
+        { E_ACCOUNT,  i18n::T(S_TT_ACCOUNT),   account     },
+        { E_SCREEN,   "Screen",                ""          },
+        { E_LANGUAGE, "Language",              i18n::name(i18n::current()) },
+        { E_UPDATE,   "Update",                TIGERSPOOL_FW_VERSION       },
+        { E_RESTART,  "Restart",               ""          },
+        { E_FACTORY,  "Factory reset",         ""          },
+    };
+    for (auto& r : rows) {
+        lv_obj_t* row = frame::row(body, r.label, r.value, true, onEntry,
+                                   (void*)(intptr_t)r.id);
+        if (r.id == E_FACTORY) {
+            // The one entry that cannot be undone reads as such before it is
+            // opened, not only after.
+            lv_obj_t* label = lv_obj_get_child(row, 0);
+            lv_obj_set_style_text_color(label, lv_color_hex(theme::DANGER), 0);
+        }
+    }
+}
+
+Entry takeEntry() { Entry v = s_entry; s_entry = E_NONE; return v; }
+bool  takeBack()  { bool v = s_back; s_back = false; return v; }
+
+void showPrinters(const PrinterCfg* printers, int count) {
+    uint32_t sig = 2166136261u;
+    for (int i = 0; i < count; i++) {
+        if (printers[i].type == PT_NONE) continue;
+        sig = hashOf(printers[i].name.c_str(), sig);
+        sig = sig * 16777619u ^ (uint32_t)printers[i].visible;
+    }
+    if (sig == s_pickSig) return;
+    s_pickSig = sig;
+
+    lv_obj_t* body = frame::build(i18n::T(S_PRINTER), onBack);
+    lv_obj_set_flex_align(body, LV_FLEX_ALIGN_START,
+                          LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_add_flag(body, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scroll_dir(body, LV_DIR_VER);
+    lv_obj_set_scrollbar_mode(body, LV_SCROLLBAR_MODE_AUTO);
+
+    int shown = 0;
+    for (int i = 0; i < count; i++) {
+        if (printers[i].type == PT_NONE) continue;
+        shown++;
+
+        lv_obj_t* row = lv_obj_create(body);
+        lv_obj_remove_style_all(row);
+        lv_obj_add_style(row, theme::rowStyle(), 0);
+        lv_obj_set_size(row, LV_PCT(100), theme::ROW_H);
+        lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+        lv_obj_set_flex_align(row, LV_FLEX_ALIGN_START,
+                              LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+        lv_obj_set_style_pad_column(row, 8, 0);
+        lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
+
+        lv_obj_t* name = lv_label_create(row);
+        lv_label_set_text(name, printers[i].name.c_str());
+        lv_label_set_long_mode(name, LV_LABEL_LONG_DOT);
+        lv_obj_set_flex_grow(name, 1);
+        lv_obj_set_style_text_font(name, &lv_font_montserrat_14, 0);
+
+        // The switch is the control, and the whole row is its target: a 40 px
+        // switch on a 240 px row is a small thing to aim at when the row it
+        // sits in is already the obvious place to press.
+        lv_obj_t* sw = lv_switch_create(row);
+        lv_obj_set_size(sw, 44, 24);
+        lv_obj_clear_flag(sw, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_set_style_bg_color(sw, lv_color_hex(0x2A313B), LV_PART_MAIN);
+        lv_obj_set_style_bg_color(sw, lv_color_hex(theme::ACCENT),
+                                  LV_PART_INDICATOR | LV_STATE_CHECKED);
+        if (printers[i].visible) lv_obj_add_state(sw, LV_STATE_CHECKED);
+
+        lv_obj_add_flag(row, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_add_event_cb(row, onToggle, LV_EVENT_CLICKED, (void*)(intptr_t)i);
+    }
+
+    if (!shown) frame::caption(i18n::T(S_NO_PRINTERS), theme::TEXT_DIM);
+}
+
+int takeToggled() { int v = s_toggled; s_toggled = -1; return v; }
+
+}  // namespace screen_settings
+
+// ===========================================================================
+//  The remaining settings views.
+// ===========================================================================
+namespace {
+screen_settings::Action s_action = screen_settings::A_NONE;
+int  s_newBright = -1;
+int  s_newSleep  = -1;
+bool s_holding   = false;
+uint32_t s_viewSig = 0;
+
+void onAction(lv_event_t* e) {
+    s_action = (screen_settings::Action)(intptr_t)lv_event_get_user_data(e);
+}
+void onBright(lv_event_t* e) { s_newBright = (int)(intptr_t)lv_event_get_user_data(e); }
+void onSleep(lv_event_t* e)  { s_newSleep  = (int)(intptr_t)lv_event_get_user_data(e); }
+void onHoldDown(lv_event_t*) { s_holding = true; }
+void onHoldUp(lv_event_t*)   { s_holding = false; }
+
+// A row of exclusive choices. Each option is 44 px tall, which is the floor for
+// something you tap without looking twice.
+void segmented(lv_obj_t* parent, const char* const* labels, const int* values,
+               int n, int current, lv_event_cb_t cb) {
+    lv_obj_t* row = lv_obj_create(parent);
+    lv_obj_remove_style_all(row);
+    lv_obj_set_width(row, LV_PCT(100));
+    lv_obj_set_height(row, 44);
+    lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+    lv_obj_set_style_pad_column(row, 6, 0);
+    lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
+    for (int i = 0; i < n; i++) {
+        lv_obj_t* b = lv_btn_create(row);
+        lv_obj_remove_style_all(b);
+        lv_obj_add_style(b, theme::rowStyle(), 0);
+        lv_obj_set_flex_grow(b, 1);
+        lv_obj_set_height(b, 44);
+        lv_obj_set_style_pad_all(b, 0, 0);
+        bool on = values[i] == current;
+        if (on) {
+            lv_obj_set_style_bg_color(b, lv_color_hex(theme::ACCENT), 0);
+        }
+        lv_obj_add_event_cb(b, cb, LV_EVENT_CLICKED, (void*)(intptr_t)values[i]);
+        lv_obj_t* l = lv_label_create(b);
+        lv_label_set_text(l, labels[i]);
+        lv_obj_set_style_text_font(l, &lv_font_montserrat_12, 0);
+        lv_obj_set_style_text_color(l, lv_color_hex(on ? 0x0B0D10 : theme::TEXT), 0);
+        lv_obj_center(l);
+    }
+}
+
+lv_obj_t* kv(lv_obj_t* parent, const char* k, const char* v, uint32_t colour) {
+    lv_obj_t* row = lv_obj_create(parent);
+    lv_obj_remove_style_all(row);
+    lv_obj_set_width(row, LV_PCT(100));
+    lv_obj_set_height(row, LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(row, LV_FLEX_ALIGN_SPACE_BETWEEN,
+                          LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_t* a = lv_label_create(row);
+    lv_label_set_text(a, k);
+    lv_obj_set_style_text_font(a, &lv_font_montserrat_12, 0);
+    lv_obj_set_style_text_color(a, lv_color_hex(theme::TEXT_DIM), 0);
+    lv_obj_t* b = lv_label_create(row);
+    lv_label_set_text(b, v);
+    lv_label_set_long_mode(b, LV_LABEL_LONG_DOT);
+    lv_obj_set_style_max_width(b, 150, 0);
+    lv_obj_set_style_text_font(b, &lv_font_montserrat_12, 0);
+    lv_obj_set_style_text_color(b, lv_color_hex(colour), 0);
+    return row;
+}
+}  // namespace
+
+namespace screen_settings {
+
+Action takeAction()   { Action v = s_action; s_action = A_NONE; return v; }
+int  takeBrightness() { int v = s_newBright; s_newBright = -1; return v; }
+int  takeSleep()      { int v = s_newSleep;  s_newSleep  = -1; return v; }
+bool factoryHolding() { return s_holding; }
+
+void showWifi(const char* ssid, const char* ip, const char* mac, bool connected) {
+    uint32_t sig = hashOf(ssid) ^ hashOf(ip) ^ (uint32_t)connected;
+    if (sig == s_viewSig) return;
+    s_viewSig = sig;
+
+    lv_obj_t* body = frame::build("Wi-Fi", onBack);
+    lv_obj_set_flex_align(body, LV_FLEX_ALIGN_START,
+                          LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+
+    lv_obj_t* name = lv_label_create(body);
+    lv_label_set_text(name, connected ? ssid : i18n::T(S_NO_NETWORK));
+    lv_label_set_long_mode(name, LV_LABEL_LONG_DOT);
+    lv_obj_set_width(name, LV_PCT(100));
+    lv_obj_set_style_text_font(name, &lv_font_montserrat_20, 0);
+    lv_obj_set_style_text_color(name, lv_color_hex(connected ? theme::OK : theme::TEXT_DIM), 0);
+    lv_obj_set_style_pad_bottom(name, 16, 0);
+
+    // The address and the MAC, because a DHCP reservation needs the second one
+    // and there is nowhere else on the device to read it. See docs/ONBOARDING.md.
+    kv(body, "IP", ip, theme::TEXT);
+    kv(body, "MAC", mac, theme::TEXT);
+
+    lv_obj_t* spacer = lv_obj_create(body);
+    lv_obj_remove_style_all(spacer);
+    lv_obj_set_size(spacer, 1, 18);
+
+    frame::button(body, i18n::T(S_CHANGE_NETWORK), 0,
+                  []() { s_action = A_CHANGE_WIFI; });
+}
+
+void showAccount(const char* email, int printers, bool linked) {
+    uint32_t sig = hashOf(email) ^ ((uint32_t)printers << 8) ^ (uint32_t)linked;
+    if (sig == s_viewSig) return;
+    s_viewSig = sig;
+
+    lv_obj_t* body = frame::build(i18n::T(S_TT_ACCOUNT), onBack);
+    lv_obj_set_flex_align(body, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+
+    if (!linked) {
+        frame::caption(i18n::T(S_ADD_WEB), theme::TEXT_DIM);
+        return;
+    }
+
+    lv_obj_t* e = lv_label_create(body);
+    lv_label_set_text(e, email);
+    lv_label_set_long_mode(e, LV_LABEL_LONG_WRAP);
+    lv_obj_set_width(e, theme::SCREEN_W - 2 * theme::PAD - 6);
+    lv_obj_set_style_text_align(e, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_style_text_font(e, &lv_font_montserrat_16, 0);
+    lv_obj_set_style_pad_bottom(e, 18, 0);
+
+    char n[32];
+    snprintf(n, sizeof(n), "%d", printers);
+    kv(body, i18n::T(S_PRINTER), n, theme::TEXT);
+
+    lv_obj_t* spacer = lv_obj_create(body);
+    lv_obj_remove_style_all(spacer);
+    lv_obj_set_size(spacer, 1, 22);
+
+    // Signing out clears the session AND the imported printers: leaving them
+    // behind would show a list belonging to an account nobody is logged into.
+    frame::button(body, "Sign out", 2, []() { s_action = A_SIGN_OUT; });
+}
+
+void showScreen(uint8_t brightness, int sleepSeconds) {
+    uint32_t sig = 0xB0000000u ^ ((uint32_t)brightness << 16) ^ (uint32_t)sleepSeconds;
+    if (sig == s_viewSig) return;
+    s_viewSig = sig;
+
+    lv_obj_t* body = frame::build("Screen", onBack);
+    lv_obj_set_flex_align(body, LV_FLEX_ALIGN_START,
+                          LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+
+    char b[8];
+    snprintf(b, sizeof(b), "%u%%", brightness);
+    kv(body, "Brightness", b, theme::TEXT);
+    static const char* const bl[] = { "30", "60", "80", "100" };
+    static const int bv[] = { 30, 60, 80, 100 };
+    segmented(body, bl, bv, 4, brightness, onBright);
+
+    lv_obj_t* spacer = lv_obj_create(body);
+    lv_obj_remove_style_all(spacer);
+    lv_obj_set_size(spacer, 1, 16);
+
+    char sl[16];
+    if (sleepSeconds) snprintf(sl, sizeof(sl), "%d s", sleepSeconds);
+    else              snprintf(sl, sizeof(sl), "Never");
+    kv(body, "Sleep after", sl, theme::TEXT);
+    static const char* const tl[] = { "30s", "1m", "5m", "Off" };
+    static const int tv[] = { 30, 60, 300, 0 };
+    segmented(body, tl, tv, 4, sleepSeconds, onSleep);
+
+    // Nothing else to say. A settings screen that ends with an instruction is
+    // a settings screen that did not explain itself above.
+}
+
+void showUpdate(const char* version, const char* channel) {
+    uint32_t sig = 0xC0000000u ^ hashOf(version) ^ hashOf(channel);
+    if (sig == s_viewSig) return;
+    s_viewSig = sig;
+
+    lv_obj_t* body = frame::build("Update", onBack);
+    lv_obj_set_flex_align(body, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+
+    frame::caption("Installed", theme::TEXT_DIM);
+    frame::bigLabel(version, theme::TEXT);
+
+    lv_obj_t* spacer = lv_obj_create(body);
+    lv_obj_remove_style_all(spacer);
+    lv_obj_set_size(spacer, 1, 20);
+
+    kv(body, "Channel", channel, theme::TEXT);
+
+    // Honest: there is no OTA yet. A "Check for updates" button that cannot
+    // check is worse than a sentence saying so. See docs/OTA.md.
+    frame::caption("Over-the-air updates are not enabled on this build.",
+                   theme::TEXT_DIM);
+}
+
+void showRestart() {
+    if (s_viewSig == 0xD0000000u) return;
+    s_viewSig = 0xD0000000u;
+
+    lv_obj_t* body = frame::build("Restart", onBack);
+    lv_obj_set_flex_align(body, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+
+    frame::bigLabel("Restart the box?", theme::TEXT);
+    frame::caption("Takes about ten seconds. Nothing is lost.", theme::TEXT_DIM);
+
+    lv_obj_t* spacer = lv_obj_create(body);
+    lv_obj_remove_style_all(spacer);
+    lv_obj_set_size(spacer, 1, 22);
+
+    frame::button(body, "Restart", 1, []() { s_action = A_RESTART; });
+}
+
+void showFactory(int holdPercent) {
+    uint32_t sig = 0xE0000000u ^ (uint32_t)(holdPercent + 2);
+    if (sig == s_viewSig) return;
+    s_viewSig = sig;
+
+    lv_obj_t* body = frame::build("Factory reset", onBack);
+    lv_obj_set_flex_align(body, LV_FLEX_ALIGN_START,
+                          LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+
+    frame::caption("This erases the network, the account and the printers.",
+                   theme::TEXT);
+
+    lv_obj_t* spacer = lv_obj_create(body);
+    lv_obj_remove_style_all(spacer);
+    lv_obj_set_size(spacer, 1, 10);
+
+    // What comes back matters as much as what goes: the printers live in the
+    // account, so linking it again restores them. That line is the difference
+    // between a frightening button and a usable one.
+    frame::caption("Your printers stay in your account.", theme::TEXT_DIM);
+
+    lv_obj_t* spacer2 = lv_obj_create(body);
+    lv_obj_remove_style_all(spacer2);
+    lv_obj_set_size(spacer2, 1, 20);
+
+    // Hold, not tap. A destructive action on a touchscreen has to cost more
+    // than a stray finger, and the bar is the only feedback that says so.
+    lv_obj_t* hold = lv_btn_create(body);
+    lv_obj_remove_style_all(hold);
+    lv_obj_set_size(hold, LV_PCT(100), theme::BUTTON_H);
+    lv_obj_set_style_radius(hold, theme::RADIUS, 0);
+    lv_obj_set_style_bg_color(hold, lv_color_hex(0x4A1D1A), 0);
+    lv_obj_set_style_bg_opa(hold, LV_OPA_COVER, 0);
+    lv_obj_add_event_cb(hold, onHoldDown, LV_EVENT_PRESSED, nullptr);
+    lv_obj_add_event_cb(hold, onHoldUp, LV_EVENT_RELEASED, nullptr);
+    lv_obj_add_event_cb(hold, onHoldUp, LV_EVENT_PRESS_LOST, nullptr);
+
+    if (holdPercent > 0) {
+        lv_obj_t* fill = lv_obj_create(hold);
+        lv_obj_remove_style_all(fill);
+        lv_obj_set_size(fill, LV_PCT(holdPercent > 100 ? 100 : holdPercent), LV_PCT(100));
+        lv_obj_align(fill, LV_ALIGN_LEFT_MID, 0, 0);
+        lv_obj_set_style_bg_color(fill, lv_color_hex(theme::DANGER), 0);
+        lv_obj_set_style_bg_opa(fill, LV_OPA_80, 0);
+    }
+
+    lv_obj_t* l = lv_label_create(hold);
+    lv_label_set_text(l, holdPercent > 0 ? "Keep holding..." : "Hold to erase");
+    lv_obj_set_style_text_font(l, &lv_font_montserrat_14, 0);
+    lv_obj_center(l);
+}
+
+}  // namespace screen_settings

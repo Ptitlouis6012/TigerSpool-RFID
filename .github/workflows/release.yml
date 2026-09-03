@@ -1,20 +1,16 @@
 # Publish a release.
 #
-#     git tag v1.0.0 && git push origin v1.0.0
+#     scripts/bump-version.sh 0.2.0
+#     git commit -am "Release 0.2.0"
+#     git tag v0.2.0 && git push origin main --tags
 #
-# PLACEHOLDER — no firmware to release yet. Everything below is commented, but
-# the design is settled and documented in docs/OTA.md.
+# Two rules this workflow exists to enforce:
 #
-# Two rules this workflow exists to enforce, once it is enabled:
-#
-#   1. ONE source of truth for the version — a macro in the firmware source. The
-#      workflow refuses to publish if the git tag disagrees with it.
-#   2. The manifest is GENERATED, never hand-edited. The OTA channel and the web
-#      installer read the same generated file, which is what stops them drifting
-#      apart because someone forgot a step.
-#
-# Prerequisite, once: Settings -> Pages -> Source = "GitHub Actions".
-# Prerequisite for signing: a signing key in repository secrets. Never in git.
+#   1. ONE source of truth for the version - the macro in
+#      firmware/include/version.h. A tag that disagrees with it fails before
+#      anything is published, not after.
+#   2. Binaries are BUILT here, never committed. What is released is what this
+#      workflow compiled from the tagged source, and nothing else.
 
 name: release
 
@@ -25,66 +21,92 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 concurrency:
   group: release
   cancel-in-progress: false
 
 jobs:
-  placeholder:
+  release:
     runs-on: ubuntu-latest
     steps:
-      - name: Not yet implemented
-        run: |
-          echo "There is no firmware in this repository yet."
-          echo "See docs/MIGRATION.md for the plan, docs/OTA.md for the release design."
-          exit 1
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0        # the changelog section needs history
 
-  # build:
-  #   runs-on: ubuntu-latest
-  #   outputs:
-  #     version: ${{ steps.version.outputs.version }}
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: actions/setup-python@v5
-  #       with: { python-version: '3.12' }
-  #
-  #     - name: Check the tag matches the firmware version
-  #       id: version
-  #       run: |
-  #         MACRO=$(grep -m1 'TIGERSPOOL_FW_VERSION' firmware/src/*.cpp | sed 's/.*"\(.*\)".*/\1/')
-  #         TAG=${GITHUB_REF_NAME#v}
-  #         if [ "$MACRO" != "$TAG" ]; then
-  #           echo "::error::tag v$TAG disagrees with TIGERSPOOL_FW_VERSION=$MACRO"
-  #           exit 1
-  #         fi
-  #         echo "version=$MACRO" >> "$GITHUB_OUTPUT"
-  #
-  #     - run: pip install --upgrade platformio
-  #     - working-directory: firmware
-  #       run: |
-  #         pio run -e tigerspool
-  #         pio run -e tigerspool -t buildfs
-  #
-  #     - name: Stage, sign and checksum
-  #       run: |
-  #         # tigerspool-v<version>.bin           OTA image
-  #         # tigerspool-v<version>.factory.bin   first flash
-  #         # bootloader.bin partitions.bin boot_app0.bin littlefs.bin
-  #         # SHA256SUMS.txt
-  #         # signature over the OTA image, with the key from secrets
-  #         :
-  #
-  #     - name: Generate installer manifest and version.json
-  #       run: python scripts/make-manifest.py --version "${{ steps.version.outputs.version }}"
-  #
-  #     - uses: softprops/action-gh-release@v2
-  #       with:
-  #         files: dist/*
-  #         generate_release_notes: true
-  #
-  # deploy-pages:
-  #   needs: build
-  #   uses: ./.github/workflows/pages.yml
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: The tag must agree with the version macro
+        run: bash scripts/check-version.sh
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio
+            ~/.cache/pip
+          key: pio-${{ runner.os }}-${{ hashFiles('firmware/platformio.ini') }}
+          restore-keys: pio-${{ runner.os }}-
+
+      - name: Install PlatformIO
+        run: pip install --upgrade platformio
+
+      - name: Build
+        working-directory: firmware
+        run: pio run -e tigerspool
+
+      - name: Stage the artifacts
+        id: stage
+        run: |
+          set -euo pipefail
+          V="${GITHUB_REF_NAME#v}"
+          B=firmware/.pio/build/tigerspool
+          mkdir -p dist
+
+          cp "$B/firmware.bin"    "dist/tigerspool-v$V.bin"
+          cp "$B/bootloader.bin"  dist/bootloader.bin
+          cp "$B/partitions.bin"  dist/partitions.bin
+          # Shipped by the Arduino core rather than built by us. Located
+          # rather than hard-coded: the package layout is not ours to depend
+          # on, and a release that silently omits it produces a device that
+          # boots the wrong slot after its first OTA.
+          BOOT_APP0=$(find "$HOME/.platformio/packages" -name boot_app0.bin \
+                        -path '*framework-arduinoespressif32*' | head -1)
+          if [ -z "$BOOT_APP0" ]; then
+            echo "::error::boot_app0.bin not found in the Arduino core."
+            exit 1
+          fi
+          cp "$BOOT_APP0" dist/boot_app0.bin
+
+          # A checksum proves the download was not corrupted. It proves nothing
+          # about who produced it - signing is a release blocker tracked in
+          # docs/OTA.md, and saying so here is better than implying otherwise.
+          ( cd dist && sha256sum ./* > SHA256SUMS.txt )
+          cat dist/SHA256SUMS.txt
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+
+      - name: Pull this version's changelog section
+        id: notes
+        run: |
+          python3 - "${{ steps.stage.outputs.version }}" <<'PY' > release-notes.md
+          import re, sys, pathlib
+          v = sys.argv[1]
+          text = pathlib.Path("CHANGELOG.md").read_text()
+          # Everything between this version's heading and the next one. Release
+          # notes written at tag time are written from memory; these were
+          # written when the work happened.
+          m = re.search(rf"^## \[{re.escape(v)}\].*?$(.*?)(?=^## \[|\Z)",
+                        text, re.S | re.M)
+          print(m.group(1).strip() if m else
+                f"No CHANGELOG section for {v}.")
+          PY
+          cat release-notes.md
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          body_path: release-notes.md
+          draft: false
+          prerelease: ${{ startsWith(steps.stage.outputs.version, '0.') }}

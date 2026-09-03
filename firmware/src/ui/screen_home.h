@@ -1,0 +1,27 @@
+#pragma once
+#include "printer.h"
+
+// The home screen: the printers imported from the TigerTag account.
+//
+// This is the screen a user comes back to constantly, so it does two things the
+// prototype's version could not. It SCROLLS instead of paginating - a Bambu with
+// four AMS units and an 11-printer account both overflow four rows, and the
+// pagination arrows were a smaller target than the rows they scrolled. And it
+// never waits on the network: the list is drawn from NVS immediately, and the
+// account sync updates it from a background task.
+namespace screen_home {
+
+// Builds the screen on first call, refreshes it afterwards. Cheap to re-call.
+void show(const PrinterCfg* printers, int count,
+          int selected, const bool* online, bool syncing);
+
+// True while this screen owns the display, so the legacy raw-drawn screens know
+// to leave the canvas alone.
+bool active();
+void leave();
+
+// Set by the screen when the user taps something. -1 means nothing pending.
+int  takeTappedPrinter();   // index into printers[], or -1
+bool takeSettingsTap();
+
+}  // namespace screen_home
