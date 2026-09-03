@@ -6,10 +6,10 @@
 
 namespace {
     // --- slot map (UI index -> ams_id / tray_id), learned from the pushall ---
-    static const int BMAX = 17;                 // Ext + 4 unidades x 4 tabuleiros
+    static const int BMAX = 17;                 // external spool + 4 AMS units x 4 trays
     struct BSlot { char name[4]; int ams; int tray; };
     BSlot g_map[BMAX] = {
-        { "Ext", 255, 254 },                    // spool externo (vt_tray)
+        { "Ext", 255, 254 },                    // external spool (vt_tray)
         { "A", 0, 0 }, { "B", 0, 1 }, { "C", 0, 2 }, { "D", 0, 3 },   // palpite AMS Lite
     };
     int  g_nSlots = 5;                          // ate ao 1o relatorio
@@ -19,7 +19,7 @@ namespace {
     String           g_host, g_sn, g_cc;
     String           g_topReport, g_topRequest;
     bool             g_connected = false;
-    String           g_status = "Bambu: a ligar...";
+    String           g_status = "Bambu: connecting...";
     SlotState        g_slots[BMAX];
     uint32_t         g_seq = 0;
     uint32_t         g_lastTry = 0, g_lastPush = 0;
@@ -123,7 +123,7 @@ namespace {
         JsonObjectConst pr = doc["print"];
         if (pr.isNull()) return;
 
-        // AMS (o "id" pode vir como string "0" ou como numero)
+        // AMS (the "id" arrives as the string "0" or as a number)
         JsonArrayConst amsArr = pr["ams"]["ams"].as<JsonArrayConst>();
         if (!amsArr.isNull()) {
             rebuildMap(amsArr);                 // topologia real (AMS Lite / AMS / multi)
@@ -138,7 +138,7 @@ namespace {
             }
             g_status = "Bambu: slots atualizados";
         }
-        // spool externo
+        // external spool
         JsonObjectConst vt = pr["vt_tray"];
         if (!vt.isNull()) applyTray(255, 254, vt);
     }
@@ -154,7 +154,7 @@ void BambuBackend::begin(const PrinterCfg& cfg) {
     setDefaultMap();                              // Ext + A..D ate ao 1o pushall
     for (int i = 0; i < BMAX; i++) g_slots[i] = SlotState{};
     g_connected = false;
-    g_status = "Bambu: a ligar...";
+    g_status = "Bambu: connecting...";
     g_topReport  = String("device/") + g_sn + "/report";
     g_topRequest = String("device/") + g_sn + "/request";
 
@@ -162,8 +162,8 @@ void BambuBackend::begin(const PrinterCfg& cfg) {
     mqtt.setServer(g_host.c_str(), 8883);
     // A pushall from an X1 with four AMS units reaches about 50 KB. If the
     // buffer cannot hold it the topology
-    // (nr de unidades) nunca e detetada. Buffer generoso (heap chega, o sprite
-    // LVGL esta em PSRAM).
+    // (the unit count) is never detected. A generous buffer: the heap has room,
+    // because the LVGL sprite lives in PSRAM).
     mqtt.setBufferSize(51200);
     mqtt.setKeepAlive(30);
     mqtt.setCallback(onMqtt);
@@ -175,7 +175,7 @@ void BambuBackend::loop() {
         g_connected = false;
         if (millis() - g_lastTry < 4000) return;
         g_lastTry = millis();
-        Serial.printf("[bambu] a ligar a %s:8883...\n", g_host.c_str());
+        Serial.printf("[bambu] connecting to %s:8883...\n", g_host.c_str());
         String cid = "tigertag-" + String((uint32_t)ESP.getEfuseMac(), HEX);
         if (mqtt.connect(cid.c_str(), "bblp", g_cc.c_str())) {
             mqtt.subscribe(g_topReport.c_str());
@@ -236,7 +236,7 @@ bool BambuBackend::assign(int idx, const TagInfo& t) {
     String b; serializeJson(d, b);
     pubRequest(b);
 
-    g_status = String("enviado -> ") + g_map[idx].name + " " + m.type;
+    g_status = String("sent -> ") + g_map[idx].name + " " + m.type;
     delay(200);
     refresh();
     return true;

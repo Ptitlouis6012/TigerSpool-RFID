@@ -31,6 +31,7 @@ import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import cxx_scan  # noqa: E402
 import font_range  # noqa: E402
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
@@ -43,36 +44,6 @@ EXCLUDED = {
 LITERAL = re.compile(r'"((?:[^"\\\n]|\\.)*)"')
 
 
-def strip_comments(text: str) -> str:
-    """Blank out C++ comments, keeping every newline so line numbers survive.
-
-    A line-based heuristic is not enough here: the i18n rows open with
-    /* S_CANCEL */ and then carry the strings that matter, so "skip lines
-    starting with a comment" skipped the single most important file in the
-    scan and reported a confident zero.
-    """
-    out = []
-    i, n = 0, len(text)
-    while i < n:
-        c = text[i]
-        if c == '"':                      # a string literal: copy it whole
-            out.append(c); i += 1
-            while i < n and text[i] != '"':
-                if text[i] == "\\" and i + 1 < n:
-                    out.append(text[i]); i += 1
-                out.append(text[i]); i += 1
-            if i < n:
-                out.append(text[i]); i += 1
-        elif text.startswith("//", i):
-            while i < n and text[i] != "\n":
-                out.append(" "); i += 1
-        elif text.startswith("/*", i):
-            while i < n and not text.startswith("*/", i):
-                out.append("\n" if text[i] == "\n" else " "); i += 1
-            out.append("  "); i += 2
-        else:
-            out.append(c); i += 1
-    return "".join(out)
 
 
 def sources():
@@ -98,9 +69,9 @@ def main() -> int:
         if not path.exists():
             continue
         scanned += 1
-        text = strip_comments(path.read_text(encoding="utf-8", errors="replace"))
-        for lineno, line in enumerate(text.splitlines(), 1):
-            for literal in LITERAL.findall(line):
+        text = path.read_text(encoding="utf-8", errors="replace")
+        for kind, lineno, literal in cxx_scan.scan(text):
+            if kind == "string":
                 for _, cp in font_range.offending(literal, allowed):
                     problems.append(
                         f"{rel}:{lineno}: {font_range.describe(cp)} in a string "

@@ -63,6 +63,7 @@ if [ "$MODE" = "fix" ]; then
 fi
 
 step "file format: line endings, marks, invisible characters" "$PY" scripts/check-file-format.py
+step "committed comments and strings are English" "$PY" scripts/check-text-english.py
 step "every drawn string is in a compiled font" "$PY" scripts/check-ui-fonts.py
 step "translation tables agree with their enums" "$PY" scripts/check-i18n.py
 step "generated files match their generator" "$PY" scripts/check-generated.py

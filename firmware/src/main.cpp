@@ -94,7 +94,7 @@ static const char* typeTag(PrinterType t) {
 static uint32_t pLastSeen[MAX_PRINTERS] = { 0 };
 static uint32_t pProbeAt = 0;
 static int      pProbeIdx = 0;
-static const uint32_t ONLINE_TTL_MS = 25000;   // "online" ate 25 s sem resposta
+static const uint32_t ONLINE_TTL_MS = 25000;   // stays "online" for 25 s without an answer
 
 static uint16_t ctrlPort(PrinterType t) {
     switch (t) {
@@ -143,7 +143,7 @@ static bool printerVisible(int i) {
     return printers[i].type != PT_NONE && printers[i].visible;
 }
 
-// ---- descoberta de Creality na LAN (auto-corrige IPs errados) -----------
+// ---- Creality discovery on the LAN (auto-corrects wrong IPs) ------------
 // Creality printers do not announce themselves over mDNS, so the only way to
 // find one that moved is to sweep the subnet for port 9999 and complete a
 // WebSocket handshake. Done a few addresses per call so it never blocks:
@@ -227,7 +227,7 @@ namespace disc {
             }
         }
         nvs.end();
-        Serial.printf("[discovery] fim: %d K2 na LAN, %s\n", nFound, changed ? "IPs corrigidos" : "sem alteracoes");
+        Serial.printf("[discovery] done: %d K2 on the LAN, %s\n", nFound, changed ? "IPs corrected" : "no change");
     }
 
     void tick() {
@@ -399,7 +399,7 @@ static void saveSel(int i) {
     nvs.end();
 }
 
-// ---- Wi-Fi / arranque ------------------------------------------------------
+// ---- Wi-Fi / startup -------------------------------------------------------
 static const uint32_t WIFI_TIMEOUT_MS = 30000;   // 30 s por tentativa; se falhar -> portal AP
 
 static bool wifiConnect() {
@@ -415,7 +415,7 @@ static bool wifiConnect() {
         delay(250);
     }
     if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("[wifi] timeout 30s sem ligacao");
+        Serial.println("[wifi] timeout after 30 s with no connection");
         screen_setup::showWifiFailed(wifiSsid.c_str());
         lvgl_port::loop();
         return false;
@@ -565,7 +565,7 @@ void loop() {
     }
 
     case ST_WIFI:
-        startConfigAP();                      // falha de Wi-Fi -> portal AP
+        startConfigAP();                      // Wi-Fi failed -> AP portal
         return;
 
     case ST_AP: {
