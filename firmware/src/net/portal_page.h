@@ -65,8 +65,17 @@ border-radius:9px;background:none;color:var(--fg);cursor:pointer;display:flex;al
 .n{display:flex;align-items:center;gap:14px;min-height:60px;padding:0 16px;background:var(--surf);
 border:1px solid var(--line);border-radius:14px;cursor:pointer;width:100%;font:inherit;color:inherit;
 text-align:left}
+.ex input{padding-right:52px}
 .n .nm{flex:1;font-size:16px;font-weight:500;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .n .k{display:flex;color:var(--dim);opacity:.5}
+/* An opened row is one card, not a row with a panel stuck under it: the border
+   wraps both, and the button loses its own so the seam disappears. */
+.it{border:1px solid var(--line);border-radius:14px;background:var(--surf);overflow:hidden}
+.it .n{border:0;background:none;border-radius:0}
+.it.op{border-color:var(--acc)}
+.ex{padding:2px 16px 16px}
+.ex label{margin-top:4px}
+.ex .b{margin-top:14px}
 .sig{display:flex;color:var(--fg)}
 .gh{width:100%;min-height:52px;border:1px solid var(--line);border-radius:14px;background:none;
 color:var(--dim);font:inherit;font-size:15px;cursor:pointer}
@@ -141,7 +150,7 @@ close:"Pode fechar esta página.",badT:"Palavra-passe incorreta",badB:"Verifique
 scanning:"A procurar",name:"Nome da rede",kName:"Nome",kAddr:"Endereço",kMac:"MAC"}};
 var N={en:"English",fr:"Français",de:"Deutsch",es:"Español",it:"Italiano",pl:"Polski",
 pt:"Português (BR)",ptpt:"Português (PT)"};
-var st={lang:"%LANG%",view:"scanning",pick:"",light:false,nets:[],info:null};
+var st={lang:"%LANG%",view:"scanning",pick:"",light:false,nets:[],info:null,open:-1,bad:false};
 if(!L[st.lang])st.lang="en";
 var V=document.getElementById("v"),LB=document.getElementById("lb"),LM=document.getElementById("lm");
 function t(k){return L[st.lang][k]}
@@ -192,18 +201,22 @@ th.querySelector(".s").innerHTML=SUN;th.querySelector(".m").innerHTML=MOON;paint
 var h="",i;
 if(st.view=="scanning"){h+='<div class="ct"><div class="sp"></div><h1>'+e(t("scanning"))+"</h1></div>"}
 else if(st.view=="list"){h+="<h1>"+e(t("net"))+"</h1><div class=nets>";
-for(i=0;i<st.nets.length;i++)h+='<button class=n data-i='+i+">"+sig(bars(st.nets[i].r))+
-'<span class=nm>'+e(st.nets[i].s)+"</span>"+(st.nets[i].k?'<span class=k>'+LOCK+"</span>":"")+"</button>";
-h+='</div><button class=gh data-o=1>'+e(t("other"))+'</button><button class="b s" data-r=1>'+
-e(t("rescan"))+"</button>"}
-else if(st.view=="pw"||st.view=="bad"){h+="<h1>"+e(st.pick)+"</h1>";
-if(st.view=="bad")h+='<div class=al>'+WARN+"<span><b>"+e(t("badT"))+"</b><span>"+e(t("badB"))+
+for(i=0;i<st.nets.length;i++){var op=st.open===i;
+h+='<div class="it'+(op?" op":"")+'" id=it'+i+'><button class=n data-i='+i+">"+
+sig(bars(st.nets[i].r))+'<span class=nm>'+e(st.nets[i].s)+"</span>"+
+(st.nets[i].k?'<span class=k>'+LOCK+"</span>":"")+"</button>";
+/* The password opens under the network it belongs to. The name stays on
+   screen, so there is nothing to remember and nothing to go back from. */
+if(op){h+='<div class=ex>';
+if(st.bad)h+='<div class=al>'+WARN+"<span><b>"+e(t("badT"))+"</b><span>"+e(t("badB"))+
 "</span></span></div>";
 h+="<label for=pw>"+e(t("pw"))+'</label><div class=fld><input id=pw type=password '+
 'autocomplete=current-password autocapitalize=off autocorrect=off spellcheck=false>'+
 '<button class=eye id=rv type=button aria-pressed=false aria-label="'+e(t("show"))+'">'+EYE+
-'</button></div><button class=b data-g=1>'+e(t("join"))+'</button>'+
-'<button class="b s" data-b=1>'+e(t("back"))+"</button>"}
+'</button></div><button class=b data-g=1>'+e(t("join"))+"</button></div>"}
+h+="</div>"}
+h+='</div><button class=gh data-o=1>'+e(t("other"))+'</button><button class="b s" data-r=1>'+
+e(t("rescan"))+"</button>"}
 else if(st.view=="other"){h+="<h1>"+e(t("other"))+"</h1><label for=ss>"+e(t("name"))+
 '</label><input id=ss autocapitalize=off autocorrect=off spellcheck=false style="padding-right:16px">'+
 '<div style="height:16px"></div><label for=pw>'+e(t("pw"))+'</label><div class=fld>'+
@@ -225,12 +238,26 @@ if(r){var f=document.getElementById("pw");var sh=r.getAttribute("aria-pressed")=
 var p=f.selectionStart;f.type=sh?"password":"text";r.setAttribute("aria-pressed",String(!sh));
 r.innerHTML=sh?EYE:EYEOFF;f.focus();try{f.setSelectionRange(p,p)}catch(x){}return}
 var n=ev.target.closest("[data-i]");
-if(n){var k=st.nets[+n.dataset.i];st.pick=k.s;if(k.k){st.view="pw";render()}else join("");return}
+if(n){var i=+n.dataset.i,k=st.nets[i];st.pick=k.s;
+if(!k.k){join("");return}
+st.open=(st.open===i?-1:i);st.bad=false;render();
+if(st.open===i)openRow(i);
+return}
 if(ev.target.closest("[data-o]")){st.pick="";st.view="other";render();return}
-if(ev.target.closest("[data-b]")){st.view="list";render();return}
+if(ev.target.closest("[data-b]")){st.view="list";st.open=-1;st.bad=false;render();return}
 if(ev.target.closest("[data-r]")){scan();return}
 if(ev.target.closest("[data-g]")){var ss=document.getElementById("ss");
 if(ss)st.pick=ss.value;join(document.getElementById("pw").value)}};
+/* The phone keyboard covers the bottom half of the screen. Without this the
+   field of a network low in the list opens straight underneath it, and inline
+   entry would be worse than a separate page rather than better. Scroll the row
+   up first, then focus - in that order, so the browser does not fight it. */
+function openRow(i){var el=document.getElementById("it"+i);if(!el)return;
+setTimeout(function(){
+  var y=el.getBoundingClientRect().top+window.scrollY-14;
+  window.scrollTo({top:y<0?0:y,behavior:"smooth"});
+  setTimeout(function(){var f=document.getElementById("pw");if(f)f.focus()},260)},20)}
+
 function scan(){st.view="scanning";render();
 fetch("/api/scan").then(function(r){return r.json()}).then(function(j){
 st.nets=j.nets||[];st.view="list";render()}).catch(function(){st.view="list";render()})}
@@ -240,7 +267,8 @@ st.nets=j.nets||[];st.view="list";render()}).catch(function(){st.view="list";ren
 function join(pw){st.view="joining";render();
 fetch("/api/join",{method:"POST",headers:{"Content-Type":"application/json"},
 body:JSON.stringify({ssid:st.pick,pass:pw})}).then(function(r){return r.json()})
-.then(function(j){if(j.ok){st.info=j;st.view="done"}else{st.view="bad"}render()})
-.catch(function(){st.view="bad";render()})}
+.then(function(j){if(j.ok){st.info=j;st.view="done";render()}
+else{st.bad=true;st.view="list";render();if(st.open>=0)openRow(st.open)}})
+.catch(function(){st.bad=true;st.view="list";render();if(st.open>=0)openRow(st.open)})}
 scan();
 </script></body></html>)HTML";
