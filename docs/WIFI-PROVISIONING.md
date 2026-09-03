@@ -49,7 +49,7 @@ developer affordances; the device has to recover on its own.
         │  Scan with your phone      │
         │  camera, or join           │
         │                            │
-        │      TigerSpool-Setup      │
+        │   TigerSpool-Setup-XXXX    │
         │                            │
         │  Waiting for a phone…      │
         └────────────────────────────┘
@@ -61,10 +61,10 @@ The screen shows a **standard Wi-Fi join QR**, which iOS and Android cameras
 recognise natively:
 
 ```
-WIFI:S:TigerSpool-Setup;T:nopass;;
+WIFI:S:TigerSpool-Setup-XXXX;T:nopass;;
 ```
 
-The phone offers "Join network TigerSpool-Setup" as a tap. No app, no typing an
+The phone offers "Join network TigerSpool-Setup-XXXX" as a tap. No app, no typing an
 SSID, no hunting through a Wi-Fi settings list for a name the user has to read
 off a small screen first.
 
@@ -109,7 +109,7 @@ committing, and if it cannot, the portal must reopen with *"Couldn't connect to
 `<network>` — the password may be wrong"* rather than a blank form.
 
 **The portal must not be a permanent access point.** Once the device is on a
-network, the AP is down and the configuration UI lives at `http://tigerspool.local`
+network, the AP is down and the configuration UI lives at `http://tigerspool-xxxx.local`
 on the LAN instead.
 
 **Reconnection is automatic and silent.** A router reboot, a brief outage, or a
@@ -125,7 +125,7 @@ failed" is not a message. "Couldn't join that network — check the password" is
 ## After provisioning
 
 The configuration UI stays reachable on the local network at
-**`http://tigerspool.local`** (mDNS) or the device's IP address, which the device
+**`http://tigerspool-xxxx.local`** (mDNS) or the device's IP address, which the device
 shows on screen. From there a user can change networks, correct an imported
 printer, sign in to their TigerTag account with an email and password, or reset
 the device.
@@ -139,9 +139,9 @@ and the LAN address — so there is one implementation to keep correct.
 
 | | Value |
 |---|---|
-| Setup AP SSID | `TigerSpool-Setup` |
+| Setup AP SSID | `TigerSpool-Setup-XXXX` |
 | AP address | `192.168.4.1` |
-| mDNS hostname | `tigerspool.local` |
+| mDNS hostname | `tigerspool-xxxx.local` |
 | NVS namespace | `tigerspool` |
 
 The prototype used `K2-TigerTag-XXXX` / `TigerTag-Setup` and `tigertag.local`;

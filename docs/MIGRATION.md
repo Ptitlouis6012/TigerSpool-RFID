@@ -120,8 +120,8 @@ The prototype is named for a Creality K2. None of those names survive.
 | Prototype | TigerSpool | Migration cost |
 |---|---|---|
 | NVS namespace `k2cfg` | `tigerspool` | One-time migration on first boot, or accept re-provisioning |
-| mDNS `tigertag.local` | `tigerspool.local` | None — `tigertag.local` collides with other ecosystem devices |
-| AP `K2-TigerTag-XXXX` / `TigerTag-Setup` | `TigerSpool-Setup` | None |
+| mDNS `tigertag.local` | `tigerspool-xxxx.local` | None — `tigertag.local` collides with other ecosystem devices |
+| AP `K2-TigerTag-XXXX` / `TigerTag-Setup` | `TigerSpool-Setup-XXXX` | None |
 | PlatformIO env `cfs_ui` | `tigerspool` | None |
 | `K2Backend`, `beK2`, `k2::` | `CrealityBackend` | Mechanical |
 | `p0t`/`p0n`/`p0h`/`p0s`/`p0c` NVS keys | keep the shape | These are fine; only the namespace moves |

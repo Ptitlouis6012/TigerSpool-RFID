@@ -67,11 +67,11 @@ namespace {
         for (auto k : keys) { String s = fsStr(f, k); if (s.length()) return s; }
         return "";
     }
-    // sub-objecto Firestore (mapValue) -> os seus "fields"
+    // A Firestore sub-object (mapValue) -> its "fields"
     JsonObjectConst fsMap(JsonObjectConst f, const char* k) {
         return f[k]["mapValue"]["fields"].as<JsonObjectConst>();
     }
-    // campo booleano Firestore: 1 = true, 0 = false, -1 = ausente
+    // A Firestore boolean field: 1 = true, 0 = false, -1 = absent
     int fsBool(JsonObjectConst f, const char* k) {
         JsonVariantConst v = f[k];
         if (v["booleanValue"].is<bool>()) return v["booleanValue"].as<bool>() ? 1 : 0;
@@ -97,7 +97,7 @@ namespace {
         if (fsBool(f, "cloud") == 1 || fsBool(f, "isCloud") == 1) return true;
         if (fsBool(f, "local") == 0 || fsBool(f, "isLocal") == 0 ||
             fsBool(f, "lan")   == 0 || fsBool(f, "isLan")   == 0) return true;
-        if (ip.isEmpty()) return true;               // sem IP LAN e sem marca -> cloud
+        if (ip.isEmpty()) return true;               // no LAN IP and no discovery mark -> cloud
         return false;
     }
 
@@ -139,7 +139,7 @@ namespace {
         return refreshIdToken();
     }
 
-    // brand + printerModelId (catalogo TigerTag) -> backend suportado
+    // brand + printerModelId (TigerTag catalogue) -> supported backend
     PrinterType mapType(const String& brand, const String& modelId) {
         int m = modelId.toInt();
         // Creality: everything except the K1 / Ender family (ids 6..10). The
@@ -182,7 +182,7 @@ bool ttcloud::signIn(const String& mail, const String& pass, String& err) {
                          body, resp);
     JsonDocument r; deserializeJson(r, resp);
     if (code != 200) {
-        err = r["error"]["message"] | "login falhou";
+        err = r["error"]["message"] | "sign-in failed";
         Serial.printf("[account] signIn http=%d %s\n", code, err.c_str());
         return false;
     }
@@ -191,7 +191,7 @@ bool ttcloud::signIn(const String& mail, const String& pass, String& err) {
     g_refresh = r["refreshToken"] | "";
     g_uid     = r["localId"] | "";
     g_tokenAt = millis();
-    if (g_uid.isEmpty() || g_refresh.isEmpty()) { err = "resposta invalida"; return false; }
+    if (g_uid.isEmpty() || g_refresh.isEmpty()) { err = "invalid answer"; return false; }
     saveSession();
     Serial.printf("[account] login OK uid=%s\n", g_uid.c_str());
     return true;
@@ -272,7 +272,7 @@ bool ttcloud::signInWithCustomToken(const String& customToken, const String& ema
                        body, resp);
     JsonDocument r; deserializeJson(r, resp);
     if (hc != 200) {
-        err = r["error"]["message"] | "custom token falhou";
+        err = r["error"]["message"] | "custom token exchange failed";
         Serial.printf("[account] customToken http=%d %s\n", hc, err.c_str());
         return false;
     }
@@ -282,7 +282,7 @@ bool ttcloud::signInWithCustomToken(const String& customToken, const String& ema
     if (g_uid.isEmpty()) g_uid = uidFromIdToken(g_idToken);
     g_email   = emailHint;
     g_tokenAt = millis();
-    if (g_uid.isEmpty() || g_refresh.isEmpty()) { err = "resposta invalida"; return false; }
+    if (g_uid.isEmpty() || g_refresh.isEmpty()) { err = "invalid answer"; return false; }
     saveSession();
     Serial.printf("[account] login Google OK uid=%s\n", g_uid.c_str());
     return true;
@@ -294,7 +294,7 @@ bool ttcloud::everSynced() { return g_lastSync != 0; }
 
 bool ttcloud::due() {
     if (!haveSession() || WiFi.status() != WL_CONNECTED) return false;
-    if (g_lastSync == 0) return (millis() - g_bootAt > 8000);         // 1a sync ~8 s apos arranque
+    if (g_lastSync == 0) return (millis() - g_bootAt > 8000);         // first sync about 8 s after boot
     if (!g_syncedOk)     return (millis() - g_lastSync > 60000);      // last one failed -> retry in a minute
     return (millis() - g_lastSync > SYNC_INTERVAL_MS);
 }
@@ -394,11 +394,11 @@ bool ttcloud::syncNow(String& summary) {
                           dev.c_str(), ip.c_str(), transport.c_str(), cloud, mid.c_str(), t);
             if (cloud) { Serial.println("[account]     ignorado: modo cloud"); cloudN++; continue; }
             if (t == PT_NONE) {
-                Serial.printf("[account]     ignorado: %s sem backend / modelo nao suportado\n", brand);
+                Serial.printf("[account]     skipped: %s has no backend / unsupported model\n", brand);
                 ignored++; continue;
             }
             if (n >= MAX_PRINTERS) { Serial.println("[account]     ignorado: limite MAX_PRINTERS"); ignored++; continue; }
-            if (ip.isEmpty()) { noip++; Serial.println("[account]     sem IP - importado na mesma (preenche no form)"); }
+            if (ip.isEmpty()) { noip++; Serial.println("[account]     no IP - imported anyway (fill it in on the form)"); }
 
             PrinterCfg& p = got[n];
             p.type = t;
@@ -481,12 +481,12 @@ bool ttcloud::syncNow(String& summary) {
     g_syncedOk = (okBrands > 0);
     if (diff) g_changed = true;
     Serial.printf("[account] sync total %lu ms\n", (unsigned long)(millis() - tSync));
-    if (!g_syncedOk) { summary = g_lastResult = "TigerTag: sem resposta (TLS/rede)"; return false; }
+    if (!g_syncedOk) { summary = g_lastResult = "TigerTag: no answer (TLS/network)"; return false; }
     summary = String("TigerTag: ") + n + " LAN" +
               (cloudN  ? (String(", ") + cloudN + " cloud")   : "") +
-              (noip    ? (String(", ") + noip + " sem IP")    : "") +
+              (noip    ? (String(", ") + noip + " without IP")    : "") +
               (ignored ? (String(", ") + ignored + " ignoradas") : "") +
-              (diff ? " - atualizado" : " - sem alteracoes");
+              (diff ? " - updated" : " - no change");
     g_lastResult = summary;
     Serial.printf("[account] sync: %s\n", summary.c_str());
     return true;
@@ -518,7 +518,7 @@ bool ttcloud::startAsyncSync() {
     // 16 KB: mbedTLS needs room, and the JSON parsing runs on this stack too.
     if (xTaskCreatePinnedToCore(syncTaskFn, "ttSync", 16384, nullptr, 1, nullptr, 1) != pdPASS) {
         g_asyncBusy = false;
-        Serial.println("[account] xTaskCreate falhou - sync ignorada");
+        Serial.println("[account] xTaskCreate failed - sync skipped");
         return false;
     }
     return true;

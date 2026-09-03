@@ -6,7 +6,7 @@
 namespace {
     String    g_host, g_sn, g_cc;
     bool      g_auth = false;
-    String    g_status = "FF: a ligar...";
+    String    g_status = "FF: connecting...";
     SlotState g_slots[4];
     uint32_t  g_lastReq = 0;
     uint32_t  g_lastAuth = 0;
@@ -70,7 +70,8 @@ namespace {
     }
 
     // POST JSON to http://host:8898<path>. Returns the body, or "" on failure.
-    // Preenche 'httpCode'. O firmware manda Content-Type "appliation/json" (typo).
+    // Fills 'httpCode'. The printer's firmware sends Content-Type
+    // "appliation/json" - their typo, not ours.
     String post(const String& path, const String& body, int& httpCode) {
         if (WiFi.status() != WL_CONNECTED) { httpCode = -1; return ""; }
         WiFiClient client;
@@ -122,11 +123,11 @@ void FlashForgeC5Backend::tryAuth() {
         if (c == 0)       { g_auth = true;  g_status = "FF: autenticado"; }
         else if (c == -2) g_status = "FF: Modo LAN desligado";
         else if (c == 1)  g_status = "FF: access code errado";
-        else if (c == 3)  g_status = "FF: nao autorizado";
+        else if (c == 3)  g_status = "FF: not authorised";
         else if (c == 5)  g_status = "FF: serial errado";
         else              g_status = String("FF: checkCode code ") + c;
     } else {
-        g_status = String("FF: sem resposta (") + code + ")";
+        g_status = String("FF: no answer (") + code + ")";
     }
     g_lastAuth = millis();
     if (g_auth) refresh();
@@ -157,7 +158,7 @@ void FlashForgeC5Backend::refresh() {
       Serial.printf("[flashforge] matlStationInfo: %.*s\n", (int)(ms.length() > 320 ? 320 : ms.length()), ms.c_str()); }
 
     JsonArrayConst si = d["detail"]["matlStationInfo"]["slotInfos"].as<JsonArrayConst>();
-    if (si.isNull()) { g_status = "FF: sem estacao de material"; return; }
+    if (si.isNull()) { g_status = "FF: no material station"; return; }
     for (JsonObjectConst s : si) {
         int id = s["slotId"] | 0;             // 1-based
         if (id < 1 || id > 4) continue;
@@ -196,7 +197,7 @@ bool FlashForgeC5Backend::assign(int idx, const TagInfo& t) {
     JsonObject a = pl["args"].to<JsonObject>();
     a["slot"] = idx + 1;                       // 1-based
     a["mt"]   = mt;
-    a["rgb"]  = rgb;                           // "#RRGGBB" MAIUSC. COM '#' (paleta C5)
+    a["rgb"]  = rgb;                           // "#RRGGBB", UPPERCASE, with the '#' (C5 palette)
     String body; serializeJson(d, body);
     Serial.printf("[flashforge] -> /control %s\n", body.c_str());
 
@@ -205,7 +206,7 @@ bool FlashForgeC5Backend::assign(int idx, const TagInfo& t) {
     Serial.printf("[flashforge] <- http=%d %s\n", code, resp.c_str());
     JsonDocument r;
     bool ok = (code == 200) && !deserializeJson(r, resp) && ((r["code"] | -1) == 0);
-    g_status = ok ? (String("enviado -> ") + LABELS[idx] + " " + mt) : "FF: falha no envio";
+    g_status = ok ? (String("sent -> ") + LABELS[idx] + " " + mt) : "FF: send failed";
     if (ok) { delay(150); refresh(); }        // confirma relendo (cmd desconhecido e ACKed na mesma)
     return ok;
 }

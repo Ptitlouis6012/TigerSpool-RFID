@@ -17,7 +17,7 @@ namespace {
     }
 }
 
-static bool g_diag = true;   // 1o arranque: log detalhado
+static bool g_diag = true;   // first boot: verbose logging
 
 bool reader::begin() {
     serNFC.begin(PN532_UART_BAUD, SERIAL_8N1, PN532_UART_RX, PN532_UART_TX);
@@ -57,7 +57,7 @@ bool reader::begin() {
         pn532hsu.wakeup();                        // wake it again before retrying
         delay(200);
     }
-    g_err = "PN532 sem resposta (HSU)";
+    g_err = "PN532 not answering (HSU)";
     return false;
 }
 
@@ -86,7 +86,7 @@ bool reader::read(TagInfo& out) {
                && nfc.mifareultralight_ReadPage16(0x08, payload + 16);
         } else {
             // Fallback: eight 4-byte reads. Smaller frames survive a poor link
-            // melhor a um link HSU marginal)
+            // better on a marginal HSU link)
             got = true;
             for (uint8_t i = 0; i < 8 && got; i++)
                 got = nfc.mifareultralight_ReadPage(0x04 + i, payload + i * 4);
@@ -126,9 +126,9 @@ bool reader::read(TagInfo& out) {
     const char* m = tt_material(out.idMaterial);
     const char* br = tt_brand(out.idBrand);
     out.material = m ? String(m) : (String("MAT#") + out.idMaterial);
-    out.brand    = br ? String(br) : (String("marca#") + out.idBrand);
+    out.brand    = br ? String(br) : (String("brand#") + out.idBrand);
     out.ok = true;
-    Serial.printf("[reader] %s / %s  #%02X%02X%02X  noz %u-%u  cama %u-%u\n",
+    Serial.printf("[reader] %s / %s  #%02X%02X%02X  nozzle %u-%u  bed %u-%u\n",
                   out.material.c_str(), out.brand.c_str(), out.r, out.g, out.b,
                   out.nozMin, out.nozMax, out.bedMin, out.bedMax);
     return true;

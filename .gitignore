@@ -69,6 +69,10 @@ __pycache__/
 # Logs
 *.log
 
+# Machine-local truth: the bench device's address, serial port and printer
+# access codes. It exists so no committed file carries any of them.
+LOCAL.md
+
 # Local scratchpads
 local_*.md
 NOTES.md

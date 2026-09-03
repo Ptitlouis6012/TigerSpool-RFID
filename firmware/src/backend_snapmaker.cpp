@@ -7,7 +7,7 @@ namespace {
 
     WebSocketsClient ws;
     bool      g_connected = false;
-    String    g_status = "Snap: a ligar...";
+    String    g_status = "Snap: connecting...";
     SlotState g_slots[4];
     uint32_t  g_lastReq = 0;
 
@@ -24,7 +24,7 @@ namespace {
         b = hx(s[4]) * 16 + hx(s[5]);
     }
 
-    // print_task_config: 4 arrays paralelos (color_rgba / type / vendor)
+    // print_task_config: 4 parallel arrays (color_rgba / type / vendor)
     void applyConfig(JsonObjectConst c) {
         JsonArrayConst col = c["filament_color_rgba"];
         JsonArrayConst typ = c["filament_type"];
@@ -45,7 +45,7 @@ namespace {
     void onMsg(uint8_t* payload, size_t len) {
         JsonDocument d;
         if (deserializeJson(d, payload, len)) return;
-        // resposta a query -> result.status.print_task_config
+        // query answer -> result.status.print_task_config
         JsonObjectConst r1 = d["result"]["status"]["print_task_config"];
         if (!r1.isNull()) { applyConfig(r1); return; }
         // push -> {"method":"notify_status_update","params":[{print_task_config:{...}}, t]}
@@ -81,7 +81,7 @@ namespace {
 void SnapmakerBackend::begin(const PrinterCfg& cfg) {
     for (int i = 0; i < 4; i++) g_slots[i] = SlotState{};
     g_connected = false;
-    g_status = "Snap: a ligar...";
+    g_status = "Snap: connecting...";
     ws.begin(cfg.host, 7125, "/websocket");
     ws.onEvent(onEvent);
     ws.setReconnectInterval(10000);
@@ -127,7 +127,7 @@ bool SnapmakerBackend::assign(int idx, const TagInfo& t) {
     String out; serializeJson(d, out);
 
     bool ok = sendRaw(out);
-    g_status = ok ? (String("enviado -> ") + SLOTS[idx]) : "falha no envio";
+    g_status = ok ? (String("sent -> ") + SLOTS[idx]) : "send failed";
     if (ok) { delay(200); refresh(); }
     return ok;
 }

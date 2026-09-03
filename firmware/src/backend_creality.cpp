@@ -11,7 +11,7 @@ namespace {
 
     WebSocketsClient ws;
     bool      g_connected = false;
-    String    g_status = "K2: a ligar...";
+    String    g_status = "K2: connecting...";
     SlotState g_slots[5];
     uint32_t  g_lastReq = 0;
 
@@ -56,7 +56,7 @@ namespace {
         if (doc["boxsInfo"].is<JsonObject>()) applyBoxsInfo(doc["boxsInfo"].as<JsonObjectConst>());
         if (doc["err"].is<JsonObject>()) {
             int ec = doc["err"]["errcode"] | 0;
-            if (ec) { g_status = String("K2 erro ") + ec; }
+            if (ec) { g_status = String("K2 error ") + ec; }
         }
         (void)p;
     }
@@ -79,7 +79,7 @@ namespace {
 void CrealityBackend::begin(const PrinterCfg& cfg) {
     for (int i = 0; i < 5; i++) g_slots[i] = SlotState{};
     g_connected = false;
-    g_status = "K2: a ligar...";
+    g_status = "K2: connecting...";
     ws.begin(cfg.host, 9999, "/");
     ws.onEvent(onEvent);
     ws.setReconnectInterval(10000);           // printer offline -> stop hammering it
@@ -124,7 +124,7 @@ bool CrealityBackend::assign(int idx, const TagInfo& t) {
     m["minTemp"] = t.nozMin ? t.nozMin : 190;
     m["maxTemp"] = t.nozMax ? t.nozMax : 230;
     bool ok = sendDoc(d);
-    g_status = ok ? (String("enviado -> ") + CREALITY_SLOTS[idx].name) : "falha no envio";
+    g_status = ok ? (String("sent -> ") + CREALITY_SLOTS[idx].name) : "send failed";
     if (ok) refresh();
     return ok;
 }

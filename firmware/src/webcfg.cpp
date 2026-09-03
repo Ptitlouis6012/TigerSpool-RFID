@@ -21,7 +21,7 @@
 
 // The offscreen canvas lives in main.cpp; /screen.bmp serialises it as-is.
 // Declared at GLOBAL scope: inside the anonymous namespace below they
-// designeraient d'autres symboles et l'edition de liens echouerait.
+// would name different symbols and the link step would fail.
 extern LGFX_Sprite canvas;
 extern bool        canvasReady;
 
@@ -171,7 +171,7 @@ namespace {
         snprintf(AP_SSID_BUF,  sizeof(AP_SSID_BUF),  "TigerSpool-Setup-%02X%02X", mac[4], mac[5]);
     }
     const IPAddress AP_IP(192, 168, 4, 1);
-    const char* PTYPES[] = { "Nenhuma", "Creality K2", "FlashForge Creator 5 Pro",
+    const char* PTYPES[] = { "None", "Creality K2", "FlashForge Creator 5 Pro",
                              "Bambu Lab (A1/A2/P1/X1)", "Snapmaker (Moonraker)" };
     const int   NPTYPES  = 5;
     // Mirrors enum Lang exactly: the form writes this index straight into NVS,
@@ -279,7 +279,7 @@ namespace {
         server.sendContent((const char*)hdr, 54);
 
         static uint8_t row[720];
-        for (int y = H - 1; y >= 0; y--) {          // BMP: derniere ligne en premier
+        for (int y = H - 1; y >= 0; y--) {          // BMP stores the last row first
             uint8_t* o = row;
             for (int x = 0; x < W; x++) {
                 uint32_t c = canvas.readPixel(x, y);    // RGB565 -> RGB888
@@ -658,11 +658,11 @@ namespace {
         restartAt = millis() + 1200;
     }
 
-    // --- login Google (fluxo de pareamento por link) ---
+    // --- Google sign-in (link-based pairing flow) ---
     String g_pairTok, g_pairUrl, g_pairCode;
     int    g_pairIv = 5;
 
-    // pagina de espera: mostra o link + codigo e recarrega em /tt-gpoll
+    // waiting page: shows the link and code, and reloads via /tt-gpoll
     void pairWaitPage(const String& extra) {
         String h = F("<!doctype html><html><head><meta charset=utf-8>"
                      "<meta name=viewport content=\"width=device-width,initial-scale=1\">"
@@ -705,7 +705,7 @@ namespace {
         } else if (st == 3) {
             g_pairTok = ""; reply(wl(W_PAIR_EXPIRED), wl(W_RESTARTING)); restartAt = millis() + 1500;
         } else {
-            pairWaitPage(st < 0 ? err : String());   // 0 = pendente, <0 = falha transitoria
+            pairWaitPage(st < 0 ? err : String());   // 0 = pending, <0 = transient failure
         }
     }
 
@@ -761,11 +761,11 @@ void webcfg::beginAP() {
     // hop channels, and the access point appears to drop every few seconds.
     WiFi.persistent(false);
     WiFi.setAutoReconnect(false);
-    WiFi.disconnect(true, true);          // para + apaga credenciais da STA
+    WiFi.disconnect(true, true);          // stop, and erase the station credentials
     delay(100);
 
     WiFi.mode(WIFI_AP_STA);               // AP+STA only for the initial scan
-    WiFi.setSleep(false);                 // AP sem modem-sleep = ligacoes estaveis
+    WiFi.setSleep(false);                 // AP without modem-sleep = stable connections
     buildNames();
     WiFi.softAPConfig(AP_IP, AP_IP, IPAddress(255, 255, 255, 0));
     WiFi.softAP(AP_SSID, nullptr, 1, 0, 4);   // canal 1 fixo, max 4 clientes

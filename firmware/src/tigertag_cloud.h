@@ -48,7 +48,7 @@ namespace ttcloud {
     // Runs the sync on its own task. The home screen is where the user comes
     // back constantly and it must never wait on the network: the list is drawn
     // from NVS immediately, and this updates it underneath.
-    bool   startAsyncSync();              // false se ja houver uma a correr
+    bool   startAsyncSync();              // false if one is already running
     bool   asyncBusy();
     bool   asyncTake(String& summary);    // true once, when it finishes
 

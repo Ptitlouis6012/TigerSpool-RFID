@@ -281,8 +281,8 @@ names belong to a Creality-only ancestor and do not survive.
 
 | | Value |
 |---|---|
-| mDNS hostname | `tigerspool.local` |
-| Setup AP SSID | `TigerSpool-Setup` |
+| mDNS hostname | `tigerspool-xxxx.local` |
+| Setup AP SSID | `TigerSpool-Setup-XXXX` |
 | Firmware binary | `tigerspool-v1.0.0.bin` |
 | PlatformIO env | `tigerspool` |
 | MQTT client id | `tigerspool-<mac6>` |
@@ -292,35 +292,13 @@ names belong to a Creality-only ancestor and do not survive.
 
 ## Directory layout
 
-```
-firmware/
-├── platformio.ini
-├── partitions.csv          two OTA slots — see docs/OTA.md
-├── include/                board headers, build-time configuration
-├── lib/
-│   └── PN532/              the vendored reader driver, ONE copy
-├── data/                   web config UI, uploaded to LittleFS
-└── src/
-    ├── main.cpp            setup(), loop(), and nothing else
-    ├── app/                state machine, orchestration
-    ├── ui/                 screens, rendering, touch
-    ├── reader/             PN532 driver use, TigerTag decoding
-    ├── printers/
-    │   ├── backend.h       the interface above
-    │   ├── registry.*      brand → backend
-    │   ├── creality/
-    │   ├── flashforge/
-    │   ├── bambulab/
-    │   ├── snapmaker/
-    │   ├── elegoo/         ported from Tiger Studio's PROTOCOL.md
-    │   └── anycubic/       ported from Tiger Studio's PROTOCOL.md
-    ├── account/            pairing, session, printer import, slot write-back
-    ├── net/                Wi-Fi, captive portal, web config, mDNS, OTA
-    └── platform/           NVS, display, touch, logging
-```
+The source tree is mapped in [CODEMAP.md](../CODEMAP.md): what each file owns,
+what it must not be asked to do, and the landmines to read before editing it.
+It is kept there rather than here so there is one description of the layout
+rather than two that drift.
 
-**One copy of the PN532 library.** The prototype carries three, which have
-already drifted apart from each other. See
+**One copy of the PN532 library**, vendored under `firmware/lib/PN532/`. The
+prototype carried three, which had already drifted apart from each other. See
 [MIGRATION.md](MIGRATION.md#the-vendored-pn532-library).
 
 ---
