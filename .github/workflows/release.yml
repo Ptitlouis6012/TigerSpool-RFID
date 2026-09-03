@@ -30,7 +30,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0        # the changelog section needs history
 
@@ -68,8 +68,17 @@ jobs:
           cp "$B/firmware.bin"    "dist/tigerspool-v$V.bin"
           cp "$B/bootloader.bin"  dist/bootloader.bin
           cp "$B/partitions.bin"  dist/partitions.bin
-          cp "$HOME/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin" \
-             dist/boot_app0.bin
+          # Shipped by the Arduino core rather than built by us. Located
+          # rather than hard-coded: the package layout is not ours to depend
+          # on, and a release that silently omits it produces a device that
+          # boots the wrong slot after its first OTA.
+          BOOT_APP0=$(find "$HOME/.platformio/packages" -name boot_app0.bin \
+                        -path '*framework-arduinoespressif32*' | head -1)
+          if [ -z "$BOOT_APP0" ]; then
+            echo "::error::boot_app0.bin not found in the Arduino core."
+            exit 1
+          fi
+          cp "$BOOT_APP0" dist/boot_app0.bin
 
           # A checksum proves the download was not corrupted. It proves nothing
           # about who produced it - signing is a release blocker tracked in
