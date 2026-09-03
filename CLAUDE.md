@@ -137,6 +137,14 @@ Run `pio pkg install` in `firmware/` once and the two agree again.
 - **When a rule here turns out to be wrong, change it in the same session.** A
   file that describes a repository it no longer matches is worse than no file.
 
+## Reviews
+
+`docs/REVIEW-BRIEF.md` is the standing brief: reviews are read-only, the axes to
+look along, and the output format. Reports live in `docs/reviews/`, are kept
+permanently, and are annotated with what happened to each finding — an
+unannotated report reads as though nothing was done, and the findings get
+re-litigated from scratch.
+
 ## Delegation
 
 Delegate to keep search cost out of the main context, not to go faster.
