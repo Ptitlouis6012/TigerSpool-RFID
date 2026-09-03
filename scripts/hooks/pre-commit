@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Runs scripts/verify.sh --quick before every commit.
+#
+# IT DOES NOT COMPILE, deliberately. A build on every commit is how people
+# learn to reach for --no-verify, and a hook that is routinely bypassed is worse
+# than no hook: it gives the appearance of a gate while gating nothing. The full
+# build belongs in `verify.sh` before you report work done, and in CI.
+#
+# Bypass with `git commit --no-verify` when you genuinely need to - committing a
+# work in progress on a branch nobody pulls is a legitimate reason.
+
+set -uo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+# Fingerprint the regenerable files BEFORE and AFTER, rather than comparing
+# them against the index. Comparing against the index rejects every legitimate
+# partial commit - staging one file out of three is normal, and a hook that
+# calls that an error is a hook people disable.
+GENERATED="firmware/include/tigertag_db.h"
+fingerprint() {
+  for f in $GENERATED; do [ -f "$f" ] && shasum "$f"; done
+}
+BEFORE=$(fingerprint)
+
+if ! bash scripts/verify.sh --quick; then
+  echo
+  echo "pre-commit: guards failed. Fix them, or commit with --no-verify if you"
+  echo "            know why this one is different."
+  exit 1
+fi
+
+AFTER=$(fingerprint)
+if [ "$BEFORE" != "$AFTER" ]; then
+  echo
+  echo "pre-commit: a guard regenerated a file. Stage it and commit again:"
+  for f in $GENERATED; do echo "              git add $f"; done
+  exit 1
+fi

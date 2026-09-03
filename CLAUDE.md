@@ -58,6 +58,7 @@ bash scripts/verify.sh --quick   # guards, no compiling — the fast loop
 bash scripts/verify.sh           # guards plus a real build — before reporting
 cd firmware && pio run -e tigerspool   # just the build
 bash scripts/flash.sh --monitor  # build, flash over USB, open the console
+bash scripts/install-hooks.sh    # once per clone: run the guards on commit
 ```
 
 ### Releasing
@@ -83,7 +84,16 @@ the one action no later edit undoes.
 |---|---|
 | `TIGERSPOOL_FW_VERSION not found` | The macro in `firmware/include/version.h` was removed or renamed. It is the single source of truth; restore it. |
 | `tag vX.Y.Z disagrees with TIGERSPOOL_FW_VERSION` | Which one is wrong depends on whether the tag is public. `git ls-remote --tags origin` says which. **Not on the remote:** delete the local tag and re-tag to match the macro. **Already on the remote:** the macro is right and the tag is wrong — do not move the macro to match it, and do not re-point a published tag. Release the next version instead. Either way the commit and the tag need asking for. |
-| `_internal/ is tracked by git` | Someone force-added it. ask, then `git rm -r --cached _internal`. It is French working material and must never publish. |
+| `_internal/ is tracked by git` | Someone force-added it. Ask, then `git rm -r --cached _internal`. It is French working material and must never publish. |
+| `does not match ... gen_db.py` | The generated header was hand-edited, or its input changed. Run `python3 firmware/tools/gen_db.py`. Never edit the header back into agreement. |
+| `reference data contains characters the UI font cannot draw` | A label in `firmware/tools/data_src/*.json` holds a character the panel has no glyph for. Fix the JSON, not the header. |
+| `in a string literal - the compiled font covers ...` | An on-device string needs a glyph that is not compiled in. Rewrite it in ASCII, or generate a wider font subset first. |
+| `STR row ... is labelled ... but the enum has ...` | The translation table and `enum StrId` have come apart. Every row after that point is mislabelled. |
+| `non-English comment` / `non-English string` | Something committed is not in English. Translate it; do not add the word to the guard's list. |
+| `is not a name this device answers to` | A document names a device the firmware does not build. The format lives in `webcfg.cpp`; the prose follows it, never the reverse. |
+| `this row wires PN532 ... but config.h declares ...` | A wiring table disagrees with the pin macros. Warning against GPIO6/7 in prose is fine; prescribing them in a table is not. |
+| `CRLF line ending(s)` | A file arrived converted. Convert it back to LF alone — a whole-file rewrite makes every later diff on it unreviewable. |
+| any guard exiting `2` | Not a violation: the guard could not run. Its input set was empty or its anchor moved, so it is checking nothing. Fix the guard before trusting the tree. |
 | `broken link -> …` | A relative link in a tracked `.md` points at a file that does not exist. Fix the link or add the file. |
 | `GPIO6/7 presented as a PN532 wiring instruction` | A document gives those pins as reader connections. Warning against them is fine; prescribing them is not. See the pin row under Hardware facts. |
 | Build fails only in CI | The PlatformIO cache is keyed on `firmware/platformio.ini`. If dependencies moved, the local `.pio` may be ahead of CI's. Delete `firmware/.pio` and rebuild locally before blaming CI. |

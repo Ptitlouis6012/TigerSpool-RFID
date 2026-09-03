@@ -45,6 +45,40 @@ message, and reset it to this header.
   Both carry a concrete failure scenario and both are marked deferred with the
   reason. Reports are kept permanently and annotated once acted on.
 
+- `scripts/verify.sh`, the one command CI and the bench both run, and eight
+  guards behind it: file format, generated files against their generator,
+  translation tables against their enums, every drawn string against the
+  compiled font, committed text being English, documented device names against
+  the formats the firmware builds, documented reader wiring against the pin
+  macros, and documentation hygiene. Each names the file and line, each fails
+  loudly rather than silently when its input set is empty, and each was verified
+  by breaking its input on purpose.
+- `scripts/font_range.py` and `scripts/cxx_scan.py`, shared by more than one
+  guard so a fact is read once: the font's real character range comes from
+  LVGL's generated font source, and C++ is parsed by one state machine rather
+  than by a regular expression per line.
+- `scripts/hooks/pre-commit` with `scripts/install-hooks.sh`, which points
+  `core.hooksPath` at the versioned hooks so a fresh clone picks up later
+  changes without re-running anything. The hook runs the guards and never
+  compiles.
+- `scripts/flash.sh` — build and flash over USB through PlatformIO, with
+  `--port`, `--fs`, `--erase` and `--monitor`, documenting which image is written
+  at which offset and therefore why saved Wi-Fi survives an ordinary flash.
+
+### Fixed
+
+- The reference-data generator could not run at all, wrote a Portuguese banner,
+  had no shebang, and validated nothing. Two brand names carried a no-break
+  space that reached the panel as a blank box.
+- Sixty-six pieces of committed text were not English, including serial logs, four
+  backends' status strings, an unknown brand rendering as `marca#1234`, and a
+  printer type list beginning with `Nenhuma`.
+- Six documents described device names the firmware stopped answering to, one of
+  them offering a Wi-Fi join QR payload the device does not emit.
+- `i18n.cpp` and `i18n.h` claimed the compiled font covers Latin-1. It covers
+  ASCII plus degree and bullet.
+- Three files had no final newline.
+
 ### Changed
 
 - `.gitignore` ignores `LOCAL.md`.

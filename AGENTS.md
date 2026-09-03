@@ -33,7 +33,12 @@ bash scripts/verify.sh --quick
 ```
 
 One command, and it is what CI runs. If it is red, the work is not done. Each
-guard names the file, the line and its own remedy.
+guard names the file, the line and its own remedy. A guard exiting `2` did not
+find a violation — it could not run, and is checking nothing.
+
+Once per clone, `bash scripts/install-hooks.sh` points git at the versioned
+hooks, so the guards run on commit. They never compile: a build on every commit
+teaches people to reach for `--no-verify`.
 
 ## Conventions
 
