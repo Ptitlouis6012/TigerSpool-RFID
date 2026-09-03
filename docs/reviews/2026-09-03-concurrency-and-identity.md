@@ -112,6 +112,35 @@ Note what the guard's first shape would have missed: watching call sites alone
 let through five of the fifteen, because the settings menu keeps its labels in a
 table and hands the table to `frame::row`.
 
+## Finding 2 has a deadline, and it is a release rather than a date
+
+**Read this before assuming "deferred" means "later is fine".**
+
+Three facts about this product stop being decisions the moment someone else's
+device holds them. They are un-fixable after that, not merely expensive:
+
+| Frozen by the first public release | Why it cannot be changed afterwards |
+|---|---|
+| The **partition table** | A device cannot install a new one over the air. Changing it means every user reflashes over USB, or is stranded. |
+| The **OTA manifest key layout** | Units in the field parse the shape they left with. An old one coming back after months must still be able to read what it is served. |
+| **Printer identity being an array index** (finding 2 above) | `p{i}t/n/h/s/c/v` is in NVS on a paired device right now. Fixing it later means a storage migration or a reset — and a reset means every user re-pairs. |
+
+The first two are recorded in `docs/OTA.md`. The third is the one that gets
+missed, because it reads as ordinary technical debt and is filed here as
+deferred design work. It is the same class as the other two: **a data-model fact
+that becomes permanent when it leaves the building.**
+
+**They share one deadline, and the deadline is the first public release, not a
+sprint boundary.** Nothing forces the date. The release does.
+
+At v0.1.0, with nothing published, all three are still free.
+
+**Finding 1 does not share this deadline.** A missing mutex is a bug that gets
+worse with load and can be fixed in any later version without anyone re-pairing
+anything. It is more urgent in one sense and less final in another. Do not treat
+the two as one pile: shipping makes finding 2 permanent, and only makes finding 1
+more common.
+
 ## Decisions recorded, so they are not re-litigated
 
 ### Mojibake has no guard, deliberately — for now

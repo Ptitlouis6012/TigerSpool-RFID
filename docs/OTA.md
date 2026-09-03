@@ -228,6 +228,89 @@ Every tagged release, from the [release workflow](../.github/workflows/release.y
 
 ---
 
+## Decisions settled before the first release
+
+None of this is built — the installer does not exist and `pages.yml` is a
+placeholder that fails on purpose. The decisions are recorded now because after
+the first public release they stop being decisions: devices in the field read
+the shape they left with, and an old unit coming back online after months
+expects it unchanged.
+
+### The manifest is generated, never committed
+
+A committed copy and a generated one drift, and the drift is invisible until a
+fleet acts on it. It is produced during deployment and exists only in the
+deployed artefact.
+
+### It is assembled around the latest *release*, never around what is live
+
+Ask the GitHub release API for the latest release and describe that. Then the
+same run produces the same correct output whether it happens before or after a
+release is published, and ordering stops being something anyone has to reason
+about. Assembling it from "whatever is currently deployed" makes the result
+depend on when the workflow happened to run.
+
+### Binaries are never rebuilt when assembling it
+
+Publish the release assets themselves. The SHA-256 in the manifest must be the
+hash of the exact bytes the device downloads. A rebuilt binary differs — build
+paths, timestamps — and a device that verifies the hash before switching boot
+partitions will reject it. Correctly, and very confusingly.
+
+### The key layout must be safe to grow
+
+Devices in the field parse this file for years. So:
+
+- **Parse through a filter, ignoring unknown keys.** A device must read a
+  manifest written by a later version without failing. This is the property that
+  makes every future addition free.
+- **Never remove a key, never repurpose one.** Adding `min_version_note` beside
+  `min_version` is safe. Changing what `min_version` means is not, because the
+  units that already shipped will keep applying the old meaning.
+- **Never change a key's type.** A string that becomes an object breaks every
+  parser that shipped.
+- `version`, `firmware_url` and `firmware_sha256` are the three a device cannot
+  work without. Everything else must have a sane default when absent.
+
+### Exactly one workflow may deploy the site
+
+**This is the failure with the worst blast radius in the reference project's
+history.** Two workflows deployed for the same commit. GitHub reported both
+successful, marked the older deployment inactive, and went on serving it. The
+manifest it served advertised the previous version, so every device in the field
+reported "up to date" against a release that had already shipped. Nothing was
+red anywhere. The only way to see it was to fetch the site and compare it to the
+release.
+
+So: one workflow, named in this file, with a `concurrency` group. Any second
+path to deployment is a bug regardless of whether it currently works.
+
+### `scripts/verify-published-site.py` must exist alongside it
+
+Fetch the **live manifest** and the **latest release**, and require that they
+describe the same firmware byte for byte:
+
+| Compare | Why |
+|---|---|
+| manifest `version` ↔ release tag | the whole failure mode above |
+| manifest `firmware_sha256` ↔ SHA-256 of the release asset | proves the URL serves the bytes the manifest promises |
+| manifest `firmware_url` reachable, and its body hashes to that value | catches a deploy that published the metadata but not the binary |
+
+Run it hourly on a schedule so a lost deployment repairs itself, and make it
+runnable by hand any time there is doubt about what devices can see. **Verify
+the published result, not the workflow's green check** — a deployment can report
+success and serve the previous build.
+
+### Release notes cannot be forgotten
+
+`verify.sh` must fail when the current version has no notes, or when they still
+hold scaffold text, and the release workflow must refuse to publish without
+them. `bump-version.sh` scaffolds them alongside the macro edit.
+
+Notes written at tag time are written from memory. `WORKLOG.md` exists so they
+do not have to be. Unlike everything else in this section, this one is
+buildable today — it needs no installer.
+
 ## Open questions
 
 - **Does the LittleFS image update over the air, or only the app?** The web config
