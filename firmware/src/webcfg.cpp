@@ -7,6 +7,7 @@
 #include <LovyanGFX.hpp>
 #include <lvgl.h>
 #include "ui/lvgl_port.h"
+#include "ui/screen_setup.h"
 #include "printer.h"
 #include "tigertag_cloud.h"
 #include "i18n.h"
@@ -99,10 +100,23 @@ namespace {
         /* W_PAIR_EXPIRED */ { "Codigo expirado - tenta de novo", "Code expired - try again",
                               "Codigo expirado - intenta de nuevo", "Code expire - reessaie" },
     };
+    // The web form still carries its own four-column table (PT, EN, ES, FR),
+    // inherited from the prototype. The device now has eight languages, so an
+    // unmapped index would read past the end of every row.
+    //
+    // This maps what it can and falls back to English. The real fix is phase 7:
+    // serve a static page from LittleFS with proper locale files, the way
+    // TigerScale does - see docs/MIGRATION.md.
     const char* wl(Wid id) {
-        int l = (int)i18n::current();
-        if (l < 0 || l >= 4) l = 0;
-        return WT[id][l];
+        int col;
+        switch (i18n::current()) {
+            case LANG_PT:
+            case LANG_PT_PT: col = 0; break;
+            case LANG_ES:    col = 2; break;
+            case LANG_FR:    col = 3; break;
+            default:         col = 1; break;   // English
+        }
+        return WT[id][col];
     }
     void reply(const String& title, const String& msg);   // fwd
 
@@ -118,7 +132,10 @@ namespace {
     const char* PTYPES[] = { "Nenhuma", "Creality K2", "FlashForge Creator 5 Pro",
                              "Bambu Lab (A1/A2/P1/X1)", "Snapmaker (Moonraker)" };
     const int   NPTYPES  = 5;
-    const char* LANGS[]  = { "Portugues", "English", "Espanol", "Francais" };
+    // Mirrors enum Lang exactly: the form writes this index straight into NVS,
+    // so a shorter list here would silently store the wrong language.
+    const char* LANGS[]  = { "English", "Francais", "Deutsch", "Espanol",
+                             "Italiano", "Polski", "Portugues (BR)", "Portugues (PT)" };
 
     String esc(const String& s) {
         String o; o.reserve(s.length() + 8);
@@ -150,6 +167,21 @@ namespace {
         // PSRAM write in the render path for a feature used a few times a day.
         // Ask for it, force a full repaint so every pixel passes through
         // flush_cb, and pump LVGL until the frame has been drawn.
+        // Diagnostic: /screen.bmp?preview=lang|wifi|pair|pairfail renders one of
+        // the setup screens for the capture and nothing else. The state machine
+        // redraws on its next pass, so the device is not left showing it.
+        //
+        // This exists because the first-boot screens are, by definition, only
+        // reachable on a device that has not been set up - which is exactly the
+        // state a developer cannot get a networked screenshot out of.
+        String preview = server.hasArg("preview") ? server.arg("preview") : String();
+        if      (preview == "lang") screen_setup::showLanguage(true);
+        else if (preview == "wifi") screen_setup::showWifi("TigerSpool-Setup", 0);
+        else if (preview == "pair") screen_setup::showPairing(
+                     "https://tigersystem.io/pair?c=K7QF3M2P", "K7QF-3M2P", 587);
+        else if (preview == "pairfail") screen_setup::showPairFailed("Code expired");
+        else if (preview == "account") screen_setup::showAccountIntro();
+
         lvgl_port::requestCapture(true);
         lv_obj_invalidate(lv_scr_act());
         for (uint32_t t0 = millis(); millis() - t0 < 400; ) { lv_timer_handler(); delay(5); }
@@ -288,7 +320,7 @@ namespace {
         h += F("</label><input name=pass type=password autocomplete=off");
         if (!apMode) { h += F(" placeholder=\""); h += wl(W_UNCHANGED); h += F("\""); }
         h += F("><h2>"); h += wl(W_LANG); h += F("</h2><select name=lang>");
-        for (int i = 0; i < 4; i++) { h += "<option value=\""; h += i; h += "\""; if (lang == i) h += " selected"; h += ">"; h += LANGS[i]; h += "</option>"; }
+        for (int i = 0; i < (int)LANG_N; i++) { h += "<option value=\""; h += i; h += "\""; if (lang == i) h += " selected"; h += ">"; h += LANGS[i]; h += "</option>"; }
         h += F("</select><h2>"); h += wl(W_PRINTERS);
         h += F("</h2><div class=hint>"); h += wl(W_LAN_HINT); h += F("</div>");
         for (int i = 0; i < MAX_PRINTERS; i++) {
@@ -355,8 +387,20 @@ namespace {
         restartAt = millis() + 1400;
     }
 
+    // Factory reset: the device must come back exactly as it left the flasher.
+    //
+    // Clearing only "tigerspool" is not that. The account session lives in its
+    // own namespace, and the prototype's namespaces are still on the chip - the
+    // migration in main.cpp would read them on the next boot and put the Wi-Fi
+    // credentials and the printers straight back. A reset that undoes itself is
+    // worse than no reset, because the user believes the device was wiped.
     void handleReset() {
-        p.begin("tigerspool", false); p.clear(); p.end();
+        const char* namespaces[] = { "tigerspool", "tsaccount", "k2cfg", "ttcfg" };
+        for (const char* ns : namespaces) {
+            Preferences w;
+            if (w.begin(ns, false)) { w.clear(); w.end(); }
+        }
+        Serial.println("[config] factory reset - all namespaces cleared");
         reply(wl(W_WIPED), wl(W_RESTARTING));
         restartAt = millis() + 1200;
     }

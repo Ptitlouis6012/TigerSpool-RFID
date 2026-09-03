@@ -23,6 +23,7 @@
 #include "tigertag_cloud.h"
 #include "ui/lvgl_port.h"
 #include "ui/screen_home.h"
+#include "ui/screen_setup.h"
 
 // ---- cores -------------------------------------------------------------
 #define C_BG    0x0000
@@ -519,7 +520,9 @@ static void migrateLegacyConfig() {
     dst.begin("tigerspool", false);
     dst.putString("ssid", ssid);
     dst.putString("pass", src.getString("pass", ""));
-    dst.putInt("lang",    src.getInt("lang", 0));
+    // NOT the language: the prototype ordered its enum PT, EN, ES, FR and this
+    // firmware orders it EN, FR, DE, ES, ... Carrying the old index over would
+    // silently pick a different language. The picker asks once instead.
     dst.putInt("printerIdx", src.getInt("psel", 0));
     for (int i = 0; i < MAX_PRINTERS; i++) {
         char k[6];
@@ -618,8 +621,15 @@ static void startConfigAP() {
     stateSince = millis();
 }
 static void goAfterLang() {
+    // Already associated while the language screen was up? Then there is
+    // nothing to wait for.
+    if (WiFi.status() == WL_CONNECTED) {
+        Serial.printf("[wifi] already up: %s\n", WiFi.localIP().toString().c_str());
+        onWifiUp(); state = ST_PRINTER; stateSince = millis();
+        return;
+    }
     if (wifiConnect()) { onWifiUp(); state = ST_PRINTER; stateSince = millis(); }
-    else startConfigAP();                 // falhou -> abre o AP para escolher outra rede
+    else startConfigAP();                 // no usable network -> open the setup portal
 }
 static void backToPrinters() {
     screen_home::leave();          // force a full LVGL repaint on re-entry
@@ -672,11 +682,34 @@ void setup() {
     nfcReady = reader::begin();
     if (!nfcReady) Serial.printf("[reader] %s\n", reader::lastError().c_str());
 
-    if (i18n::chosen()) goAfterLang();
-    else { state = ST_LANG; stateSince = millis(); }
+    if (i18n::chosen()) {
+        goAfterLang();
+    } else {
+        // First boot. Start associating NOW, in the background, while the user
+        // reads the language list: the radio has nothing else to do and the
+        // choice takes a few seconds. By the time they tap, the network is
+        // usually already up, so the Wi-Fi step is skipped entirely instead of
+        // making them wait for something that could have happened already.
+        //
+        // On a genuinely new device there are no credentials and this does
+        // nothing, which is the correct outcome too.
+        if (!wifiSsid.isEmpty()) {
+            WiFi.mode(WIFI_STA);
+            WiFi.begin(wifiSsid.c_str(), wifiPass.c_str());
+            Serial.printf("[wifi] associating to '%s' behind the language screen\n",
+                          wifiSsid.c_str());
+        }
+        state = ST_LANG; stateSince = millis();
+    }
 }
 
 void loop() {
+    // The config page belongs to the network, not to a screen: as soon as there
+    // is an address, http://tigerspool.local answers. That also means the setup
+    // screens are reachable for a remote screenshot, which is how this UI gets
+    // checked without someone standing in front of the device.
+    if (!webStarted && WiFi.status() == WL_CONNECTED) onWifiUp();
+
     if (backend) backend->loop();
     if (webStarted || webcfg::apActive()) webcfg::loop();
     pollTouch();
@@ -690,22 +723,28 @@ void loop() {
 
     switch (state) {
 
-    case ST_LANG:
-        if (takeTap(tx, ty))
-            for (int i = 0; i < LANG_N; i++)
-                if (inBtn(rowBtn(i), tx, ty)) { i18n::set((Lang)i); goAfterLang(); break; }
-        drawLang();
+    case ST_LANG: {
+        screen_setup::showLanguage();
+        lvgl_port::loop();
+        int pick = screen_setup::takeLanguage();
+        if (pick >= 0) { i18n::set((Lang)pick); screen_setup::hide(); goAfterLang(); }
         break;
+    }
 
     case ST_WIFI:
         startConfigAP();                      // falha de Wi-Fi -> portal AP
         return;
 
     case ST_AP: {
-        static int lastCl = -99; static uint32_t lastDraw = 0;
-        int cl = webcfg::apClients();
-        if (cl != lastCl || millis() - lastDraw > 2000) { drawAP(); lastCl = cl; lastDraw = millis(); }
-        delay(120);
+        // The QR is redrawn only when the client count changes: encoding it is
+        // the most expensive thing on this screen and the payload never varies.
+        static int lastClients = -99;
+        int clients = webcfg::apClients();
+        if (clients != lastClients) {
+            screen_setup::showWifi(webcfg::apName(), clients);
+            lastClients = clients;
+        }
+        lvgl_port::loop();
         return;
     }
 

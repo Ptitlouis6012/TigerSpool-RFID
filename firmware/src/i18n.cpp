@@ -1,77 +1,133 @@
 #include "i18n.h"
 #include <Preferences.h>
 
-// Sem acentos: a fonte por omissao do LovyanGFX so tem ASCII.
-// Uma linha por string, as 4 linguas juntas (ordem: PT, EN, ES, FR).
-struct L4 { const char* s[LANG_N]; };
+// One row per string, all languages side by side, in the order of enum Lang:
+//   EN, FR, DE, ES, IT, PL, PT-BR, PT-PT
+//
+// Accents are written normally. The prototype could not: its font was ASCII
+// only, so every language lost its diacritics. LVGL with Montserrat covers
+// Latin-1, so they render properly now.
+//
+// The screen is 240 px wide. A string that is half again as long in German as
+// in English gets cut off, so translations are kept short rather than literal.
+struct Row { const char* s[LANG_N]; };
 
-static const L4 STR[S_COUNT] = {
-  /* S_TOUCH_SLOT   */ {{ "toca num slot", "tap a slot", "toca una ranura", "touchez un emplacement" }},
-  /* S_SLOT         */ {{ "Slot", "Slot", "Ranura", "Empl." }},
-  /* S_BRING_TAG    */ {{ "Aproxima a TigerTag", "Bring the TigerTag", "Acerca la TigerTag", "Approchez la TigerTag" }},
-  /* S_TO_READER    */ {{ "ao leitor", "to the reader", "al lector", "du lecteur" }},
-  /* S_CANCEL       */ {{ "CANCELAR", "CANCEL", "CANCELAR", "ANNULER" }},
-  /* S_NO           */ {{ "NAO", "NO", "NO", "NON" }},
-  /* S_SEND         */ {{ "ENVIAR", "SEND", "ENVIAR", "ENVOYER" }},
-  /* S_SEND_TO      */ {{ "Enviar para %s ?", "Send to %s ?", "Enviar a %s ?", "Envoyer vers %s ?" }},
-  /* S_NOZZLE       */ {{ "Bico", "Nozzle", "Boquilla", "Buse" }},
-  /* S_BED          */ {{ "Cama", "Bed", "Cama", "Lit" }},
-  /* S_OK           */ {{ "OK", "OK", "OK", "OK" }},
-  /* S_ERR          */ {{ "ERRO", "ERROR", "ERROR", "ERREUR" }},
-  /* S_TAP_BACK     */ {{ "toca para voltar", "tap to go back", "toca para volver", "touchez pour revenir" }},
-  /* S_CONNECTING   */ {{ "a ligar a", "connecting to", "conectando a", "connexion a" }},
-  /* S_WIFI_FAIL    */ {{ "falha de ligacao", "connection failed", "fallo de conexion", "echec de connexion" }},
-  /* S_NO_NETWORK   */ {{ "sem rede configurada", "no network configured", "sin red configurada", "aucun reseau configure" }},
-  /* S_CONFIG_HINT  */ {{ "Config: flash tools/wifi_portal", "Config: flash tools/wifi_portal", "Config: flash tools/wifi_portal", "Config: flash tools/wifi_portal" }},
-  /* S_UPDATED      */ {{ "%s atualizado", "%s updated", "%s actualizado", "%s mis a jour" }},
-  /* S_PRINTER_OFF       */ {{ "impressora offline", "printer offline", "impresora desconectada", "imprimante hors ligne" }},
-  /* S_SEND_FAIL    */ {{ "falha no envio", "send failed", "fallo al enviar", "echec de l envoi" }},
-  /* S_HOLDER       */ {{ "Suporte", "Spool", "Soporte", "Support" }},
-  /* S_CHOOSE_LANG  */ {{ "Escolhe o idioma", "Choose language", "Elige el idioma", "Choisissez la langue" }},
-  /* S_READ_UNSTABLE*/ {{ "leitura instavel", "unstable read", "lectura inestable", "lecture instable" }},
-  /* S_BLANK_TAG    */ {{ "tag em branco", "blank tag", "etiqueta vacia", "tag vierge" }},
-  /* S_PRINTER      */ {{ "Impressora", "Printer", "Impresora", "Imprimante" }},
-  /* S_NO_PRINTERS  */ {{ "Sem impressoras.", "No printers.", "Sin impresoras.", "Aucune imprimante." }},
-  /* S_TT_LINKED    */ {{ "conta TigerTag ligada", "TigerTag account linked", "cuenta TigerTag conectada", "compte TigerTag lie" }},
-  /* S_ADD_WEB      */ {{ "adiciona no browser", "add via browser", "anade en el navegador", "ajoute via le navigateur" }},
-  /* S_CONFIG_WEB   */ {{ "config:", "config:", "config:", "config:" }},
-  /* S_AP_TITLE     */ {{ "CONFIG WI-FI", "WI-FI SETUP", "CONFIG WI-FI", "CONFIG WI-FI" }},
-  /* S_AP_JOIN      */ {{ "Liga o telemovel a rede:", "Join this network:", "Conecta a la red:", "Rejoins ce reseau :" }},
-  /* S_AP_OPEN      */ {{ "Depois abre no browser:", "Then open in a browser:", "Luego abre en el navegador:", "Puis ouvre dans un navigateur :" }},
-  /* S_AP_CHOOSE    */ {{ "e escolhe outra rede.", "and pick another network.", "y elige otra red.", "et choisis un autre reseau." }},
-  /* S_AP_WAITING   */ {{ "a aguardar ligacao", "waiting for a device", "esperando conexion", "en attente d une connexion" }},
-  /* S_AP_CLIENTS   */ {{ "%d ligado(s)", "%d connected", "%d conectado(s)", "%d connecte(s)" }},
-  /* S_TT_IMPORTING */ {{ "a importar maquinas...", "importing machines...", "importando maquinas...", "import des machines..." }},
-  /* S_TT_ACCOUNT   */ {{ "Conta TigerTag", "TigerTag account", "Cuenta TigerTag", "Compte TigerTag" }},
-  /* S_ONLINE       */ {{ "ligado", "online", "conectado", "en ligne" }},
-  /* S_OFFLINE      */ {{ "offline", "offline", "desconectado", "hors ligne" }},
-  /* S_BACK         */ {{ "< voltar", "< back", "< volver", "< retour" }},
-  /* S_FIND_PRINTERS*/ {{ "a procurar impressoras...", "finding printers...", "buscando impresoras...", "recherche des imprimantes..." }},
-  /* S_NO_ONLINE    */ {{ "sem impressoras online", "no printers online", "sin impresoras en linea", "aucune imprimante en ligne" }},
+static const Row STR[S_COUNT] = {
+/* S_TOUCH_SLOT     */ {{ "tap a slot", "touchez un emplacement", "Slot antippen", "toca una ranura", "tocca uno slot", "dotknij gniazda", "toque um slot", "toque num slot" }},
+/* S_SLOT           */ {{ "Slot", "Empl.", "Slot", "Ranura", "Slot", "Gniazdo", "Slot", "Slot" }},
+/* S_BRING_TAG      */ {{ "Hold the spool", "Approchez la bobine", "Spule anhalten", "Acerca la bobina", "Avvicina la bobina", "Przyloz szpule", "Aproxime a bobina", "Aproxime a bobine" }},
+/* S_TO_READER      */ {{ "against the box", "contre le boitier", "an das Gerat", "a la caja", "alla scatola", "do urzadzenia", "da caixa", "da caixa" }},
+/* S_CANCEL         */ {{ "Cancel", "Annuler", "Abbrechen", "Cancelar", "Annulla", "Anuluj", "Cancelar", "Cancelar" }},
+/* S_NO             */ {{ "No", "Non", "Nein", "No", "No", "Nie", "Nao", "Nao" }},
+/* S_SEND           */ {{ "Send", "Envoyer", "Senden", "Enviar", "Invia", "Wyslij", "Enviar", "Enviar" }},
+/* S_SEND_TO        */ {{ "Send to %s?", "Envoyer vers %s ?", "An %s senden?", "Enviar a %s?", "Inviare a %s?", "Wyslac do %s?", "Enviar para %s?", "Enviar para %s?" }},
+/* S_NOZZLE         */ {{ "Nozzle", "Buse", "Duse", "Boquilla", "Ugello", "Dysza", "Bico", "Bico" }},
+/* S_BED            */ {{ "Bed", "Plateau", "Bett", "Cama", "Piano", "Stol", "Mesa", "Cama" }},
+/* S_OK             */ {{ "OK", "OK", "OK", "OK", "OK", "OK", "OK", "OK" }},
+/* S_ERR            */ {{ "Error", "Erreur", "Fehler", "Error", "Errore", "Blad", "Erro", "Erro" }},
+/* S_TAP_BACK       */ {{ "tap to continue", "touchez pour continuer", "zum Fortfahren tippen", "toca para continuar", "tocca per continuare", "dotknij, aby kontynuowac", "toque para continuar", "toque para continuar" }},
+/* S_CONNECTING     */ {{ "Connecting to", "Connexion a", "Verbinde mit", "Conectando a", "Connessione a", "Laczenie z", "Conectando a", "A ligar a" }},
+/* S_WIFI_FAIL      */ {{ "Connection failed", "Echec de connexion", "Verbindung fehlgeschlagen", "Fallo de conexion", "Connessione fallita", "Blad polaczenia", "Falha na conexao", "Falha na ligacao" }},
+/* S_NO_NETWORK     */ {{ "No network set up", "Aucun reseau configure", "Kein Netzwerk eingerichtet", "Sin red configurada", "Nessuna rete configurata", "Brak skonfigurowanej sieci", "Nenhuma rede configurada", "Sem rede configurada" }},
+/* S_CONFIG_HINT    */ {{ "Set up Wi-Fi first", "Configurez le Wi-Fi", "Zuerst WLAN einrichten", "Configura el Wi-Fi", "Configura il Wi-Fi", "Najpierw skonfiguruj Wi-Fi", "Configure o Wi-Fi", "Configure o Wi-Fi" }},
+/* S_UPDATED        */ {{ "%s updated", "%s mis a jour", "%s aktualisiert", "%s actualizado", "%s aggiornato", "%s zaktualizowano", "%s atualizado", "%s atualizado" }},
+/* S_PRINTER_OFF    */ {{ "Printer unreachable", "Imprimante injoignable", "Drucker nicht erreichbar", "Impresora inaccesible", "Stampante irraggiungibile", "Drukarka niedostepna", "Impressora inacessivel", "Impressora inacessivel" }},
+/* S_SEND_FAIL      */ {{ "Could not send", "Envoi impossible", "Senden fehlgeschlagen", "No se pudo enviar", "Invio non riuscito", "Nie mozna wyslac", "Nao foi possivel enviar", "Nao foi possivel enviar" }},
+/* S_HOLDER         */ {{ "Ext.", "Ext.", "Ext.", "Ext.", "Est.", "Zew.", "Ext.", "Ext." }},
+/* S_CHOOSE_LANG    */ {{ "Choose your language", "Choisissez votre langue", "Sprache wahlen", "Elige tu idioma", "Scegli la lingua", "Wybierz jezyk", "Escolha o idioma", "Escolha o idioma" }},
+/* S_READ_UNSTABLE  */ {{ "Move the spool closer", "Rapprochez la bobine", "Spule naher halten", "Acerca mas la bobina", "Avvicina di piu la bobina", "Przysun szpule blizej", "Aproxime mais a bobina", "Aproxime mais a bobine" }},
+/* S_BLANK_TAG      */ {{ "Tag is empty", "Etiquette vierge", "Tag ist leer", "Etiqueta vacia", "Tag vuoto", "Pusty tag", "Etiqueta vazia", "Etiqueta vazia" }},
+/* S_PRINTER        */ {{ "Printers", "Imprimantes", "Drucker", "Impresoras", "Stampanti", "Drukarki", "Impressoras", "Impressoras" }},
+/* S_NO_PRINTERS    */ {{ "No printers yet", "Aucune imprimante", "Noch keine Drucker", "Sin impresoras", "Nessuna stampante", "Brak drukarek", "Nenhuma impressora", "Nenhuma impressora" }},
+/* S_TT_LINKED      */ {{ "Account linked", "Compte connecte", "Konto verbunden", "Cuenta vinculada", "Account collegato", "Konto polaczone", "Conta vinculada", "Conta ligada" }},
+/* S_ADD_WEB        */ {{ "Add them in Tiger Studio", "Ajoutez-les dans Tiger Studio", "In Tiger Studio hinzufugen", "Anadelas en Tiger Studio", "Aggiungile in Tiger Studio", "Dodaj je w Tiger Studio", "Adicione no Tiger Studio", "Adicione no Tiger Studio" }},
+/* S_CONFIG_WEB     */ {{ "Settings:", "Reglages :", "Einstellungen:", "Ajustes:", "Impostazioni:", "Ustawienia:", "Ajustes:", "Definicoes:" }},
+/* S_AP_TITLE       */ {{ "Wi-Fi setup", "Configuration Wi-Fi", "WLAN einrichten", "Configurar Wi-Fi", "Configura Wi-Fi", "Konfiguracja Wi-Fi", "Configurar Wi-Fi", "Configurar Wi-Fi" }},
+/* S_AP_JOIN        */ {{ "Scan with your phone camera, or join", "Scannez avec votre telephone, ou rejoignez", "Mit dem Handy scannen oder beitreten", "Escanea con el movil, o conecta a", "Inquadra col telefono, o connettiti a", "Zeskanuj telefonem lub polacz z", "Escaneie com o celular, ou conecte a", "Digitalize com o telemovel, ou ligue a" }},
+/* S_AP_OPEN        */ {{ "Then open", "Puis ouvrez", "Dann offnen", "Luego abre", "Poi apri", "Nastepnie otworz", "Depois abra", "Depois abra" }},
+/* S_AP_CHOOSE      */ {{ "and pick your network", "et choisissez votre reseau", "und Netzwerk wahlen", "y elige tu red", "e scegli la rete", "i wybierz siec", "e escolha sua rede", "e escolha a sua rede" }},
+/* S_AP_WAITING     */ {{ "Waiting for a phone", "En attente d'un telephone", "Warte auf ein Handy", "Esperando un movil", "In attesa di un telefono", "Czekam na telefon", "Aguardando um celular", "A aguardar um telemovel" }},
+/* S_AP_CLIENTS     */ {{ "%d connected", "%d connecte(s)", "%d verbunden", "%d conectado(s)", "%d connesso/i", "%d polaczono", "%d conectado(s)", "%d ligado(s)" }},
+/* S_TT_IMPORTING   */ {{ "Importing printers", "Import des imprimantes", "Drucker werden importiert", "Importando impresoras", "Importazione stampanti", "Importowanie drukarek", "Importando impressoras", "A importar impressoras" }},
+/* S_TT_ACCOUNT     */ {{ "Account", "Compte", "Konto", "Cuenta", "Account", "Konto", "Conta", "Conta" }},
+/* S_ONLINE         */ {{ "online", "en ligne", "online", "en linea", "online", "online", "online", "online" }},
+/* S_OFFLINE        */ {{ "offline", "hors ligne", "offline", "sin conexion", "offline", "offline", "offline", "offline" }},
+/* S_BACK           */ {{ "Back", "Retour", "Zuruck", "Atras", "Indietro", "Wstecz", "Voltar", "Voltar" }},
+/* S_FIND_PRINTERS  */ {{ "Looking for printers", "Recherche d'imprimantes", "Suche nach Druckern", "Buscando impresoras", "Ricerca stampanti", "Szukam drukarek", "Procurando impressoras", "A procurar impressoras" }},
+/* S_NO_ONLINE      */ {{ "No printer reachable", "Aucune imprimante joignable", "Kein Drucker erreichbar", "Ninguna impresora accesible", "Nessuna stampante raggiungibile", "Zadna drukarka niedostepna", "Nenhuma impressora acessivel", "Nenhuma impressora acessivel" }},
+/* S_WIFI_BAD_PASSWORD */ {{ "Couldn't join. The password may be wrong.", "Echec. Le mot de passe est peut-etre faux.", "Fehlgeschlagen. Passwort evtl. falsch.", "Fallo. La contrasena puede estar mal.", "Fallito. La password potrebbe essere errata.", "Nie udalo sie. Haslo moze byc bledne.", "Falhou. A senha pode estar errada.", "Falhou. A palavra-passe pode estar errada." }},
+/* S_ACCOUNT_WHY    */ {{ "Your printers are already in your TigerTag account. Link it and they arrive by themselves.", "Vos imprimantes sont deja dans votre compte TigerTag. Connectez-le et elles arrivent seules.", "Ihre Drucker sind schon in Ihrem TigerTag-Konto. Verbinden und sie erscheinen von selbst.", "Tus impresoras ya estan en tu cuenta TigerTag. Vinculala y apareceran solas.", "Le tue stampanti sono gia nel tuo account TigerTag. Collegalo e arrivano da sole.", "Twoje drukarki sa juz na koncie TigerTag. Polacz je, a pojawia sie same.", "Suas impressoras ja estao na sua conta TigerTag. Vincule e elas chegam sozinhas.", "As suas impressoras ja estao na sua conta TigerTag. Ligue-a e chegam sozinhas." }},
+/* S_LINK_ACCOUNT   */ {{ "Link my account", "Connecter mon compte", "Konto verbinden", "Vincular mi cuenta", "Collega il mio account", "Polacz moje konto", "Vincular minha conta", "Ligar a minha conta" }},
+/* S_SCAN_TO_LINK   */ {{ "Scan to link, or go to tigersystem.io/pair", "Scannez, ou allez sur tigersystem.io/pair", "Scannen oder tigersystem.io/pair offnen", "Escanea, o ve a tigersystem.io/pair", "Inquadra, o vai su tigersystem.io/pair", "Zeskanuj lub wejdz na tigersystem.io/pair", "Escaneie, ou acesse tigersystem.io/pair", "Digitalize, ou va a tigersystem.io/pair" }},
+/* S_COLOUR_ADAPTED */ {{ "Colour adapted to the printer's palette", "Couleur adaptee a la palette de l'imprimante", "Farbe an die Druckerpalette angepasst", "Color adaptado a la paleta de la impresora", "Colore adattato alla palette della stampante", "Kolor dopasowany do palety drukarki", "Cor adaptada a paleta da impressora", "Cor adaptada a paleta da impressora" }},
 };
 
-static const char* LNAME[LANG_N] = { "Portugues", "English", "Espanol", "Francais" };
+// A mismatch here is silent at runtime and reads as garbled text on screen, so
+// let the compiler catch it instead.
+static_assert(sizeof(STR) / sizeof(STR[0]) == S_COUNT,
+              "i18n table and StrId enum are out of step");
+
+// Each language written in itself: someone looking for Portugues should not
+// have to recognise the English word "Portuguese" first.
+static const char* const NAMES[LANG_N] = {
+    "English", "Francais", "Deutsch", "Espanol",
+    "Italiano", "Polski", "Portugues (BR)", "Portugues (PT)"
+};
 
 namespace {
-    Preferences p;
-    Lang g_lang = LANG_PT;
+    Lang g_lang  = LANG_EN;
     bool g_chosen = false;
 }
 
-void i18n::begin() {
+namespace i18n {
+
+// The stored value is an index into enum Lang, so it only means anything to the
+// enum that wrote it. The prototype ordered its languages PT, EN, ES, FR; this
+// firmware orders them EN, FR, DE, ES, ... A value carried across without a
+// marker silently selects a different language - a device set to French came up
+// in Spanish, which is how this was found.
+//
+// Bump LANG_SCHEMA whenever enum Lang is reordered or has entries removed. An
+// index from an older schema is discarded, the device falls back to English and
+// asks once. Adding a language at the END does not need a bump.
+static constexpr int LANG_SCHEMA = 2;
+
+void begin() {
+    Preferences p;
     p.begin("tigerspool", true);
-    int v = p.getInt("lang", -1);
+    int schema = p.getInt("langVer", 0);
+    int v      = p.getInt("lang", -1);
     p.end();
+
+    if (schema != LANG_SCHEMA) {
+        if (v >= 0) Serial.printf("[i18n] language index %d written by schema %d "
+                                  "- discarding, asking again\n", v, schema);
+        return;                       // stays English, stays unchosen
+    }
     if (v >= 0 && v < LANG_N) { g_lang = (Lang)v; g_chosen = true; }
 }
-bool i18n::chosen()      { return g_chosen; }
-Lang i18n::current()     { return g_lang; }
-const char* i18n::name(Lang l) { return LNAME[l < LANG_N ? l : 0]; }
-const char* i18n::T(StrId id)  { return STR[id < S_COUNT ? id : 0].s[g_lang]; }
 
-void i18n::set(Lang l) {
+bool chosen()  { return g_chosen; }
+Lang current() { return g_lang; }
+
+void set(Lang l) {
+    if (l >= LANG_N) return;
     g_lang = l; g_chosen = true;
+    Preferences p;
     p.begin("tigerspool", false);
     p.putInt("lang", (int)l);
+    p.putInt("langVer", LANG_SCHEMA);   // stamp what wrote it
     p.end();
 }
+
+// Falls back to English rather than returning null: a missing translation
+// should show the English word, never crash a screen mid-draw.
+const char* T(StrId id) {
+    if (id >= S_COUNT) return "";
+    const char* s = STR[id].s[g_lang];
+    return (s && *s) ? s : STR[id].s[LANG_EN];
+}
+
+const char* name(Lang l) { return l < LANG_N ? NAMES[l] : NAMES[LANG_EN]; }
+
+}  // namespace i18n
