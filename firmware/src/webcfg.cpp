@@ -8,6 +8,9 @@
 #include <lvgl.h>
 #include "ui/lvgl_port.h"
 #include "ui/screen_setup.h"
+#include "net/portal_page.h"
+#include "version.h"
+#include <ArduinoJson.h>
 #include "printer.h"
 #include "tigertag_cloud.h"
 #include "i18n.h"
@@ -124,10 +127,40 @@ namespace {
     DNSServer   dns;
     Preferences p;
     uint32_t    restartAt = 0;
+    uint32_t    apTeardownAt = 0;
     bool        apMode    = false;
     String      apScan;                       // <option>s das redes encontradas
-    const char* HOSTNAME  = "tigerspool";
-    const char* AP_SSID   = "TigerSpool-Setup";
+    // ------------------------------------------------------------------
+    //  Names carry the last four hex digits of the station MAC.
+    //
+    //  A bare "tigerspool.local" works until there are two of them: mDNS
+    //  refuses a duplicate, so the second device silently never claims the
+    //  name and becomes unreachable by name.
+    //
+    //  The setup access point has the same problem and it is worse there.
+    //  Two devices in setup mode both broadcasting "TigerSpool-Setup" means
+    //  the phone joins one of them at random, and the user configures the
+    //  wrong box without ever knowing.
+    //
+    //  The suffix costs nothing: the QR on the screen carries the SSID, so
+    //  nobody types it, and the resolved name is shown on the device and on
+    //  the portal's success page for anyone who needs it later.
+    //
+    //  The STATION MAC, not the AP's - the two differ by one on an ESP32, and
+    //  the station's is what a DHCP reservation has to be made against.
+    // ------------------------------------------------------------------
+    char HOSTNAME_BUF[24];
+    char AP_SSID_BUF[28];
+    const char* HOSTNAME = HOSTNAME_BUF;
+    const char* AP_SSID  = AP_SSID_BUF;
+
+    void buildNames() {
+        if (HOSTNAME_BUF[0]) return;                 // built once
+        uint8_t mac[6] = {0};
+        WiFi.macAddress(mac);                        // station interface
+        snprintf(HOSTNAME_BUF, sizeof(HOSTNAME_BUF), "tigerspool-%02x%02x", mac[4], mac[5]);
+        snprintf(AP_SSID_BUF,  sizeof(AP_SSID_BUF),  "TigerSpool-Setup-%02X%02X", mac[4], mac[5]);
+    }
     const IPAddress AP_IP(192, 168, 4, 1);
     const char* PTYPES[] = { "Nenhuma", "Creality K2", "FlashForge Creator 5 Pro",
                              "Bambu Lab (A1/A2/P1/X1)", "Snapmaker (Moonraker)" };
@@ -234,6 +267,128 @@ namespace {
           "i.onerror=e=>{document.getElementById('e').textContent='erreur';setTimeout(t,2000)};"
           "i.src='/screen.bmp?'+Date.now()}t();</script>");
         server.send(200, "text/html", p);
+    }
+
+    // ------------------------------------------------------------------
+    //  The setup portal: one page, and three small endpoints behind it.
+    //
+    //  The page is served from PROGMEM with three placeholders filled in. It
+    //  opens in the language chosen on the device, so someone who picked
+    //  Portugues on the screen does not meet an English page on their phone.
+    // ------------------------------------------------------------------
+    const char* LANG_CODES[] = { "en", "fr", "de", "es", "it", "pl", "pt", "ptpt" };
+
+    void handlePortal() {
+        buildNames();
+        String page = FPSTR(PORTAL_HTML);
+        page.replace("%SSID%", AP_SSID);
+        page.replace("%FW%",   TIGERSPOOL_FW_VERSION);
+        int l = (int)i18n::current();
+        page.replace("%LANG%", LANG_CODES[(l >= 0 && l < (int)LANG_N) ? l : 0]);
+        server.send(200, "text/html", page);
+    }
+
+    // Networks, strongest first and deduplicated. The signal is reported in dBm
+    // and the page turns it into arcs - the mapping belongs with the drawing,
+    // not here.
+    void handleApiScan() {
+        WiFi.mode(WIFI_AP_STA);
+        WiFi.scanDelete();
+        int n = WiFi.scanNetworks(false, true);
+        if (n < 0) n = 0;
+
+        int idx[32], m = n > 32 ? 32 : n;
+        for (int i = 0; i < m; i++) idx[i] = i;
+        for (int i = 0; i < m; i++)
+            for (int j = i + 1; j < m; j++)
+                if (WiFi.RSSI(idx[j]) > WiFi.RSSI(idx[i])) { int t = idx[i]; idx[i] = idx[j]; idx[j] = t; }
+
+        JsonDocument doc;
+        JsonArray arr = doc["nets"].to<JsonArray>();
+        String seen = "\n";
+        for (int k = 0; k < m; k++) {
+            String ssid = WiFi.SSID(idx[k]);
+            if (!ssid.length() || seen.indexOf("\n" + ssid + "\n") >= 0) continue;
+            seen += ssid + "\n";
+            JsonObject o = arr.add<JsonObject>();
+            o["s"] = ssid;
+            o["r"] = WiFi.RSSI(idx[k]);
+            o["k"] = WiFi.encryptionType(idx[k]) != WIFI_AUTH_OPEN;
+        }
+        String out; serializeJson(doc, out);
+        server.send(200, "application/json", out);
+
+        // Back to AP-only: leaving the station interface scanning makes the
+        // radio hop channels and the phone falls off the setup network.
+        if (apMode) WiFi.mode(WIFI_AP);
+    }
+
+    // Join, verify, and only then report - no reboot.
+    //
+    // The prototype saved and restarted, which drops the phone and reopens the
+    // portal with no explanation when the password was wrong. Here the access
+    // point stays up through the attempt, so a failure is reported while the
+    // user is still looking at the field they typed it into.
+    //
+    // Honest caveat: an ESP32 shares one radio between AP and station, and the
+    // access point follows the station's channel. If the home network is on a
+    // different channel the phone can drop mid-attempt and never see this
+    // response. That is why the device's own screen shows the same result - the
+    // page is the nice path, the screen is the one that cannot fail.
+    void handleApiJoin() {
+        JsonDocument in;
+        if (deserializeJson(in, server.arg("plain"))) {
+            server.send(400, "application/json", "{\"ok\":false}");
+            return;
+        }
+        String ssid = in["ssid"] | "";
+        String pass = in["pass"] | "";
+        if (ssid.isEmpty()) { server.send(400, "application/json", "{\"ok\":false}"); return; }
+
+        WiFi.mode(WIFI_AP_STA);
+        WiFi.begin(ssid.c_str(), pass.c_str());
+        uint32_t t0 = millis();
+        while (WiFi.status() != WL_CONNECTED && millis() - t0 < 18000) delay(120);
+
+        JsonDocument out;
+        if (WiFi.status() != WL_CONNECTED) {
+            WiFi.disconnect(true);
+            if (apMode) WiFi.mode(WIFI_AP);
+            out["ok"] = false;
+            String j; serializeJson(out, j);
+            server.send(200, "application/json", j);
+            Serial.printf("[webcfg] join '%s' failed\n", ssid.c_str());
+            return;
+        }
+
+        Preferences w;
+        w.begin("tigerspool", false);
+        w.putString("ssid", ssid);
+        w.putString("pass", pass);
+        w.end();
+
+        out["ok"]   = true;
+        out["host"] = String(HOSTNAME) + ".local";
+        out["ip"]   = WiFi.localIP().toString();
+        // The STATION MAC. It differs from the access point's by one, and a DHCP
+        // reservation made against the wrong one silently never fires.
+        out["mac"]  = WiFi.macAddress();
+        String j; serializeJson(out, j);
+        server.send(200, "application/json", j);
+
+        Serial.printf("[webcfg] joined '%s' as %s (%s)\n",
+                      ssid.c_str(), out["ip"].as<String>().c_str(), out["mac"].as<String>().c_str());
+
+        // Give the phone a few seconds to render the result before the access
+        // point disappears from under it.
+        apTeardownAt = millis() + 6000;
+    }
+
+    void handleApiLang() {
+        String l = server.hasArg("l") ? server.arg("l") : String();
+        for (int i = 0; i < (int)LANG_N; i++)
+            if (l == LANG_CODES[i]) { i18n::set((Lang)i); break; }
+        server.send(200, "application/json", "{\"ok\":true}");
     }
 
     void doScan() {
@@ -497,7 +652,12 @@ namespace {
     }
 
     void routes(bool captive) {
-        server.on("/", handleRoot);
+        // In AP mode the root IS the setup portal. The legacy form stays on the
+        // local network, where printers and the account are configured.
+        server.on("/", apMode ? handlePortal : handleRoot);
+        server.on("/api/scan", handleApiScan);
+        server.on("/api/join", HTTP_POST, handleApiJoin);
+        server.on("/api/lang", handleApiLang);
         server.on("/screen.bmp", handleShot);      // raw panel capture
         server.on("/screen", handleShotPage);      // page qui la rafraichit
         server.on("/save", HTTP_POST, handleSave);
@@ -524,6 +684,7 @@ namespace {
 
 void webcfg::begin() {
     apMode = false;
+    buildNames();
     if (MDNS.begin(HOSTNAME)) MDNS.addService("http", "tcp", 80);
     routes(false);
     server.begin();
@@ -542,6 +703,7 @@ void webcfg::beginAP() {
 
     WiFi.mode(WIFI_AP_STA);               // AP+STA only for the initial scan
     WiFi.setSleep(false);                 // AP sem modem-sleep = ligacoes estaveis
+    buildNames();
     WiFi.softAPConfig(AP_IP, AP_IP, IPAddress(255, 255, 255, 0));
     WiFi.softAP(AP_SSID, nullptr, 1, 0, 4);   // canal 1 fixo, max 4 clientes
     delay(300);
@@ -559,9 +721,21 @@ void webcfg::loop() {
     if (apMode) dns.processNextRequest();
     server.handleClient();
     if (restartAt && millis() >= restartAt) { delay(50); ESP.restart(); }
+
+    // The access point comes down only after the phone has had time to see the
+    // result. Nothing reboots: the device is already on the network.
+    if (apTeardownAt && millis() >= apTeardownAt) {
+        apTeardownAt = 0;
+        apMode = false;
+        dns.stop();
+        WiFi.softAPdisconnect(true);
+        WiFi.mode(WIFI_STA);
+        Serial.println("[webcfg] setup access point down, station up");
+    }
 }
 
 bool webcfg::apActive()   { return apMode; }
-const char* webcfg::apName() { return AP_SSID; }
+const char* webcfg::apName() { buildNames(); return AP_SSID; }
 int webcfg::apClients()    { return apMode ? WiFi.softAPgetStationNum() : 0; }
-String webcfg::url() { return apMode ? String("http://192.168.4.1") : String("http://") + HOSTNAME + ".local"; }
+String webcfg::url() { buildNames(); return apMode ? String("http://192.168.4.1")
+                                                : String("http://") + HOSTNAME + ".local"; }
