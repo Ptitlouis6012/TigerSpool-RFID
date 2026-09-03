@@ -27,7 +27,15 @@ REPO = pathlib.Path(__file__).resolve().parent.parent
 GENERATED = [
     (REPO / "firmware" / "tools" / "gen_db.py",
      REPO / "firmware" / "include" / "tigertag_db.h"),
+    (REPO / "scripts" / "gen-font-range.py",
+     REPO / "scripts" / "font_range.json"),
 ]
+
+# A generator exiting with this says "I could not check", which is a different
+# answer from "it does not match". gen-font-range.py uses it when the LVGL
+# source is absent, as it is in a fresh clone. Reported, never silently passed:
+# CI always has the library and proves the fact there.
+SOURCE_UNAVAILABLE = 3
 
 
 def main() -> int:
@@ -38,6 +46,7 @@ def main() -> int:
         return 2
 
     failures = 0
+    unverifiable = []
     for generator, committed in GENERATED:
         rel = committed.relative_to(REPO)
         if not generator.exists():
@@ -59,6 +68,11 @@ def main() -> int:
             produced = committed.read_bytes()
             shutil.copy2(backup, committed)   # restore before judging
 
+            if proc.returncode == SOURCE_UNAVAILABLE:
+                unverifiable.append(
+                    f"{rel}: {(proc.stderr or proc.stdout).strip().splitlines()[0]}")
+                continue
+
             if proc.returncode != 0:
                 print(f"error: {generator.relative_to(REPO)} failed to run:", file=sys.stderr)
                 print((proc.stderr or proc.stdout).strip()[:800], file=sys.stderr)
@@ -73,7 +87,12 @@ def main() -> int:
                 print("       do not hand-edit it back into agreement.", file=sys.stderr)
                 failures += 1
 
-    print(f"checked {len(GENERATED)} generated file(s), {failures} out of date")
+    for u in unverifiable:
+        print(f"note: {u}", file=sys.stderr)
+    tail = (f", {len(unverifiable)} unverifiable here (CI proves these)"
+            if unverifiable else "")
+    print(f"checked {len(GENERATED) - len(unverifiable)} generated file(s), "
+          f"{failures} out of date{tail}")
     return 1 if failures else 0
 
 

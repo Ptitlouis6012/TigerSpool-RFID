@@ -25,9 +25,11 @@ jobs:
         with:
           python-version: '3.12'
 
-      # The font range comes from LVGL's own generated font source, so the
-      # library has to be on disk. This installs the dependencies without
-      # compiling anything.
+      # The guards read the font range from a committed fact, so they no
+      # longer need this to run. CI installs the library anyway, because this
+      # is where check-generated.py re-derives that fact from LVGL's own font
+      # source and proves it has not gone stale. A fresh clone skips the check
+      # and says so; CI is what keeps it honest.
       - name: Fetch library sources
         run: |
           pip install --upgrade platformio

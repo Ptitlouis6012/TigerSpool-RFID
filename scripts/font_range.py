@@ -10,13 +10,19 @@ LVGL ships, on the `Opts:` line the font converter writes:
 
     Opts: ... --font Montserrat-Medium.ttf -r 0x20-0x7F,0xB0,0x2022 ...
 
-So we read it from there rather than restating it. LVGL draws a character it has
-no glyph for as a blank box and logs nothing, which is why this needs checking at
-all: nothing fails until a user sees it.
+That source lives under firmware/.pio/libdeps, which a fresh clone does not
+have. So scripts/gen-font-range.py extracts it once into font_range.json and
+this reads the committed file. The fact does not go stale unwatched:
+scripts/check-generated.py re-runs the generator and fails if the committed
+value disagrees, so CI proves it on every push while the pre-commit hook needs
+no build tree.
+
+LVGL draws a character it has no glyph for as a blank box and logs nothing,
+which is why this needs checking at all: nothing fails until a user sees it.
 """
 
+import json
 import pathlib
-import re
 
 
 class FontRangeUnavailable(RuntimeError):
@@ -28,47 +34,25 @@ class FontRangeUnavailable(RuntimeError):
     """
 
 
-def _font_sources(repo_root: pathlib.Path):
-    """Generated LVGL font sources, newest library checkout first."""
-    libdeps = repo_root / "firmware" / ".pio" / "libdeps"
-    return sorted(libdeps.glob("*/lvgl/src/font/lv_font_montserrat_*.c"))
-
-
 def compiled_range(repo_root: pathlib.Path):
-    """Return (codepoints, human_description) for the compiled UI font.
-
-    The union across every Montserrat size the build enables: they are generated
-    with the same range, and a character missing from one is missing from all.
-    """
-    sources = _font_sources(repo_root)
-    if not sources:
+    """Return (codepoints, human_description) for the compiled UI font."""
+    committed = pathlib.Path(__file__).resolve().parent / "font_range.json"
+    if not committed.exists():
         raise FontRangeUnavailable(
-            "no lv_font_montserrat_*.c under firmware/.pio/libdeps — "
-            "run 'pio pkg install' in firmware/ so the font source is present"
-        )
+            f"{committed.name} is missing - regenerate it with "
+            "'python3 scripts/gen-font-range.py'")
+
+    spec = json.loads(committed.read_text()).get("spec", "")
+    if not spec:
+        raise FontRangeUnavailable(f"{committed.name} carries no range")
 
     allowed: set[int] = set()
-    spec = ""
-    for src in sources:
-        # Only the head: the Opts line is in the file's banner, and these
-        # sources are hundreds of kilobytes of glyph data.
-        head = src.read_text(errors="replace")[:4096]
-        m = re.search(r"-r\s+([0-9A-Fa-fx,\-]+)", head)
-        if not m:
-            continue
-        spec = m.group(1)
-        for part in spec.split(","):
-            if "-" in part:
-                lo, hi = part.split("-", 1)
-                allowed.update(range(int(lo, 16), int(hi, 16) + 1))
-            else:
-                allowed.add(int(part, 16))
-
-    if not allowed:
-        raise FontRangeUnavailable(
-            f"found {len(sources)} font source(s) but no '-r' range in any "
-            "banner — the font converter's option line has changed shape"
-        )
+    for part in spec.split(","):
+        if "-" in part:
+            lo, hi = part.split("-", 1)
+            allowed.update(range(int(lo, 16), int(hi, 16) + 1))
+        else:
+            allowed.add(int(part, 16))
     return allowed, spec
 
 

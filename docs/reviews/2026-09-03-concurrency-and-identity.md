@@ -122,7 +122,23 @@ a Portuguese prototype, hand-translated in bulk, with at least one commit made
 through a web editor rather than a client index. If a single `Ã` ever appears in
 a diff, write the guard that day rather than fixing the one occurrence.
 
-### The guards depend on `firmware/.pio`, and should not
+### Restoring accents is one unit of work per font, not per language
+
+On-device strings are written without diacritics — "Francais", "Espanol",
+"Changer de reseau". That is the font constraint being respected, not a defect,
+and `check-ui-fonts.py` now enforces it.
+
+Anyone tempted to "fix" one accent will ship a blank box. The work is:
+
+1. Generate a Latin-1 subset font. That unlocks French, German, Spanish,
+   Italian and both Portuguese variants **at once**.
+2. Generate Latin Extended-A on top of it for Polish, which needs `ł ą ę ż ź ć`
+   and which Latin-1 does not cover.
+
+So it is two font builds, not eight translation passes, and no accent should be
+restored before the font that carries it exists.
+
+### The guards depended on `firmware/.pio` — fixed
 
 `scripts/font_range.py` reads the compiled font's real character range from
 LVGL's generated font source, which lives under `firmware/.pio/libdeps`. It
@@ -133,12 +149,12 @@ The cost is that `verify.sh --quick`, and therefore the pre-commit hook, cannot
 run in a fresh clone until someone runs `pio pkg install`. A hook that does not
 work out of the box is a hook that gets uninstalled.
 
-The fix is a pattern already in this repository: extract the range into a small
-**committed generated fact**, register its generator with
-`scripts/check-generated.py` so CI proves it still matches the LVGL source, and
-have `check-ui-fonts.py` read the committed fact rather than the build tree. CI
-keeps the fact honest; the hook stops needing a build tree. Third application of
-the same shape, after the reference header and the device names.
+**Done.** `scripts/gen-font-range.py` extracts the range into
+`scripts/font_range.json`, registered with `scripts/check-generated.py` so CI
+re-derives it from the LVGL source on every push. `check-ui-fonts.py` reads the
+committed fact. A fresh clone now runs all nine guards green and names the one
+item it could not re-derive. Third application of the same shape, after the
+reference header and the device names.
 
 ## What was not looked at
 
