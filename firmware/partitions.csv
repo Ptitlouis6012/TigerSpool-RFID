@@ -1,0 +1,27 @@
+# TigerSpool RFID flash layout - 16 MB
+#
+# TWO app slots, which is what makes over-the-air update possible at all.
+# Update.begin(U_FLASH) asks esp_ota_get_next_update_partition() for a spare app
+# slot, and that function only ever returns an ota_N partition - a lone `factory`
+# partition is not eligible, and every OTA attempt fails with "free=0".
+#
+# The prototype declared no table at all, so it built against the board default:
+# an 8 MB layout on a board that has 16. Half the flash was unreachable.
+#
+# nvs stays at 0x9000 at this size permanently. It holds the Wi-Fi credentials,
+# the TigerTag session and the imported printers; moving or resizing it costs
+# every user their entire setup.
+#
+# Changing this file requires a USB reflash - a device cannot install a new
+# partition table over the air. Get it right before the first public release.
+#
+# 4 MB per slot against a ~1.2 MB firmware leaves room for the LVGL screens and
+# the language tables to grow. Total usage is under 12 MB of the chip's 16.
+#
+# Name,     Type, SubType,  Offset,   Size,     Flags
+nvs,        data, nvs,      0x9000,   0x5000,
+otadata,    data, ota,      0xe000,   0x2000,
+app0,       app,  ota_0,    0x10000,  0x400000,
+app1,       app,  ota_1,    0x410000, 0x400000,
+littlefs,   data, spiffs,   0x810000, 0x300000,
+coredump,   data, coredump, 0xB10000, 0x10000,

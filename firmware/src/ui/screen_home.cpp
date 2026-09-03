@@ -1,0 +1,140 @@
+#include "screen_home.h"
+#include "theme.h"
+#include <lvgl.h>
+#include <Arduino.h>
+
+namespace {
+
+lv_obj_t* s_screen   = nullptr;
+lv_obj_t* s_list     = nullptr;
+lv_obj_t* s_syncDot  = nullptr;
+bool      s_active   = false;
+int       s_tapped   = -1;
+bool      s_settings = false;
+
+void onRow(lv_event_t* e)      { s_tapped   = (int)(intptr_t)lv_event_get_user_data(e); }
+void onSettings(lv_event_t*)   { s_settings = true; }
+
+// A status dot: 9 px, and colour is the only thing that changes. Green means
+// the printer answered on its control port recently; grey means it did not.
+lv_obj_t* makeDot(lv_obj_t* parent, uint32_t colour) {
+    lv_obj_t* d = lv_obj_create(parent);
+    lv_obj_remove_style_all(d);
+    lv_obj_set_size(d, 9, 9);
+    lv_obj_set_style_radius(d, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_color(d, lv_color_hex(colour), 0);
+    lv_obj_set_style_bg_opa(d, LV_OPA_COVER, 0);
+    return d;
+}
+
+void buildScreen() {
+    s_screen = lv_obj_create(nullptr);
+    lv_obj_add_style(s_screen, theme::screenStyle(), 0);
+    lv_obj_clear_flag(s_screen, LV_OBJ_FLAG_SCROLLABLE);
+
+    // ---- header: title, status dots, gear -----------------------------------
+    lv_obj_t* header = lv_obj_create(s_screen);
+    lv_obj_remove_style_all(header);
+    lv_obj_add_style(header, theme::headerStyle(), 0);
+    lv_obj_set_size(header, theme::SCREEN_W, theme::HEADER_H);
+    lv_obj_align(header, LV_ALIGN_TOP_MID, 0, 0);
+    lv_obj_clear_flag(header, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t* title = lv_label_create(header);
+    lv_label_set_text(title, "Printers");
+    lv_obj_set_style_text_font(title, &lv_font_montserrat_16, 0);
+    lv_obj_set_style_text_color(title, lv_color_hex(theme::TEXT), 0);
+    lv_obj_align(title, LV_ALIGN_LEFT_MID, 9, 0);
+
+    s_syncDot = makeDot(header, theme::TEXT_DIM);
+    lv_obj_align(s_syncDot, LV_ALIGN_RIGHT_MID, -theme::ICON_HIT_W - 6, 0);
+
+    // The gear's hit area is 52 x 44 (6.6 x 5.6 mm) even though the glyph is
+    // small. Sizing a target to its icon is how a 2 mm button happens.
+    lv_obj_t* gear = lv_btn_create(header);
+    lv_obj_remove_style_all(gear);
+    lv_obj_set_size(gear, theme::ICON_HIT_W, theme::HEADER_H);
+    lv_obj_align(gear, LV_ALIGN_RIGHT_MID, 0, 0);
+    lv_obj_add_event_cb(gear, onSettings, LV_EVENT_CLICKED, nullptr);
+    lv_obj_t* gearIcon = lv_label_create(gear);
+    lv_label_set_text(gearIcon, LV_SYMBOL_SETTINGS);
+    lv_obj_set_style_text_font(gearIcon, &lv_font_montserrat_20, 0);
+    lv_obj_set_style_text_color(gearIcon, lv_color_hex(theme::TEXT), 0);
+    lv_obj_center(gearIcon);
+
+    // ---- the list ------------------------------------------------------------
+    // A flex column inside a scrollable container: LVGL handles the drag, the
+    // momentum and the "a tap that moved is not a tap" rule that had to be
+    // written by hand against raw touch coordinates.
+    s_list = lv_obj_create(s_screen);
+    lv_obj_remove_style_all(s_list);
+    lv_obj_set_size(s_list, theme::SCREEN_W, theme::SCREEN_H - theme::HEADER_H);
+    lv_obj_align(s_list, LV_ALIGN_BOTTOM_MID, 0, 0);
+    lv_obj_set_flex_flow(s_list, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_all(s_list, theme::PAD, 0);
+    lv_obj_set_style_pad_row(s_list, theme::GAP, 0);
+    lv_obj_set_scroll_dir(s_list, LV_DIR_VER);
+    lv_obj_set_scrollbar_mode(s_list, LV_SCROLLBAR_MODE_AUTO);
+    lv_obj_set_style_bg_opa(s_list, LV_OPA_TRANSP, 0);
+}
+
+}  // namespace
+
+namespace screen_home {
+
+void show(const PrinterCfg* printers, int count,
+          int selected, const bool* online, bool syncing) {
+    if (!s_screen) buildScreen();
+
+    lv_obj_clean(s_list);
+    int shown = 0;
+    for (int i = 0; i < count; i++) {
+        if (printers[i].type == PT_NONE) continue;
+        shown++;
+
+        lv_obj_t* row = lv_btn_create(s_list);
+        lv_obj_remove_style_all(row);
+        lv_obj_add_style(row, theme::rowStyle(), 0);
+        lv_obj_add_style(row, theme::rowPressedStyle(), LV_STATE_PRESSED);
+        lv_obj_set_size(row, LV_PCT(100), theme::ROW_H);
+        lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+        lv_obj_set_flex_align(row, LV_FLEX_ALIGN_START,
+                              LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+        lv_obj_add_event_cb(row, onRow, LV_EVENT_CLICKED, (void*)(intptr_t)i);
+        if (i == selected)
+            lv_obj_set_style_outline_width(row, 2, 0),
+            lv_obj_set_style_outline_color(row, lv_color_hex(theme::ACCENT), 0);
+
+        lv_obj_t* name = lv_label_create(row);
+        lv_label_set_text(name, printers[i].name.c_str());
+        lv_label_set_long_mode(name, LV_LABEL_LONG_DOT);
+        lv_obj_set_flex_grow(name, 1);
+        lv_obj_set_style_text_font(name, &lv_font_montserrat_14, 0);
+
+        makeDot(row, (online && online[i]) ? theme::OK : theme::DANGER);
+    }
+
+    if (!shown) {
+        lv_obj_t* empty = lv_label_create(s_list);
+        lv_label_set_text(empty, "No printers yet.\nAdd them in Tiger Studio.");
+        lv_obj_set_style_text_color(empty, lv_color_hex(theme::TEXT_DIM), 0);
+        lv_obj_set_style_text_align(empty, LV_TEXT_ALIGN_CENTER, 0);
+    }
+
+    lv_obj_set_style_bg_color(s_syncDot,
+        lv_color_hex(syncing ? theme::OK : theme::TEXT_DIM), 0);
+
+    if (!s_active) {
+        lv_scr_load(s_screen);
+        lv_obj_invalidate(s_screen);   // full repaint: a legacy screen drew last
+        s_active = true;
+    }
+}
+
+bool active() { return s_active; }
+void leave()  { s_active = false; }
+
+int  takeTappedPrinter() { int v = s_tapped; s_tapped = -1; return v; }
+bool takeSettingsTap()   { bool v = s_settings; s_settings = false; return v; }
+
+}  // namespace screen_home
