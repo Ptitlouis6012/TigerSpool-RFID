@@ -17,7 +17,7 @@ namespace screen_setup {
 // Nine locales, matching TigerScale. A scrolling list rather than a grid: the
 // prototype fit four because its font was ASCII-only and it paginated, and a
 // user hunting for their language across pages is a bad first impression.
-void showLanguage(bool force = false);
+void showLanguage(bool force = false, bool withBack = false);
 int  takeLanguage();          // index into the locale table, or -1
 
 // ---- 2. Wi-Fi -------------------------------------------------------------

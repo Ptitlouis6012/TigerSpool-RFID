@@ -34,6 +34,7 @@
 #include "ui/screen_slots.h"
 #include "ui/screen_scan.h"
 #include "ui/screen_settings.h"
+#include "version.h"
 
 // ---- cores -------------------------------------------------------------
 #define C_BG    0x0000
@@ -63,7 +64,8 @@ BambuBackend         bambuBackend;
 SnapmakerBackend     snapmakerBackend;
 bool webStarted = false;
 
-enum State { ST_LANG, ST_WIFI, ST_AP, ST_ACCOUNT, ST_SETTINGS, ST_PICK, ST_PRINTER, ST_GRID, ST_SCAN, ST_REVIEW, ST_RESULT };
+enum State { ST_LANG, ST_WIFI, ST_AP, ST_ACCOUNT, ST_SETTINGS, ST_PICK, ST_SET_WIFI, ST_SET_ACCOUNT, ST_SET_SCREEN,
+             ST_SET_UPDATE, ST_SET_RESTART, ST_SET_FACTORY, ST_PRINTER, ST_GRID, ST_SCAN, ST_REVIEW, ST_RESULT };
 State   state = ST_LANG;
 bool    nfcReady = false;
 uint32_t nfcLastTry = 0;
@@ -361,6 +363,26 @@ static void loadCfg() {
 }
 // Visibility is the user's, not the account's: a sync must never put a printer
 // back on screen that someone deliberately hid.
+// Screen preferences. Both are the user's and both survive a reboot: a device
+// that forgets it was dimmed is a device that blinds someone every morning.
+uint8_t screenBrightness = 80;
+int     screenSleepSec   = 60;
+
+static void loadScreenPrefs() {
+    nvs.begin("tigerspool", true);
+    screenBrightness = (uint8_t)nvs.getInt("bright", 80);
+    screenSleepSec   = nvs.getInt("sleep", 60);
+    nvs.end();
+    lvgl_port::setBacklight(screenBrightness);
+}
+static void saveScreenPrefs() {
+    nvs.begin("tigerspool", false);
+    nvs.putInt("bright", screenBrightness);
+    nvs.putInt("sleep", screenSleepSec);
+    nvs.end();
+    lvgl_port::setBacklight(screenBrightness);
+}
+
 static void savePrinterVisible(int i, bool v) {
     char k[6];
     snprintf(k, sizeof(k), "p%dv", i);
@@ -473,6 +495,7 @@ void setup() {
     i18n::begin();
     migrateLegacyConfig();     // must run before anything reads the new namespace
     loadCfg();
+    loadScreenPrefs();
     ttcloud::begin();
 
     nfcReady = reader::begin();
@@ -505,6 +528,10 @@ void loop() {
     // screens are reachable for a remote screenshot, which is how this UI gets
     // checked without someone standing in front of the device.
     if (!webStarted && WiFi.status() == WL_CONNECTED) onWifiUp();
+
+    // The backlight is the only thing that sleeps. Everything below this line
+    // keeps running whether the screen is lit or not.
+    lvgl_port::sleepTick(screenSleepSec, screenBrightness);
 
     if (backend) backend->loop();
     if (webStarted || webcfg::apActive()) webcfg::loop();
@@ -730,13 +757,24 @@ void loop() {
                 screen_setup::hide();
                 state = ST_LANG; stateSince = millis();
                 break;
+            case screen_settings::E_WIFI:
+                screen_settings::invalidate();
+                state = ST_SET_WIFI; stateSince = millis(); break;
+            case screen_settings::E_ACCOUNT:
+                screen_settings::invalidate();
+                state = ST_SET_ACCOUNT; stateSince = millis(); break;
+            case screen_settings::E_SCREEN:
+                screen_settings::invalidate();
+                state = ST_SET_SCREEN; stateSince = millis(); break;
+            case screen_settings::E_UPDATE:
+                screen_settings::invalidate();
+                state = ST_SET_UPDATE; stateSince = millis(); break;
             case screen_settings::E_RESTART:
-                Serial.println("[ui] restart from settings");
-                delay(120); ESP.restart();
-                break;
-            // The rest are listed so the menu is honest about what exists;
-            // wiring them is the next pass, and a row that does nothing is
-            // better than a row that is missing and unexplained.
+                screen_settings::invalidate();
+                state = ST_SET_RESTART; stateSince = millis(); break;
+            case screen_settings::E_FACTORY:
+                screen_settings::invalidate();
+                state = ST_SET_FACTORY; stateSince = millis(); break;
             default: break;
         }
         break;
@@ -753,6 +791,112 @@ void loop() {
             screen_settings::invalidate();
             state = ST_SETTINGS; stateSince = millis();
         }
+        break;
+    }
+
+    // Every settings view returns to the menu the same way, so the way back is
+    // learned once.
+    #define BACK_TO_SETTINGS()                                   \
+        if (screen_settings::takeBack()) {                       \
+            screen_settings::invalidate();                       \
+            state = ST_SETTINGS; stateSince = millis(); break;   \
+        }
+
+    case ST_SET_WIFI: {
+        screen_settings::showWifi(
+            WiFi.isConnected() ? WiFi.SSID().c_str() : "",
+            WiFi.isConnected() ? WiFi.localIP().toString().c_str() : "-",
+            WiFi.macAddress().c_str(),
+            WiFi.isConnected());
+        lvgl_port::loop();
+        BACK_TO_SETTINGS();
+        if (screen_settings::takeAction() == screen_settings::A_CHANGE_WIFI) {
+            // Straight to the portal, without wiping the saved network: if the
+            // user changes their mind the old one is still there.
+            screen_setup::hide();
+            startConfigAP();
+        }
+        break;
+    }
+
+    case ST_SET_ACCOUNT: {
+        int n = 0;
+        for (int i = 0; i < MAX_PRINTERS; i++) if (printers[i].type != PT_NONE) n++;
+        screen_settings::showAccount(ttcloud::email().c_str(), n, ttcloud::haveSession());
+        lvgl_port::loop();
+        BACK_TO_SETTINGS();
+        if (screen_settings::takeAction() == screen_settings::A_SIGN_OUT) {
+            // The imported printers go with the session. Leaving them would
+            // show a list belonging to an account nobody is logged into.
+            ttcloud::forget();
+            nvs.begin("tigerspool", false);
+            for (int i = 0; i < MAX_PRINTERS; i++) {
+                char k[6];
+                snprintf(k, sizeof(k), "p%dt", i); nvs.putInt(k, 0);
+            }
+            nvs.end();
+            loadCfg();
+            screen_home::leave(); screen_settings::invalidate();
+            Serial.println("[account] signed out, imported printers cleared");
+            state = ST_ACCOUNT; stateSince = millis();
+        }
+        break;
+    }
+
+    case ST_SET_SCREEN: {
+        screen_settings::showScreen(screenBrightness, screenSleepSec);
+        lvgl_port::loop();
+        BACK_TO_SETTINGS();
+        int b = screen_settings::takeBrightness();
+        int sl = screen_settings::takeSleep();
+        if (b >= 0)  { screenBrightness = (uint8_t)b; saveScreenPrefs();
+                       screen_settings::invalidate(); }
+        if (sl >= 0) { screenSleepSec = sl; saveScreenPrefs();
+                       screen_settings::invalidate(); }
+        break;
+    }
+
+    case ST_SET_UPDATE: {
+        screen_settings::showUpdate(TIGERSPOOL_FW_VERSION, "stable");
+        lvgl_port::loop();
+        BACK_TO_SETTINGS();
+        break;
+    }
+
+    case ST_SET_RESTART: {
+        screen_settings::showRestart();
+        lvgl_port::loop();
+        BACK_TO_SETTINGS();
+        if (screen_settings::takeAction() == screen_settings::A_RESTART) {
+            Serial.println("[ui] restarting on request");
+            delay(150); ESP.restart();
+        }
+        break;
+    }
+
+    case ST_SET_FACTORY: {
+        // Two seconds of continuous contact. A destructive action has to cost
+        // more than a stray finger, and letting go at any point cancels it.
+        static uint32_t holdStart = 0;
+        if (screen_settings::factoryHolding()) {
+            if (!holdStart) holdStart = millis();
+            uint32_t held = millis() - holdStart;
+            screen_settings::showFactory((int)(held * 100 / 2000));
+            if (held >= 2000) {
+                Serial.println("[config] factory reset from settings");
+                const char* names[] = { "tigerspool", "tsaccount", "k2cfg", "ttcfg" };
+                for (const char* ns : names) {
+                    Preferences w;
+                    if (w.begin(ns, false)) { w.clear(); w.end(); }
+                }
+                delay(200); ESP.restart();
+            }
+        } else {
+            holdStart = 0;
+            screen_settings::showFactory(-1);
+        }
+        lvgl_port::loop();
+        BACK_TO_SETTINGS();
         break;
     }
 

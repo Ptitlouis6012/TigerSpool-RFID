@@ -1,5 +1,6 @@
 #include "screen_home.h"
 #include "theme.h"
+#include "i18n.h"
 #include <lvgl.h>
 #include <Arduino.h>
 
@@ -91,6 +92,7 @@ static uint32_t signature(const PrinterCfg* printers, int count,
     uint32_t h = 2166136261u ^ (uint32_t)selected ^ ((uint32_t)syncing << 16);
     for (int i = 0; i < count; i++) {
         h = h * 16777619u ^ (uint32_t)printers[i].type;
+        h = h * 16777619u ^ (uint32_t)printers[i].visible;
         h = h * 16777619u ^ (uint32_t)(online && online[i]);
         for (const char* p = printers[i].name.c_str(); *p; p++)
             h = h * 16777619u ^ (uint8_t)*p;
@@ -109,9 +111,14 @@ void show(const PrinterCfg* printers, int count,
     lastSig = sig; everBuilt = true;
 
     lv_obj_clean(s_list);
-    int shown = 0;
+    int shown = 0, configured = 0;
     for (int i = 0; i < count; i++) {
         if (printers[i].type == PT_NONE) continue;
+        configured++;
+        // Hidden in Settings -> Printers. This screen used to filter on type
+        // alone and showed everything regardless, which made the picker look
+        // like it did nothing.
+        if (!printers[i].visible) continue;
         shown++;
 
         lv_obj_t* row = lv_btn_create(s_list);
@@ -137,8 +144,15 @@ void show(const PrinterCfg* printers, int count,
     }
 
     if (!shown) {
+        // Two different situations that look identical on an empty list: the
+        // account has no printers, or they are all hidden. Sending someone to
+        // Tiger Studio when the answer is one tap away in Settings is the kind
+        // of wrong advice that costs an evening.
         lv_obj_t* empty = lv_label_create(s_list);
-        lv_label_set_text(empty, "No printers yet.\nAdd them in Tiger Studio.");
+        lv_label_set_text(empty, configured ? i18n::T(S_ALL_HIDDEN)
+                                            : i18n::T(S_NO_PRINTERS));
+        lv_label_set_long_mode(empty, LV_LABEL_LONG_WRAP);
+        lv_obj_set_width(empty, theme::SCREEN_W - 2 * theme::PAD - 6);
         lv_obj_set_style_text_color(empty, lv_color_hex(theme::TEXT_DIM), 0);
         lv_obj_set_style_text_align(empty, LV_TEXT_ALIGN_CENTER, 0);
     }

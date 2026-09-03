@@ -59,7 +59,7 @@ void onChoice(lv_event_t* e) { s_choice = (int)(intptr_t)lv_event_get_user_data(
 // One screen object reused across all three steps: building and destroying a
 // screen per step would flash the panel between them, and the whole point of
 // this sequence is that it feels like one continuous thing.
-lv_obj_t* frame(const char* title) {
+lv_obj_t* frame(const char* title, bool withBack = false) {
     if (!s_screen) {
         s_screen = lv_obj_create(nullptr);
         lv_obj_add_style(s_screen, theme::screenStyle(), 0);
@@ -107,10 +107,27 @@ lv_obj_t* frame(const char* title) {
     lv_obj_align(header, LV_ALIGN_TOP_MID, 0, 0);
     lv_obj_clear_flag(header, LV_OBJ_FLAG_SCROLLABLE);
 
+    // The chevron shares the header rather than floating over it, so a titled
+    // screen keeps one bar instead of two stacked strips.
+    lv_coord_t titleX = 9;
+    if (withBack) {
+        lv_obj_t* b = lv_btn_create(header);
+        lv_obj_remove_style_all(b);
+        lv_obj_set_size(b, 56, theme::HEADER_H);
+        lv_obj_align(b, LV_ALIGN_LEFT_MID, 0, 0);
+        lv_obj_add_event_cb(b, onBack, LV_EVENT_PRESSED, nullptr);
+        lv_obj_t* g = lv_label_create(b);
+        lv_label_set_text(g, LV_SYMBOL_LEFT);
+        lv_obj_set_style_text_font(g, &lv_font_montserrat_20, 0);
+        lv_obj_set_style_text_color(g, lv_color_hex(theme::TEXT_DIM), 0);
+        lv_obj_center(g);
+        titleX = 56;
+    }
+
     lv_obj_t* t = lv_label_create(header);
     lv_label_set_text(t, title);
     lv_obj_set_style_text_font(t, &lv_font_montserrat_16, 0);
-    lv_obj_align(t, LV_ALIGN_LEFT_MID, 9, 0);
+    lv_obj_align(t, LV_ALIGN_LEFT_MID, titleX, 0);
 
     s_body = lv_obj_create(s_screen);
     lv_obj_remove_style_all(s_body);
@@ -214,16 +231,21 @@ lv_obj_t* qr(const char* payload, lv_coord_t size = 132) {
 
 namespace screen_setup {
 
-void showLanguage(bool force) {
+static bool s_langBuilt = false;
+void showLanguage(bool force, bool withBack) {
     if (force) { s_active = false; }
+    // Leaving without choosing has to be possible. Reached from Settings, this
+    // screen had no exit at all: the only way out was to pick a language,
+    // including for someone who opened it to check which one was set.
+    static bool lastBack = false;
+    if (lastBack != withBack) { s_langBuilt = false; lastBack = withBack; }
     // Built once. frame() clears and rebuilds, and this screen is called from
     // the main loop, so without this guard the list would be torn down and
     // rebuilt every iteration - which cancels the scroll and eats the taps.
-    static bool built = false;
-    if (built && s_active) return;
-    built = true;
+    if (s_langBuilt && s_active) return;
+    s_langBuilt = true;
 
-    lv_obj_t* body = frame("Language");
+    lv_obj_t* body = frame(i18n::T(S_CHOOSE_LANG), withBack);
     lv_obj_set_flex_align(body, LV_FLEX_ALIGN_START,
                           LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_add_flag(body, LV_OBJ_FLAG_SCROLLABLE);
@@ -416,7 +438,7 @@ void showAccountIntro() {
     if (built && s_active) return;
     built = true;
 
-    frame(i18n::T(S_TT_ACCOUNT));
+    frame(i18n::T(S_TT_ACCOUNT), false);
     lv_obj_t* icon = lv_label_create(s_body);
     lv_label_set_text(icon, LV_SYMBOL_DOWNLOAD);
     lv_obj_set_style_text_font(icon, &lv_font_montserrat_24, 0);
@@ -557,7 +579,7 @@ void showPairFailed(const char* reason) {
     if (built && s_active && lastReason == reason) return;
     built = true; lastReason = reason;
 
-    frame(i18n::T(S_TT_ACCOUNT));
+    frame(i18n::T(S_TT_ACCOUNT), false);
     lv_obj_t* x = lv_label_create(s_body);
     lv_label_set_text(x, LV_SYMBOL_WARNING);
     lv_obj_set_style_text_font(x, &lv_font_montserrat_24, 0);

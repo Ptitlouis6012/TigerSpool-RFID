@@ -80,11 +80,21 @@ void flushCb(lv_disp_drv_t* drv, const lv_area_t* area, lv_color_t* px) {
     lv_disp_flush_ready(drv);
 }
 
+uint32_t s_lastTouch = 0;
+bool     s_asleep    = false;
+
 void touchCb(lv_indev_drv_t*, lv_indev_data_t* data) {
     int32_t x, y;
-    // A dark screen must not accept taps that the user cannot see the result
-    // of: the first touch wakes it, and that touch is consumed by the wake.
-    if (s_backlight && lcd.getTouch(&x, &y)) {
+    bool down = lcd.getTouch(&x, &y);
+    if (down) s_lastTouch = millis();
+
+    // A dimmed or dark screen must not accept taps whose result cannot be
+    // seen. The first touch wakes it and is CONSUMED by the wake - otherwise
+    // reaching for a sleeping device sends a filament to whichever slot the
+    // finger happened to land on.
+    if (s_asleep) { data->state = LV_INDEV_STATE_RELEASED; return; }
+
+    if (down) {
         data->point.x = x;
         data->point.y = y;
         data->state   = LV_INDEV_STATE_PRESSED;
@@ -167,5 +177,47 @@ void setBacklight(uint8_t percent) {
 }
 
 uint8_t backlight() { return s_backlight; }
+
+// Dim, then dark, then wake on the next touch.
+//
+// Nothing else stops: the reader keeps polling, the printers keep being
+// probed, the account keeps syncing. Only the light goes - a box behind a
+// printer should not glow at the ceiling all night, and it should not need
+// waking up to be working.
+void sleepTick(int timeoutSec, uint8_t awakeBrightness) {
+    if (!s_lastTouch) s_lastTouch = millis();
+
+    if (timeoutSec <= 0) {                       // "Never"
+        if (s_asleep) { s_asleep = false; setBacklight(awakeBrightness); }
+        return;
+    }
+
+    uint32_t idle = (millis() - s_lastTouch) / 1000;
+
+    if (s_asleep) {
+        // The wake is the touch itself, read straight from the panel: the LVGL
+        // input driver is reporting released while asleep, on purpose.
+        int32_t x, y;
+        if (lcd.getTouch(&x, &y)) {
+            s_asleep = false;
+            s_lastTouch = millis();
+            setBacklight(awakeBrightness);
+        }
+        return;
+    }
+
+    if (idle >= (uint32_t)timeoutSec + 5) {
+        s_asleep = true;
+        setBacklight(0);
+    } else if (idle >= (uint32_t)timeoutSec) {
+        // A dim step before dark, so the screen announces what it is about to
+        // do instead of simply vanishing.
+        setBacklight(awakeBrightness / 4 ? awakeBrightness / 4 : 5);
+    } else if (s_backlight != awakeBrightness) {
+        setBacklight(awakeBrightness);
+    }
+}
+
+bool asleep() { return s_asleep; }
 
 }  // namespace lvgl_port

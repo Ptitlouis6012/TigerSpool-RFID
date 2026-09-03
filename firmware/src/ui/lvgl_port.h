@@ -23,4 +23,9 @@ bool capturing();
 void setBacklight(uint8_t percent);   // 0 = off, used by screen sleep
 uint8_t backlight();
 
+// Screen sleep. Call every loop with the user's settings; it dims, then goes
+// dark, and wakes on the next touch. Scanning and printer polling never stop.
+void sleepTick(int timeoutSec, uint8_t awakeBrightness);
+bool asleep();
+
 }  // namespace lvgl_port

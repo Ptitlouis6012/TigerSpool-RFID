@@ -33,4 +33,21 @@ void  invalidate();
 void showPrinters(const PrinterCfg* printers, int count);
 int  takeToggled();          // index whose switch was flipped, or -1
 
+// ---- the rest of the settings views ---------------------------------------
+//
+// Each one answers a question and offers at most one action. A settings screen
+// that lists five things you could do is a screen nobody reads.
+enum Action { A_NONE = 0, A_CHANGE_WIFI, A_SIGN_OUT, A_RESTART, A_FACTORY, A_CHECK_UPDATE };
+Action takeAction();
+
+void showWifi(const char* ssid, const char* ip, const char* mac, bool connected);
+void showAccount(const char* email, int printers, bool linked);
+void showScreen(uint8_t brightness, int sleepSeconds);
+int  takeBrightness();       // new percentage, or -1
+int  takeSleep();            // new timeout in seconds, or -1
+void showUpdate(const char* version, const char* channel);
+void showRestart();
+void showFactory(int holdPercent);   // -1 = not holding
+bool factoryHolding();               // true while the finger is down
+
 }  // namespace screen_settings

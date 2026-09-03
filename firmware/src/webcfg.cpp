@@ -222,6 +222,14 @@ namespace {
         else if (preview == "waiting") screen_setup::showPreparing();
         else if (preview == "email")   screen_setup::showEmailPairing("http://192.168.20.170");
         else if (preview == "settings") screen_settings::showMenu("Atelier", "benoit@atome3d.com", 3, 6);
+        else if (preview == "setwifi")  screen_settings::showWifi("Atelier", "192.168.20.170",
+                                                                  WiFi.macAddress().c_str(), true);
+        else if (preview == "setacct")  screen_settings::showAccount("benoit@atome3d.com", 6, true);
+        else if (preview == "setscreen") screen_settings::showScreen(80, 60);
+        else if (preview == "setupdate") screen_settings::showUpdate(TIGERSPOOL_FW_VERSION, "stable");
+        else if (preview == "setrestart") screen_settings::showRestart();
+        else if (preview == "setfactory") screen_settings::showFactory(-1);
+        else if (preview == "pick")      screen_settings::showPrinters(nullptr, 0);
 
         lvgl_port::requestCapture(true);
         lv_obj_invalidate(lv_scr_act());
