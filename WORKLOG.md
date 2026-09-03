@@ -83,6 +83,10 @@ message, and reset it to this header.
   consumer. A release cannot publish without notes, and scaffold text counts as
   none.
 
+- `docs/ADOPTING-THIS-STANDARD.md` — what was dropped from the working standard
+  when it was adopted here and why, the five guards it never predicted, and what
+  remains unproven. The record that keeps the standard from becoming ceremony.
+
 ### Fixed
 
 - The reference-data generator could not run at all, wrote a Portuguese banner,

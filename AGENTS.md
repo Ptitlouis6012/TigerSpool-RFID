@@ -23,6 +23,12 @@ This file is tool-agnostic. Claude sessions additionally read
 | `hardware/`, `models/`, `installer/` | Wiring and BOM, printable cases, web installer. |
 | `_internal/` | Maintainer working notes, French, **gitignored**. Never publish. |
 
+[docs/ADOPTING-THIS-STANDARD.md](docs/ADOPTING-THIS-STANDARD.md) records what
+this way of working is, which parts of it were dropped when it was adopted here
+and why, and which guards this repository needed that no standard predicted.
+Read it before proposing a change to how the guards work — and first, if you are
+bringing another project up to this line.
+
 `CODEMAP.md` describes what each source file owns and what must not be asked of
 it. Read it before editing a file you have not edited before.
 
