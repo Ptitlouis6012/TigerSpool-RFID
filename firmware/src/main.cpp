@@ -62,7 +62,7 @@ BambuBackend         bambuBackend;
 SnapmakerBackend     snapmakerBackend;
 bool webStarted = false;
 
-enum State { ST_LANG, ST_WIFI, ST_AP, ST_PRINTER, ST_GRID, ST_SCAN, ST_REVIEW, ST_RESULT };
+enum State { ST_LANG, ST_WIFI, ST_AP, ST_ACCOUNT, ST_PRINTER, ST_GRID, ST_SCAN, ST_REVIEW, ST_RESULT };
 State   state = ST_LANG;
 bool    nfcReady = false;
 uint32_t nfcLastTry = 0;
@@ -390,6 +390,13 @@ static bool wifiConnect() {
 static void onWifiUp() {
     if (!webStarted) { webcfg::begin(); webStarted = true; }
 }
+
+// Where to go once there is a network. An unlinked device has nothing to show
+// on the printer list, so it asks for the account first - that is the step that
+// fills the list.
+static State afterWifi() {
+    return ttcloud::haveSession() ? ST_PRINTER : ST_ACCOUNT;
+}
 static void startConfigAP() {
     webcfg::beginAP();
     state = ST_AP;
@@ -400,10 +407,10 @@ static void goAfterLang() {
     // nothing to wait for.
     if (WiFi.status() == WL_CONNECTED) {
         Serial.printf("[wifi] already up: %s\n", WiFi.localIP().toString().c_str());
-        onWifiUp(); state = ST_PRINTER; stateSince = millis();
+        onWifiUp(); state = afterWifi(); stateSince = millis();
         return;
     }
-    if (wifiConnect()) { onWifiUp(); state = ST_PRINTER; stateSince = millis(); }
+    if (wifiConnect()) { onWifiUp(); state = afterWifi(); stateSince = millis(); }
     else startConfigAP();                 // no usable network -> open the setup portal
 }
 static void backToPrinters() {
@@ -443,6 +450,8 @@ void setup() {
     canvas.setPsram(true);
     canvas.setColorDepth(16);
     canvasReady = (canvas.createSprite(SCR_W, SCR_H) != nullptr);
+
+    // (panel colour self-test lived here; re-add it if the tint returns)
 
     // LVGL owns the printer list. The remaining screens are still raw-drawn and
     // are being ported one at a time - see docs/MIGRATION.md.
@@ -508,12 +517,130 @@ void loop() {
         return;
 
     case ST_AP: {
+        // The portal joins the network on its own and takes the access point
+        // down afterwards. Nothing tells this state machine, so it has to
+        // notice - without this the device sits on the setup screen forever
+        // while it is already online, which is exactly what it did.
+        if (WiFi.status() == WL_CONNECTED) {
+            loadCfg();                    // the portal wrote new credentials
+            onWifiUp();
+            screen_setup::hide();
+            Serial.printf("[wifi] portal joined '%s' as %s\n",
+                          WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
+            state = afterWifi(); stateSince = millis();
+            break;
+        }
         // Drawn once. The screen has nothing that changes: encoding the QR is
         // the most expensive thing on it, and the payload never varies.
         static bool drawn = false;
         if (!drawn) { screen_setup::showWifi(webcfg::apName()); drawn = true; }
         lvgl_port::loop();
         return;
+    }
+
+    // ---- linking the TigerTag account -----------------------------------
+    //
+    // The QR carries the code in its URL, so scanning it is the whole
+    // interaction. See docs/ACCOUNT-PAIRING.md.
+    //
+    // pairStart and pairPoll are blocking HTTPS calls. They stall the UI for
+    // about a second each, which is visible but not confusing on a screen that
+    // is already showing a countdown; moving them onto the sync task is worth
+    // doing once the settings screen needs the same flow.
+    case ST_ACCOUNT: {
+        // Ask which route first: an account made with Google has no password
+        // to type, one made with an email has no Google to fall back on, and
+        // the device cannot tell them apart. One tap, and it removes the dead
+        // end where someone reaches a screen that cannot serve them.
+        static enum { CHOICE, EMAIL, STARTING, POLLING, FAILED } step = CHOICE;
+        static String code, verifyUrl, pollToken;
+        static uint32_t startedAt = 0, lastPoll = 0;
+        static int intervalS = 5;
+        static String failReason;
+
+        if (step == CHOICE) {
+            screen_setup::showSignInChoice();
+            lvgl_port::loop();
+            int c = screen_setup::takeSignInChoice();
+            if (c == 0) { screen_setup::hide(); step = EMAIL; }
+            else if (c == 1) { screen_setup::hide(); step = STARTING; }
+            break;
+        }
+
+        // Email and password happen on the phone, on the device's own page,
+        // where there is a keyboard and a password manager. The QR is just the
+        // address - nothing to read off this screen and type into that one.
+        if (step == EMAIL) {
+            String url = String("http://") + WiFi.localIP().toString();
+            screen_setup::showEmailPairing(url.c_str());
+            lvgl_port::loop();
+            if (screen_setup::takeBack()) { screen_setup::hide(); step = CHOICE; break; }
+            // The page signs in; this notices when it has.
+            if (ttcloud::haveSession()) {
+                Serial.printf("[account] linked as %s\n", ttcloud::email().c_str());
+                screen_setup::hide();
+                step = CHOICE;
+                state = ST_PRINTER; stateSince = millis();
+            }
+            break;
+        }
+
+        // Fetch the code on a task and show a spinner that actually spins.
+        // Rendering a placeholder QR and swapping it for the real one a second
+        // later invites someone to scan the wrong thing.
+        if (step == STARTING) {
+            static bool launched = false;
+            if (!launched) { launched = ttcloud::startPairAsync(); }
+
+            screen_setup::showPreparing();
+            lvgl_port::loop();
+            if (screen_setup::takeBack()) {
+                screen_setup::hide(); launched = false; step = CHOICE; break;
+            }
+
+            String err;
+            int r = ttcloud::pairAsyncTake(code, verifyUrl, pollToken, intervalS, err);
+            if (r == 1) {
+                launched = false; screen_setup::hide();
+                startedAt = millis(); lastPoll = 0; step = POLLING;
+            } else if (r == -1) {
+                launched = false; failReason = err; screen_setup::hide(); step = FAILED;
+            }
+            break;
+        }
+
+        if (step == POLLING) {
+            int left = 600 - (int)((millis() - startedAt) / 1000);
+            if (left <= 0) { failReason = i18n::T(S_ERR); step = FAILED; break; }
+            screen_setup::showPairing(verifyUrl.c_str(), code.c_str(), left);
+            lvgl_port::loop();
+            if (screen_setup::takeBack()) { screen_setup::hide(); step = CHOICE; break; }
+
+            if (millis() - lastPoll >= (uint32_t)intervalS * 1000) {
+                lastPoll = millis();
+                String customToken, email, err;
+                int r = ttcloud::pairPoll(pollToken, customToken, email, err);
+                if (r == 1) {
+                    if (ttcloud::signInWithCustomToken(customToken, email, err)) {
+                        Serial.printf("[account] linked as %s\n", email.c_str());
+                        screen_setup::hide();
+                        step = CHOICE;                // ready for a next time
+                        state = ST_PRINTER; stateSince = millis();
+                        break;
+                    }
+                    failReason = err; step = FAILED;
+                } else if (r == 2 || r == 3) {
+                    failReason = i18n::T(S_ERR); step = FAILED;
+                }
+            }
+            break;
+        }
+
+        // FAILED: say so, and let a tap start over rather than stranding here.
+        screen_setup::showPairFailed(failReason.c_str());
+        lvgl_port::loop();
+        if (screen_setup::takeStartPairing()) { screen_setup::hide(); step = CHOICE; }
+        break;
     }
 
     case ST_PRINTER: {

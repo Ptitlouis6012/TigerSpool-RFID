@@ -38,9 +38,23 @@ uint8_t            s_backlight  = 100;
 volatile bool      s_capture    = false;   // mirror into the sprite this frame
 bool               s_dmaStarted = false;
 
+// One-shot: dump the bytes that are about to reach the panel, for the band that
+// contains the header bar. If these match what LVGL resolved, the fault is
+// downstream in the panel; if they do not, it is in this function.
+static bool s_dumpArmed = true;
+
 void flushCb(lv_disp_drv_t* drv, const lv_area_t* area, lv_color_t* px) {
     const int32_t w = area->x2 - area->x1 + 1;
     const int32_t h = area->y2 - area->y1 + 1;
+
+    if (s_dumpArmed && area->y1 <= 12 && area->y2 >= 12) {
+        s_dumpArmed = false;
+        const lv_color_t* row = px + (12 - area->y1) * w;   // a row inside the header
+        Serial.printf("[ui] flush area x%d..%d y%d..%d  header row y=12:",
+                      area->x1, area->x2, area->y1, area->y2);
+        for (int i = 0; i < 6 && i < w; i++) Serial.printf(" %04X", row[i].full);
+        Serial.printf("   sizeof(lv_color_t)=%u\n", (unsigned)sizeof(lv_color_t));
+    }
 
     // Wait for the PREVIOUS transfer, not this one. By the time we get here
     // LVGL has already rendered into the other buffer, so that wait is usually
@@ -117,6 +131,23 @@ void begin() {
     lv_indev_drv_register(&s_indevDrv);
 
     theme::init();
+
+    // Diagnostic, printed once. A colour that looks wrong on the glass has two
+    // possible causes and they need opposite fixes: either LVGL resolved the
+    // wrong colour, or it resolved the right one and the panel path mangled it.
+    // Asking LVGL what it thinks the ground is separates the two in one line.
+    {
+        lv_obj_t* scr = lv_scr_act();
+        lv_color_t c  = lv_obj_get_style_bg_color(scr, LV_PART_MAIN);
+        lv_color_t want = lv_color_hex(theme::BG);
+        Serial.printf("[ui] screen bg: raw=0x%04X  r=%u g=%u b=%u   "
+                      "expected raw=0x%04X r=%u g=%u b=%u\n",
+                      c.full, c.ch.red, c.ch.green, c.ch.blue,
+                      want.full, want.ch.red, want.ch.green, want.ch.blue);
+        // And what the panel is actually fed for that colour.
+        Serial.printf("[ui] LV_COLOR_16_SWAP=%d  LV_COLOR_DEPTH=%d\n",
+                      LV_COLOR_16_SWAP, LV_COLOR_DEPTH);
+    }
     Serial.printf("[ui] LVGL %d.%d ready - %ux%u, %u KB DMA draw buffer%s\n",
                   LVGL_VERSION_MAJOR, LVGL_VERSION_MINOR, SCR_W, SCR_H,
                   (unsigned)((s_buf2 ? 2 : 1) * (s_buf2 ? BUF_PX : BUF_PX / 2)

@@ -11,9 +11,19 @@ namespace theme {
 // ---- colour ----------------------------------------------------------------
 // A physical LCD in a workshop: dark ground, one warm accent, and semantic
 // colours kept separate from it so "selected" never reads as "connected".
-constexpr uint32_t BG        = 0x07080A;   // screen ground
-constexpr uint32_t HEADER    = 0x15181D;
-constexpr uint32_t SURFACE   = 0x232A34;   // rows, cells, buttons
+// PURE black, not a near-black.
+//
+// #07080A looks like black in a hex editor and is not one on this panel: at
+// 5/6/5 it quantises to r=0 g=2 b=1 - three tiny, UNEQUAL values sitting at the
+// very bottom of an IPS gamma curve, which is exactly where a panel's response
+// stops being linear. The device rendered a blue-cast ground from a colour LVGL
+// had resolved correctly, measured at 0x0041 with full opacity.
+//
+// Pure black has nothing to quantise and nothing to skew. It is also what dark
+// consumer interfaces use anyway.
+constexpr uint32_t BG        = 0x000000;   // screen ground
+constexpr uint32_t HEADER    = 0x14171C;   // far enough above black to read as a bar
+constexpr uint32_t SURFACE   = 0x1B212A;   // rows, cells, buttons
 constexpr uint32_t TEXT      = 0xFFFFFF;
 constexpr uint32_t TEXT_DIM  = 0x7C8590;
 constexpr uint32_t ACCENT    = 0xF2C744;   // selection, focus, progress

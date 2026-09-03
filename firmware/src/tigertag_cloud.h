@@ -47,4 +47,14 @@ namespace ttcloud {
     bool   startAsyncSync();              // false se ja houver uma a correr
     bool   asyncBusy();
     bool   asyncTake(String& summary);    // true once, when it finishes
+
+    // pairStart on its own task. It is a blocking HTTPS round trip of a second
+    // or two, and it happens while the screen is showing a spinner - a spinner
+    // that freezes for the whole wait is worse than no spinner, because it
+    // reads as a crash.
+    bool   startPairAsync();
+    bool   pairAsyncBusy();
+    // 0 while running, 1 when the code is ready, -1 on failure.
+    int    pairAsyncTake(String& code, String& verifyUrl, String& pollToken,
+                         int& intervalS, String& err);
 }

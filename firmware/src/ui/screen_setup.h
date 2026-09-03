@@ -40,10 +40,30 @@ void showWifiFailed(const char* ssid);
 // interaction - nothing is read off one screen and typed into another. The
 // short code underneath is for a phone that will not scan, and to be read
 // aloud when someone is helping over the phone.
+// Two ways in, and the device cannot guess which. An account made with Google
+// has no password to type; one made with an email has no Google to fall back
+// on. Asking is one tap and removes a dead end.
+void showSignInChoice();
+int  takeSignInChoice();      // 0 = email + password, 1 = Google, -1 = none
+
+// The email route: a QR of the device's own address, so the form opens on the
+// phone where there is a keyboard and a password manager.
+void showEmailPairing(const char* deviceUrl);
+
+// Shown while the pairing code is being fetched. No QR: rendering a code that
+// is not the real one invites someone to scan it, and swapping it underneath
+// them a second later is worse than making them wait.
+void showPreparing();
+
 void showAccountIntro();
 void showPairing(const char* verifyUrl, const char* code, int secondsLeft);
 void showPairFailed(const char* reason);
 bool takeStartPairing();
+
+// Every screen reached from the sign-in choice offers a way back to it. A
+// route chosen by mistake must not be a dead end - and on a device with no
+// keyboard, the way out of the wrong route cannot be "start over".
+bool takeBack();
 
 void hide();                  // release the LVGL objects
 bool active();

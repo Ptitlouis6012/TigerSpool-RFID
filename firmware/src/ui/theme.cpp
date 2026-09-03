@@ -11,6 +11,25 @@ void init() {
     if (s_ready) return;
     s_ready = true;
 
+    // Re-colour LVGL's own theme before anything else.
+    //
+    // The default dark theme paints screens in lv_palette BLUE_GREY, and a
+    // near-black background added as a style is not guaranteed to beat it on
+    // every object - a device showing a blue-grey screen where black was asked
+    // for is that palette, not a broken panel. Pointing the theme at our own
+    // colours means nothing inherits blue by accident, including widgets we
+    // have not styled yet.
+    lv_disp_t* disp = lv_disp_get_default();
+    if (disp) {
+        lv_theme_t* th = lv_theme_default_init(
+            disp,
+            lv_color_hex(ACCENT),     // primary
+            lv_color_hex(OK),         // secondary
+            true,                     // dark
+            &lv_font_montserrat_14);
+        lv_disp_set_theme(disp, th);
+    }
+
     lv_style_init(&s_screen);
     lv_style_set_bg_color(&s_screen, lv_color_hex(BG));
     lv_style_set_bg_opa(&s_screen, LV_OPA_COVER);

@@ -55,6 +55,7 @@ enum StrId : uint8_t {
     S_CONFIG_WEB,
     S_AP_TITLE,
     S_AP_JOIN,
+    S_OR_JOIN,
     S_AP_OPEN,
     S_AP_CHOOSE,
     S_TT_IMPORTING,
@@ -68,6 +69,9 @@ enum StrId : uint8_t {
     S_WIFI_BAD_PASSWORD,
     S_ACCOUNT_WHY,
     S_LINK_ACCOUNT,
+    S_SIGN_IN,
+    S_WITH_EMAIL,
+    S_WITH_GOOGLE,
     S_SCAN_TO_LINK,
     S_COLOUR_ADAPTED,
     S_COUNT

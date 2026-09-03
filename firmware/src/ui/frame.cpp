@@ -34,6 +34,11 @@ lv_obj_t* build(const char* title, Callback onBack) {
     lv_obj_t* old = s_screen;
     s_screen = lv_obj_create(nullptr);
     lv_obj_add_style(s_screen, theme::screenStyle(), 0);
+    // Local properties, not just the shared style: a local property is the
+    // highest-precedence source in LVGL's cascade, so the ground is this colour
+    // whatever a theme has to say about it.
+    lv_obj_set_style_bg_color(s_screen, lv_color_hex(theme::BG), 0);
+    lv_obj_set_style_bg_opa(s_screen, LV_OPA_COVER, 0);
     lv_obj_clear_flag(s_screen, LV_OBJ_FLAG_SCROLLABLE);
 
     s_header = lv_obj_create(s_screen);

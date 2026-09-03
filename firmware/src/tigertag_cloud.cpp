@@ -518,6 +518,44 @@ bool ttcloud::startAsyncSync() {
     return true;
 }
 bool ttcloud::asyncBusy() { return g_asyncBusy; }
+// ---------------------------------------------------------------------------
+//  pairStart, off the UI thread.
+// ---------------------------------------------------------------------------
+static volatile bool s_pairBusy = false;
+static volatile int  s_pairResult = 0;      // 0 running, 1 ok, -1 failed
+static String s_pCode, s_pUrl, s_pToken, s_pErr;
+static int    s_pInterval = 5;
+
+static void pairTaskFn(void*) {
+    String code, url, token, err;
+    int iv = 5;
+    bool ok = ttcloud::pairStart(code, url, token, iv, err);
+    s_pCode = code; s_pUrl = url; s_pToken = token; s_pInterval = iv; s_pErr = err;
+    s_pairResult = ok ? 1 : -1;
+    s_pairBusy = false;
+    vTaskDelete(nullptr);
+}
+
+bool ttcloud::startPairAsync() {
+    if (s_pairBusy) return false;
+    s_pairBusy = true; s_pairResult = 0;
+    if (xTaskCreatePinnedToCore(pairTaskFn, "ttPair", 12288, nullptr, 1, nullptr, 1) != pdPASS) {
+        s_pairBusy = false; s_pairResult = -1;
+        s_pErr = "task";
+        return false;
+    }
+    return true;
+}
+bool ttcloud::pairAsyncBusy() { return s_pairBusy; }
+int  ttcloud::pairAsyncTake(String& code, String& verifyUrl, String& pollToken,
+                            int& intervalS, String& err) {
+    if (s_pairBusy || s_pairResult == 0) return 0;
+    int r = s_pairResult; s_pairResult = 0;
+    code = s_pCode; verifyUrl = s_pUrl; pollToken = s_pToken;
+    intervalS = s_pInterval; err = s_pErr;
+    return r;
+}
+
 bool ttcloud::asyncTake(String& summary) {
     if (!g_asyncDone) return false;
     g_asyncDone = false;
