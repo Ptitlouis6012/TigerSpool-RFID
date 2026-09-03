@@ -5,7 +5,7 @@
 #include <ArduinoJson.h>
 
 namespace {
-    // --- mapa de slots (indice UI -> ams_id / tray_id), descoberto do pushall ---
+    // --- slot map (UI index -> ams_id / tray_id), learned from the pushall ---
     static const int BMAX = 17;                 // Ext + 4 unidades x 4 tabuleiros
     struct BSlot { char name[4]; int ams; int tray; };
     BSlot g_map[BMAX] = {
@@ -32,7 +32,7 @@ namespace {
         g_nSlots = 5;
     }
 
-    // reconstroi g_map a partir das unidades AMS presentes no relatorio
+    // Rebuild g_map from the AMS units present in the report
     void rebuildMap(JsonArrayConst amsArr) {
         int ids[4], nu = 0;
         if (!amsArr.isNull())
@@ -62,7 +62,7 @@ namespace {
         g_nSlots = n;
     }
 
-    // TigerTag material -> { tray_info_idx, tray_type } genericos da Bambu
+    // TigerTag material -> Bambu's generic { tray_info_idx, tray_type }
     struct BMat { const char* idx; const char* type; };
     BMat bambuMat(const String& in) {
         String s = in; s.toUpperCase();
@@ -106,7 +106,7 @@ namespace {
     }
 
     void onMqtt(char* /*topic*/, uint8_t* payload, unsigned int len) {
-        // filtro: so os campos dos slots (o pushall completo passa dos 50 KB)
+        // Filter: the slot fields only. A full pushall runs past 50 KB.
         JsonDocument filter;
         {
             JsonObject tr = filter["print"]["ams"]["ams"][0].to<JsonObject>();

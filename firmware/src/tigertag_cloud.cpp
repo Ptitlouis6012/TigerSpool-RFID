@@ -9,12 +9,14 @@
 #include <mbedtls/base64.h>
 
 namespace {
-    // config publica do projeto Firebase da TigerTag (servida sem auth em
+    // TigerTag's public Firebase client config. Not a secret: it is served
+    // without authentication at
     // https://tigertag-cdn.web.app/__/firebase/init.json)
     const char* API_KEY = "AIzaSyCkxPTs_Cv0KVLqsZj-UKWWqIY0OtfVpnw";
     const char* PROJECT = "tigertag-connect";
     const uint32_t SYNC_INTERVAL_MS = 5UL * 60 * 1000;   // 5 min
-    // Cloud Functions do pareamento por QR/link (login Google sem password)
+    // Pairing Cloud Functions, used by the QR/link flow (Google sign-in, so
+    // no password ever reaches the device)
     const char* PAIR_START = "https://us-central1-tigertag-connect.cloudfunctions.net/pairStart";
     const char* PAIR_POLL  = "https://us-central1-tigertag-connect.cloudfunctions.net/pairPoll";
 
@@ -60,7 +62,7 @@ namespace {
         if (v["booleanValue"].is<bool>())        return v["booleanValue"].as<bool>() ? "true" : "false";
         return "";
     }
-    // primeiro campo nao-vazio de uma lista de nomes possiveis
+    // First non-empty field from a list of possible names
     String fsAny(JsonObjectConst f, std::initializer_list<const char*> keys) {
         for (auto k : keys) { String s = fsStr(f, k); if (s.length()) return s; }
         return "";
@@ -80,9 +82,10 @@ namespace {
     }
     // Is this printer cloud-only? Those open no local ports, so there is nothing
     // on the network for this device to reach.
-    // Estrutura real (TigerTag Studio): discovery.method = "lan-scan" quando foi
-    // encontrada na LAN; discovery.transport = "ws-9999"/"http-8898"/"mqtt-8883".
-    // Sem discovery mas com ip de topo = adicionada a mao -> tratamos como LAN.
+    // The shape TigerTag Studio actually writes: discovery.method = "lan-scan"
+    // when the printer was found on the LAN; discovery.transport is one of
+    // "ws-9999" / "http-8898" / "mqtt-8883". No discovery block but a
+    // top-level ip means it was added by hand, which we treat as LAN.
     bool looksCloud(JsonObjectConst f, const String& ip) {
         JsonObjectConst disc = fsMap(f, "discovery");
         String probe = fsAny(f, { "mode", "connectionType", "connection", "network",
@@ -139,8 +142,9 @@ namespace {
     // brand + printerModelId (catalogo TigerTag) -> backend suportado
     PrinterType mapType(const String& brand, const String& modelId) {
         int m = modelId.toInt();
-        // Creality: tudo menos a familia K1 / Ender (ids 6..10). K2/Plus/Pro/SE
-        // (2..5), Hi (1), SparkX i7 (11) e futuros -> API Nebula/WebSocket da K2.
+        // Creality: everything except the K1 / Ender family (ids 6..10). The
+        // K2/Plus/Pro/SE (2..5), Hi (1), SparkX i7 (11) and later models all
+        // speak the K2's Nebula WebSocket API.
         if (brand == "creality")   return (m >= 6 && m <= 10) ? PT_NONE : PT_CREALITY;
         // FlashForge: Creator 5 / 5 Pro are model ids 5 and 6. An AD5X reports 1 and
         // speaks the same msConfig_cmd - verified on hardware.
@@ -193,10 +197,10 @@ bool ttcloud::signIn(const String& mail, const String& pass, String& err) {
     return true;
 }
 
-// --- login com conta Google (fluxo de pareamento) -------------------------
+// --- Google account sign-in (pairing flow) --------------------------------
 
 // signInWithCustomToken does not return localId, so the uid has to come out
-// "user_id" do payload do idToken (JWT base64url no meio).
+// "user_id" out of the idToken payload (the base64url middle of the JWT).
 static String uidFromIdToken(const String& jwt) {
     int a = jwt.indexOf('.');        if (a < 0) return "";
     int b = jwt.indexOf('.', a + 1); if (b < 0) return "";
@@ -308,8 +312,8 @@ bool ttcloud::syncNow(String& summary) {
                              "snapmaker", "elegoo", "anycubic" };
     String base = String("https://firestore.googleapis.com/v1/projects/") + PROJECT +
                   "/databases/(default)/documents";
-    // Champs demandes au serveur. 'discovery' est pris en entier (petit) mais
-    // PAS 'discovery.raw'; 'units' n'est jamais demande.
+    // Fields asked of the server. 'discovery' is taken whole (it is small)
+    // but NOT 'discovery.raw'; 'units' is never requested.
     static const char* MASK_FIELDS[] = {
         "printerName", "name", "ip", "broker", "ipAddress", "lanIp", "host",
         "mode", "connectionType", "connection", "network", "netMode",
@@ -330,9 +334,9 @@ bool ttcloud::syncNow(String& summary) {
     Serial.printf("[account] uid=%s  heap=%u\n", g_uid.c_str(), (unsigned)ESP.getFreeHeap());
     for (auto brand : BRANDS) {
         String resp;
-        // Masque cote SERVEUR : Firestore n'envoie que ces champs. Sans lui, la
-        // reponse porte discovery.raw (dump systeme Moonraker complet) et units
-        // -> 47 Ko pour creality seul, telecharges puis jetes au parsing.
+        // A SERVER-side mask: Firestore sends only these fields. Without it the
+        // answer carries discovery.raw (a full Moonraker system dump) and units
+        // -> 47 KB for creality alone, downloaded and then thrown away at parse.
         String url = base + "/users/" + g_uid + "/printers/" + brand + "/devices" + MASK;
         uint32_t tGet = millis();
         int code = httpsGET(url, resp, g_idToken.c_str());
@@ -342,7 +346,7 @@ bool ttcloud::syncNow(String& summary) {
         okBrands++;
 
         // Parse filter: only the fields that matter. A Firestore response is very
-        // funda por causa dos mapValue -> sem filtro dava "TooDeep")
+        // deep because of the mapValue wrappers; without a filter it hit "TooDeep")
         JsonDocument filter;
         JsonObject fd = filter["documents"].add<JsonObject>();
         fd["name"] = true;
@@ -379,7 +383,7 @@ bool ttcloud::syncNow(String& summary) {
             String mid = fsAny(f, { "printerModelId", "modelId", "model" });
             bool   cloud = looksCloud(f, ip);
             PrinterType t = mapType(brand, mid);
-            // discovery.transport e um sinal mais fiavel que o modelo:
+            // discovery.transport is a more reliable signal than the model:
             // ws-9999 = API K2 | http-8898 = FlashForge C5 | mqtt-8883 = Bambu
             if (t == PT_NONE) {
                 if (transport.startsWith("ws-9999"))   t = PT_CREALITY;
@@ -457,8 +461,8 @@ bool ttcloud::syncNow(String& summary) {
         if (i < n && nt == ct) {
             if (nn.isEmpty()) nn = cn;
             if (ns.isEmpty()) ns = cs;
-            // IP e check/access code: o valor LOCAL ganha (pode ter sido
-            // corrigido pela descoberta na LAN ou a mao no portal). O Firebase
+            // IP and check/access code: the LOCAL value wins. It may have been
+            // corrected by LAN discovery or by hand in the portal. Firebase
             // only fills in when the local field is empty
             if (ch.length()) nh = ch;
             if (cc.length()) nc = cc; else if (nc.isEmpty()) nc = cc;
@@ -492,8 +496,8 @@ bool ttcloud::consumeChanged() { bool v = g_changed; g_changed = false; return v
 
 // ---------------------------------------------------------------------------
 //  Asynchronous sync: the home screen must NEVER wait on the network.
-//  La tache ne fait que reseau + ecriture NVS ; c'est la boucle UI qui
-//  rechargera printers[] via loadCfg() quand asyncDone() passe a true.
+//  The task does nothing but network I/O and NVS writes; it is the UI loop
+//  that reloads printers[] through loadCfg() once asyncDone() turns true.
 // ---------------------------------------------------------------------------
 static volatile bool g_asyncBusy = false;
 static volatile bool g_asyncDone = false;
@@ -511,7 +515,7 @@ static void syncTaskFn(void*) {
 bool ttcloud::startAsyncSync() {
     if (g_asyncBusy) return false;
     g_asyncBusy = true; g_asyncDone = false;
-    // 16 Ko : mbedTLS a besoin de place, et le parsing JSON passe par la.
+    // 16 KB: mbedTLS needs room, and the JSON parsing runs on this stack too.
     if (xTaskCreatePinnedToCore(syncTaskFn, "ttSync", 16384, nullptr, 1, nullptr, 1) != pdPASS) {
         g_asyncBusy = false;
         Serial.println("[account] xTaskCreate falhou - sync ignorada");

@@ -24,7 +24,7 @@ bool reader::begin() {
     delay(20);
 
     if (g_diag) {
-        // ha bytes a chegar no RX? (nada = linha morta/sem alimentacao;
+        // Are any bytes arriving on RX? (nothing = dead line or no power;
         //  garbage = TX/RX swapped, DIPs not in HSU mode, 5 V level, or wrong UART)
         delay(30);
         int n = serNFC.available(); uint8_t pk[8]; int m = 0;
@@ -94,7 +94,7 @@ bool reader::read(TagInfo& out) {
         if (!got) { delay(8); continue; }
         okReads++;
 
-        // conta bytes a zero: uma TigerTag escrita tem <~10 zeros nestas paginas
+        // Count zero bytes: a written TigerTag has fewer than ~10 in these pages
         int zc = 0;
         for (int i = 0; i < 32; i++) if (payload[i] == 0) zc++;
         if (zc > 20 || be32(payload + 0) == 0 || be32(payload + 4) == 0) {
@@ -105,7 +105,7 @@ bool reader::read(TagInfo& out) {
         win = true;
     }
 
-    // dump para diagnostico
+    // Diagnostic dump
     { String u; char h[4];
       for (uint8_t i = 0; i < ul; i++) { snprintf(h, sizeof(h), "%02X", uid[i]); u += h; }
       String px; for (int i = 0; i < 32; i++) { snprintf(h, sizeof(h), "%02X", payload[i]); px += h; if (i % 4 == 3) px += ' '; }

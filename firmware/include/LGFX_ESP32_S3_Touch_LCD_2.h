@@ -1,6 +1,6 @@
-// LovyanGFX device config para Waveshare ESP32-S3-Touch-LCD-2
+// LovyanGFX device config for the Waveshare ESP32-S3-Touch-LCD-2
 // Display: ST7789 240x320 IPS (SPI3)  |  Touch: CST816S (I2C0)
-// Fonte dos pinos: config comunitaria conhecida para esta placa (2026).
+// Pin source: the community-known configuration for this board (2026).
 // Se o ecra ficar em branco/espelhado, ajusta invert / rgb_order / rotation.
 #pragma once
 #include <LovyanGFX.hpp>

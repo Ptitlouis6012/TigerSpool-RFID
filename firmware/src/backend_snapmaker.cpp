@@ -69,7 +69,8 @@ namespace {
         Serial.printf("[snap] -> %s\n", s.c_str());
         return ws.sendTXT(s);
     }
-    // os args de G-code sao separados por espacos -> tirar espacos do vendor/tipo
+    // G-code arguments are separated by spaces, so strip spaces out of the
+    // vendor and type
     String noSpace(const String& in) {
         String o; o.reserve(in.length());
         for (size_t i = 0; i < in.length(); i++) o += (in[i] == ' ' ? '_' : in[i]);

@@ -19,14 +19,19 @@
 #include "tigertag_cloud.h"
 #include "i18n.h"
 
-// Le canvas offscreen vit dans main.cpp ; /screen.bmp le serialise tel quel.
-// Declares au scope GLOBAL : dans le namespace anonyme ci-dessous ils
+// The offscreen canvas lives in main.cpp; /screen.bmp serialises it as-is.
+// Declared at GLOBAL scope: inside the anonymous namespace below they
 // designeraient d'autres symboles et l'edition de liens echouerait.
 extern LGFX_Sprite canvas;
 extern bool        canvasReady;
 
 namespace {
-    // ---- traducoes da pagina web (UTF-8, ordem: PT, EN, ES, FR) ----
+    // ---- legacy web page translations (UTF-8, order: PT, EN, ES, FR) ----
+    //
+    // This table belongs to handleRoot(), the prototype's configuration page,
+    // which is still served over the LAN once the device is provisioned. The
+    // captive portal in net/portal_page.h replaced it for setup and speaks the
+    // product's eight languages; this one still speaks four. See docs/.
     enum Wid {
         W_CFGMODE, W_RESCAN, W_STAR_PW, W_NETS_FOUND, W_PICK,
         W_NET, W_PASS, W_KEEP_EMPTY, W_UNCHANGED, W_LANG, W_PRINTERS,
@@ -187,13 +192,13 @@ namespace {
     // ------------------------------------------------------------------
     //  Screen capture: /screen.bmp and /screen (a page that refreshes it)
     //
-    //  Tout le dessin passe par le sprite offscreen 'canvas' avant pushSprite(),
-    //  donc son buffer EST le framebuffer. On le sert en BMP 24 bits : pas de
-    //  compression a embarquer, et tous les navigateurs le lisent. 240*3 = 720
-    //  octets par ligne, multiple de 4, donc aucun padding a gerer.
+    //  Every draw goes through the offscreen 'canvas' sprite before
+    //  pushSprite(), so its buffer IS the framebuffer. We serve it as 24-bit
+    //  BMP: no compression to carry, and every browser reads it. 240*3 = 720
+    //  bytes per row, a multiple of 4, so there is no padding to handle.
     //
-    //  Le handler tourne dans la meme boucle que le dessin (WebServer::
-    //  handleClient est appele depuis loop()), donc pas de course sur le buffer.
+    //  The handler runs in the same loop as the drawing (WebServer::
+    //  handleClient is called from loop()), so there is no race on the buffer.
     // ------------------------------------------------------------------
     void le32(uint8_t* p, uint32_t v) { p[0]=v; p[1]=v>>8; p[2]=v>>16; p[3]=v>>24; }
 
@@ -279,7 +284,7 @@ namespace {
             for (int x = 0; x < W; x++) {
                 uint32_t c = canvas.readPixel(x, y);    // RGB565 -> RGB888
                 uint8_t r = (c >> 8) & 0xF8, g = (c >> 3) & 0xFC, b = (c << 3) & 0xF8;
-                *o++ = b | (b >> 5);                // BMP est en BGR
+                *o++ = b | (b >> 5);                // BMP is BGR
                 *o++ = g | (g >> 6);
                 *o++ = r | (r >> 5);
             }
@@ -495,7 +500,7 @@ namespace {
         String h; h.reserve(5200);
         h += F("<!doctype html><html><head><meta charset=utf-8>"
                "<meta name=viewport content=\"width=device-width,initial-scale=1\">"
-               "<title>TigerTag Bridge</title><style>"
+               "<title>TigerSpool</title><style>"
                "body{font-family:system-ui,sans-serif;background:#111;color:#eee;margin:0;padding:20px}"
                ".card{max-width:460px;margin:auto;background:#1c1c1c;border:1px solid #333;border-radius:12px;padding:22px}"
                "h1{font-size:1.15rem;margin:.1rem 0 .3rem}h2{font-size:.95rem;color:#bbb;margin:1.5rem 0 .3rem;border-top:1px solid #333;padding-top:1rem}"
@@ -506,13 +511,17 @@ namespace {
                "fieldset{border:1px solid #333;border-radius:8px;margin:.6rem 0;padding:.4rem .8rem .8rem}"
                "legend{color:#999;font-size:.8rem;padding:0 .4rem}"
                "</style></head><body><div class=card>"
-               "<h1>TigerTag Bridge</h1>");
+               "<h1>TigerSpool</h1>");
         if (apMode) {
             h += F("<div class=hint>"); h += wl(W_CFGMODE); h += F("</div>");
         }
         else {
             h += F("<div class=hint>IP "); h += WiFi.localIP().toString();
-            h += F(" &middot; <a href=\"http://tigerspool.local/\">tigerspool.local</a></div>");
+            // The per-device name, not a bare "tigerspool.local". Two devices
+            // on one network is the whole reason the MAC suffix exists, and a
+            // link that ignores it sends half the owners to the other box.
+            h += F(" &middot; <a href=\"http://"); h += HOSTNAME;
+            h += F(".local/\">"); h += HOSTNAME; h += F(".local</a></div>");
         }
         h += F("<form method=POST action=/save>"
                "<h2>Wi-Fi</h2>");
@@ -547,7 +556,7 @@ namespace {
         }
         h += F("<button type=submit>"); h += wl(W_SAVE_RESTART); h += F("</button></form>");
 
-        // ---- Conta TigerTag (importa as maquinas da conta) ----
+        // ---- TigerTag account (imports the machines it holds) ----
         h += F("<h2>"); h += wl(W_TT_ACCOUNT); h += F("</h2>");
         if (ttcloud::haveSession()) {
             h += F("<div class=hint>"); h += wl(W_CONNECTED); h += esc(ttcloud::email());
@@ -713,7 +722,7 @@ namespace {
         server.on("/api/join", HTTP_POST, handleApiJoin);
         server.on("/api/lang", handleApiLang);
         server.on("/screen.bmp", handleShot);      // raw panel capture
-        server.on("/screen", handleShotPage);      // page qui la rafraichit
+        server.on("/screen", handleShotPage);      // page that refreshes it
         server.on("/save", HTTP_POST, handleSave);
         server.on("/reset", handleReset);
         server.on("/retry", handleRetry);

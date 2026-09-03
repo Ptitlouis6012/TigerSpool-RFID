@@ -2,7 +2,7 @@
 #include <WebSocketsClient.h>
 #include <ArduinoJson.h>
 
-// ---- mapa de slots da K2 (indice UI -> boxId/slot) -----------------------
+// ---- K2 slot map (UI index -> boxId/slot) -------------------------------
 namespace {
     struct CrealitySlot { const char* name; uint8_t box; uint8_t slot; };
     const CrealitySlot CREALITY_SLOTS[5] = {

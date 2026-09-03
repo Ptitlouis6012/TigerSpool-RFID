@@ -12,7 +12,7 @@ namespace {
     uint32_t  g_lastAuth = 0;
     const char* LABELS[4] = { "T1", "T2", "T3", "T4" };
 
-    // TigerTag material -> lista de 21 materiais da Creator 5
+    // TigerTag material -> the Creator 5's list of 21 materials
     String ffMaterial(const String& in) {
         String s = in; s.toUpperCase();
         auto has = [&](const char* k) { return s.indexOf(k) >= 0; };
@@ -53,7 +53,8 @@ namespace {
         { 0x8C8C89, "Gray" },       { 0xBEBEBE, "Light Gray" }, { 0x1B1B1B, "Black" },
     };
 
-    // cor mais proxima da paleta (distancia "redmean", boa aproximacao perceptual)
+    // Nearest colour in the palette ("redmean" distance, a good perceptual
+    // approximation for the price)
     const FfColor& ffNearest(uint8_t r, uint8_t g, uint8_t b) {
         int best = 0; long bestD = 0x7fffffffL;
         for (int i = 0; i < 24; i++) {
@@ -68,7 +69,7 @@ namespace {
         return FF_PALETTE[best];
     }
 
-    // POST JSON para http://host:8898<path>. Devolve corpo, ou "" em falha.
+    // POST JSON to http://host:8898<path>. Returns the body, or "" on failure.
     // Preenche 'httpCode'. O firmware manda Content-Type "appliation/json" (typo).
     String post(const String& path, const String& body, int& httpCode) {
         if (WiFi.status() != WL_CONNECTED) { httpCode = -1; return ""; }
@@ -101,7 +102,8 @@ namespace {
 
 void FlashForgeC5Backend::begin(const PrinterCfg& cfg) {
     g_host = cfg.host; g_sn = cfg.sn; g_cc = cfg.cc;
-    // a API da FF quer o serial com prefixo "SN" (o import da TigerTag da-o sem)
+    // FlashForge's API wants the serial prefixed with "SN"; the TigerTag import
+    // hands it over without one
     if (g_sn.length() && !g_sn.startsWith("SN")) g_sn = "SN" + g_sn;
     for (int i = 0; i < 4; i++) g_slots[i] = SlotState{};
     g_auth = false;
@@ -150,7 +152,7 @@ void FlashForgeC5Backend::refresh() {
     JsonDocument d;
     if (deserializeJson(d, resp)) { g_status = "FF: /detail json?"; return; }
 
-    // dump da estacao de material (para depurar cor/material)
+    // Dump the material station (for debugging colour/material)
     { String ms; serializeJson(d["detail"]["matlStationInfo"], ms);
       Serial.printf("[flashforge] matlStationInfo: %.*s\n", (int)(ms.length() > 320 ? 320 : ms.length()), ms.c_str()); }
 
@@ -178,10 +180,10 @@ bool FlashForgeC5Backend::assign(int idx, const TagInfo& t) {
     if (idx < 0 || idx >= 4) return false;
     String mt = ffMaterial(t.material);
 
-    // ajusta a cor da tag a mais proxima da paleta da Creator 5.
-    // A C5 exige o formato "#RRGGBB" MAIUSCULAS COM o '#' (a doc publica esta
+    // Snap the tag's colour to the nearest entry in the Creator 5's palette.
+    // The C5 demands "#RRGGBB" in UPPERCASE and WITH the '#' (the public doc is
     // wrong. Any other value is silently ignored and the slot reverts to
-    // #FFFFFF) apesar de responder code:0.
+    // #FFFFFF) even though it answers code:0.
     const FfColor& pc = ffNearest(t.r, t.g, t.b);
     char rgb[9]; snprintf(rgb, sizeof(rgb), "#%06X", pc.rgb);
     Serial.printf("[flashforge] cor tag #%02X%02X%02X -> paleta %s %s\n", t.r, t.g, t.b, pc.name, rgb);

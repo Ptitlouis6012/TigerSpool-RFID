@@ -85,9 +85,9 @@ static const char* typeTag(PrinterType t) {
          : t == PT_SNAPMAKER ? "Snap" : "--";
 }
 
-// ---- sondagem "esta online?" (TCP connect a porta de controlo) ----------
+// ---- "is it online?" probe (TCP connect to the control port) ------------
 // K2 = ws :9999 | FlashForge C5 = HTTP :8898 | Bambu = MQTT :8883
-// Guarda o instante da ultima resposta OK; uma sondagem falhada NAO esconde
+// Records when the last OK answer came in. A failed probe does NOT hide
 // A single failed probe does not hide a printer: a TCP connect fails on a cold
 // ARP cache or a congested link often enough that treating one miss as "gone"
 // would make the list flicker.
@@ -138,7 +138,7 @@ static int onlineCount() {
 }
 // Configured printers are ALWAYS listed. Reachability is an indicator, not a
 // filter: the TCP probe is not reliable enough to hide anything, and a printer
-// para esconder nada - K2/FF com Modo LAN off dao RST na porta.
+// anything: a K2 or FlashForge with LAN Mode off answers RST on that port.
 static bool printerVisible(int i) {
     return printers[i].type != PT_NONE && printers[i].visible;
 }
@@ -159,7 +159,8 @@ namespace disc {
     Found  found[10];
     int    nFound = 0;
 
-    // Handshake WS minimo + pede printerInfo; devolve o deviceSn se for uma K2.
+    // Minimal WS handshake, then ask for printerInfo. Returns the deviceSn if
+    // this really is a K2.
     bool probe(IPAddress ip, String& sn) {
         WiFiClient c;
         if (!c.connect(ip, 9999, 150)) { c.stop(); return false; }
@@ -171,12 +172,12 @@ namespace disc {
             delay(5);
         }
         if (buf.indexOf(" 101 ") < 0 && buf.indexOf("101 Switching") < 0) { c.stop(); return false; }
-        // frame de texto WS mascarado com o pedido
+        // masked WS text frame carrying the request
         const char* req = "{\"method\":\"get\",\"params\":{\"printerInfo\":1}}";
         uint8_t rl = strlen(req), hdr[6] = { 0x81, (uint8_t)(0x80 | rl), 0x00, 0x00, 0x00, 0x00 };
         c.write(hdr, 6);
         for (uint8_t i = 0; i < rl; i++) { uint8_t x = req[i]; c.write(&x, 1); }
-        // le ~500 ms de resposta e procura deviceSn / hostname no meio das frames
+        // read ~500 ms of answer and look for deviceSn / hostname inside the frames
         buf = ""; t0 = millis();
         while (millis() - t0 < 500 && buf.length() < 1800) {
             while (c.available()) buf += (char)c.read();
@@ -194,7 +195,7 @@ namespace disc {
         bool used[10] = { false };
         bool changed = false;
         nvs.begin("tigerspool", false);
-        // 1) casar pelo serial
+        // 1) match on the serial
         for (int i = 0; i < MAX_PRINTERS; i++) {
             if (printers[i].type != PT_CREALITY || printers[i].sn.isEmpty() || isOnline(i)) continue;
             for (int j = 0; j < nFound; j++) {
@@ -210,7 +211,7 @@ namespace disc {
                 used[j] = true; pLastSeen[i] = 0;
             }
         }
-        // 2) casar 1:1 (exatamente uma K2 offline sem match <-> uma encontrada livre)
+        // 2) match 1:1 (exactly one unmatched offline K2 <-> exactly one found free)
         int io = -1, jo = -1, no = 0, nj = 0;
         for (int i = 0; i < MAX_PRINTERS; i++)
             if (printers[i].type == PT_CREALITY && !isOnline(i)) { no++; io = i; }
