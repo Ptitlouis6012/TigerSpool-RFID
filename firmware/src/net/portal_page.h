@@ -32,7 +32,11 @@ static const char PORTAL_HTML[] PROGMEM = R"HTML(<!doctype html>
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,
 BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;
 letter-spacing:-.005em;padding:0 0 32px}
-.bar{display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:14px 20px 0}
+/* Two corners rather than a cluster. The language was already chosen on the
+   device's own screen in step one, so this is a correction, not a step - it
+   sits out of the way on the left while the theme, the only thing anyone
+   actually reaches for here, keeps the thumb-side corner. */
+.bar{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:14px 20px 0}
 .pad{padding:22px 20px 0;max-width:520px;margin:0 auto}
 h1{font-size:32px;line-height:1.12;font-weight:600;letter-spacing:-.032em;margin:0 0 22px}
 p.l{margin:0 0 24px;color:var(--dim)}
@@ -54,7 +58,7 @@ background:var(--surf);color:var(--dim);border:1px solid var(--line);cursor:poin
 display:flex;align-items:center;gap:8px}
 .lb .c{display:flex;transition:transform .16s}
 .lb[aria-expanded=true] .c{transform:rotate(180deg)}
-.lm{position:absolute;top:46px;right:0;z-index:20;min-width:186px;background:var(--surf);
+.lm{position:absolute;top:46px;left:0;z-index:20;min-width:186px;background:var(--surf);
 border:1px solid var(--line);border-radius:14px;padding:6px;box-shadow:0 8px 28px rgba(0,0,0,.45);
 display:flex;flex-direction:column;gap:2px}
 .lm[hidden]{display:none}
@@ -122,10 +126,10 @@ dd{margin:0;font-family:ui-monospace,monospace;font-size:13px;text-align:right}
 .ft{margin-top:34px;font-size:12px;color:var(--dim);opacity:.6;text-align:center}
 </style></head><body>
 <div class="bar">
- <button class="tg" id="th" type="button" role="switch" aria-checked="false" aria-label="Theme">
-  <span class="k"></span><span class="ic s"></span><span class="ic m"></span></button>
  <div class="lw"><button class="lb" id="lb" type="button" aria-expanded="false"></button>
   <div class="lm" id="lm" hidden></div></div>
+ <button class="tg" id="th" type="button" role="switch" aria-checked="false" aria-label="Theme">
+  <span class="k"></span><span class="ic s"></span><span class="ic m"></span></button>
 </div>
 <div class="pad" id="v"></div>
 <script>
