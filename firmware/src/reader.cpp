@@ -25,7 +25,7 @@ bool reader::begin() {
 
     if (g_diag) {
         // ha bytes a chegar no RX? (nada = linha morta/sem alimentacao;
-        //  lixo = TX/RX trocado, DIP nao em HSU, nivel 5V, ou outra UART)
+        //  garbage = TX/RX swapped, DIPs not in HSU mode, 5 V level, or wrong UART)
         delay(30);
         int n = serNFC.available(); uint8_t pk[8]; int m = 0;
         while (serNFC.available() && m < 8) pk[m++] = serNFC.read();
@@ -35,8 +35,10 @@ bool reader::begin() {
         Serial.println();
     }
 
-    // writeCommand() (lib vendorizada) ja acorda o modulo antes de cada comando:
-    // este PN532 volta a power-down entre comandos, so o 1o respondia.
+    // The vendored library wakes the module before EVERY command. These modules
+    // power down between commands: without that preamble only the first command
+    // after boot answers, and the reader reports itself ready while reading
+    // nothing. See docs/WIRING.md.
     pn532hsu.wakeup();
     delay(50);
     for (int t = 0; t < 5; t++) {
@@ -52,7 +54,7 @@ bool reader::begin() {
             g_diag = false;
             return true;
         }
-        pn532hsu.wakeup();                        // re-acorda antes de re-tentar
+        pn532hsu.wakeup();                        // wake it again before retrying
         delay(200);
     }
     g_err = "PN532 sem resposta (HSU)";
@@ -78,11 +80,12 @@ bool reader::read(TagInfo& out) {
 
         bool got;
         if (attempt < 10) {
-            // 2 transaccoes de 16 bytes (READ devolve 4 paginas de cada vez)
+            // Two 16-byte transactions: the READ command returns four pages at
+            // once, which is far more reliable than eight small reads.
             got = nfc.mifareultralight_ReadPage16(0x04, payload + 0)
                && nfc.mifareultralight_ReadPage16(0x08, payload + 16);
         } else {
-            // fallback: 8 leituras de 4 bytes (frames mais pequenas, sobrevivem
+            // Fallback: eight 4-byte reads. Smaller frames survive a poor link
             // melhor a um link HSU marginal)
             got = true;
             for (uint8_t i = 0; i < 8 && got; i++)

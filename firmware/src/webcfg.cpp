@@ -148,7 +148,7 @@ namespace {
     }
 
     // ------------------------------------------------------------------
-    //  Capture d'ecran : /screen.bmp  et  /screen (page qui rafraichit)
+    //  Screen capture: /screen.bmp and /screen (a page that refreshes it)
     //
     //  Tout le dessin passe par le sprite offscreen 'canvas' avant pushSprite(),
     //  donc son buffer EST le framebuffer. On le sert en BMP 24 bits : pas de
@@ -237,7 +237,9 @@ namespace {
     }
 
     void doScan() {
-        // scan precisa da STA activa; volta a AP-only no fim para o AP ficar estavel
+        // Scanning needs the station interface, so go AP+STA for it and back to
+        // AP-only afterwards: leaving STA active makes the radio hop channels and
+        // the phone drops off the setup network mid-form.
         WiFi.mode(WIFI_AP_STA);
         WiFi.scanDelete();
         int n = WiFi.scanNetworks(false, true);
@@ -496,7 +498,7 @@ namespace {
 
     void routes(bool captive) {
         server.on("/", handleRoot);
-        server.on("/screen.bmp", handleShot);      // capture brute de l'ecran
+        server.on("/screen.bmp", handleShot);      // raw panel capture
         server.on("/screen", handleShotPage);      // page qui la rafraichit
         server.on("/save", HTTP_POST, handleSave);
         server.on("/reset", handleReset);
@@ -531,20 +533,20 @@ void webcfg::begin() {
 void webcfg::beginAP() {
     apMode = true;
 
-    // impede a STA de andar a tentar ligar-se (o que faz o radio saltar de
-    // canal e o AP "cair" a cada poucos segundos)
+    // Stop the station interface retrying an association: it makes the radio
+    // hop channels, and the access point appears to drop every few seconds.
     WiFi.persistent(false);
     WiFi.setAutoReconnect(false);
     WiFi.disconnect(true, true);          // para + apaga credenciais da STA
     delay(100);
 
-    WiFi.mode(WIFI_AP_STA);               // AP_STA so para o scan inicial
+    WiFi.mode(WIFI_AP_STA);               // AP+STA only for the initial scan
     WiFi.setSleep(false);                 // AP sem modem-sleep = ligacoes estaveis
     WiFi.softAPConfig(AP_IP, AP_IP, IPAddress(255, 255, 255, 0));
     WiFi.softAP(AP_SSID, nullptr, 1, 0, 4);   // canal 1 fixo, max 4 clientes
     delay(300);
 
-    doScan();                            // faz o scan e volta a WIFI_AP (estavel)
+    doScan();                            // scans, then returns to plain AP
 
     dns.setErrorReplyCode(DNSReplyCode::NoError);
     dns.start(53, "*", AP_IP);

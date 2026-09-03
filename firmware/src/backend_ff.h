@@ -2,7 +2,8 @@
 #include "printer.h"
 
 // FlashForge Creator 5 / 5 Pro  -  API HTTP REST na porta 8898.
-// Auth CheckCode (serialNumber + checkCode em cada pedido). Modo LAN ativo.
+// Auth is a check code: serialNumber + checkCode in the body of every request,
+// no token and no session. LAN mode must be on.
 class FlashForgeC5Backend : public PrinterBackend {
 public:
     void begin(const PrinterCfg& cfg) override;

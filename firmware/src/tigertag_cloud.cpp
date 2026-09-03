@@ -78,7 +78,8 @@ namespace {
         if (s == "false" || s == "0") return 0;
         return -1;
     }
-    // decide se a impressora esta em modo cloud (nao serve para o bridge LAN).
+    // Is this printer cloud-only? Those open no local ports, so there is nothing
+    // on the network for this device to reach.
     // Estrutura real (TigerTag Studio): discovery.method = "lan-scan" quando foi
     // encontrada na LAN; discovery.transport = "ws-9999"/"http-8898"/"mqtt-8883".
     // Sem discovery mas com ip de topo = adicionada a mao -> tratamos como LAN.
@@ -141,7 +142,8 @@ namespace {
         // Creality: tudo menos a familia K1 / Ender (ids 6..10). K2/Plus/Pro/SE
         // (2..5), Hi (1), SparkX i7 (11) e futuros -> API Nebula/WebSocket da K2.
         if (brand == "creality")   return (m >= 6 && m <= 10) ? PT_NONE : PT_CREALITY;
-        // FlashForge: Creator 5 / 5 Pro (5,6). AD5X (1) usa o mesmo msConfig_cmd.
+        // FlashForge: Creator 5 / 5 Pro are model ids 5 and 6. An AD5X reports 1 and
+        // speaks the same msConfig_cmd - verified on hardware.
         if (brand == "flashforge") return (m == 5 || m == 6) ? PT_FF_C5 : PT_NONE;
         if (brand == "bambulab")   return PT_BAMBU;                                // protocolo LAN comum
         if (brand == "snapmaker")  return PT_SNAPMAKER;                             // Moonraker ws :7125
@@ -193,7 +195,7 @@ bool ttcloud::signIn(const String& mail, const String& pass, String& err) {
 
 // --- login com conta Google (fluxo de pareamento) -------------------------
 
-// signInWithCustomToken nao devolve localId: o uid so existe no claim
+// signInWithCustomToken does not return localId, so the uid has to come out
 // "user_id" do payload do idToken (JWT base64url no meio).
 static String uidFromIdToken(const String& jwt) {
     int a = jwt.indexOf('.');        if (a < 0) return "";
@@ -287,7 +289,7 @@ static bool g_syncedOk = false;
 bool ttcloud::due() {
     if (!haveSession() || WiFi.status() != WL_CONNECTED) return false;
     if (g_lastSync == 0) return (millis() - g_bootAt > 8000);         // 1a sync ~8 s apos arranque
-    if (!g_syncedOk)     return (millis() - g_lastSync > 60000);      // ultimo falhou -> re-tenta em 1 min
+    if (!g_syncedOk)     return (millis() - g_lastSync > 60000);      // last one failed -> retry in a minute
     return (millis() - g_lastSync > SYNC_INTERVAL_MS);
 }
 
@@ -297,8 +299,9 @@ bool ttcloud::syncNow(String& summary) {
     g_syncedOk = false;
     if (!ensureToken()) { summary = g_lastResult = "TigerTag: sessao invalida"; return false; }
 
-    // creality/flashforge/bambulab tem backend; os outros sao lidos so para o
-    // log dizer porque nao aparecem (marca sem backend).
+    // All six brands are read. Two of them have no backend yet, and they are
+    // fetched anyway so the log can say why they do not appear rather than
+    // leaving the user to guess. See docs/PRINTER-COMPATIBILITY.md.
     const char* BRANDS[] = { "creality", "flashforge", "bambulab",
                              "snapmaker", "elegoo", "anycubic" };
     String base = String("https://firestore.googleapis.com/v1/projects/") + PROJECT +
@@ -336,7 +339,7 @@ bool ttcloud::syncNow(String& summary) {
         if (code != 200) { Serial.printf("[account]   resp: %.300s\n", resp.c_str()); continue; }
         okBrands++;
 
-        // filtro: so os campos que interessam (a resposta Firestore e muito
+        // Parse filter: only the fields that matter. A Firestore response is very
         // funda por causa dos mapValue -> sem filtro dava "TooDeep")
         JsonDocument filter;
         JsonObject fd = filter["documents"].add<JsonObject>();
@@ -350,7 +353,8 @@ bool ttcloud::syncNow(String& summary) {
                                "serial", "serialNumber", "sn", "deviceId",
                                "password", "dev_access_code", "accessCode", "access_code", "checkCode" })
             ff[k] = true;
-        // sub-objecto discovery: so os campos uteis (evita o array keys[] gigante)
+        // discovery sub-object: only the useful fields, never discovery.raw - that
+        // one carries a full system dump the firmware will never read
         JsonObject dff = ff["discovery"]["mapValue"]["fields"].to<JsonObject>();
         for (const char* k : { "method", "transport", "ip", "deviceSn", "hostName" })
             dff[k] = true;
@@ -399,8 +403,9 @@ bool ttcloud::syncNow(String& summary) {
                 String serialField = fsAny(f, { "serial", "serialNumber", "sn" });
                 if (serialField.isEmpty() && !disc.isNull()) serialField = fsStr(disc, "deviceSn");
                 if (t == PT_CREALITY) {
-                    // K2 nao usa serial no backend, mas guarda-se para a
-                    // descoberta na LAN casar o IP certo com esta impressora
+                    // The Creality backend does not use the serial, but the LAN
+                    // sweep does: it is how a moved printer is matched back to
+                    // its own entry instead of a sibling's.
                     p.sn = serialField;
                 } else {
                     String deviceIdField = fsStr(f, "deviceId");
@@ -411,8 +416,8 @@ bool ttcloud::syncNow(String& summary) {
                                   "mqttPassword" });
                 }
             }
-            // a mesma impressora pode estar registada 2x na conta (ex.: 2 docs
-            // FlashForge para o mesmo IP+serial) -> nao duplicar
+            // The same printer can appear twice in an account - two FlashForge
+            // documents for one IP and serial, for instance. Do not import both.
             bool dup = false;
             for (int j = 0; j < n; j++)
                 if (got[j].type == p.type && got[j].host == p.host &&
@@ -426,7 +431,8 @@ bool ttcloud::syncNow(String& summary) {
         }
     }
 
-    // escreve p0..p3 no NVS "tigerspool" apenas se algo mudou
+    // Write to NVS only if something actually changed: flash has a finite
+    // number of erase cycles and this runs every few minutes.
     Preferences k; k.begin("tigerspool", false);
     bool diff = false;
     for (int i = 0; i < MAX_PRINTERS; i++) {
@@ -442,14 +448,16 @@ bool ttcloud::syncNow(String& summary) {
         String nh = (i < n) ? got[i].host : String();
         String ns = (i < n) ? got[i].sn   : String();
         String nc = (i < n) ? got[i].cc   : String();
-        // import = "preencher os vazios": nao apaga um campo que o utilizador
-        // meteu a mao e que o Firebase nao tem (ex.: check code da FlashForge)
+        // The import fills gaps, it does not overwrite. A value the user typed by
+        // hand survives a sync that does not know it - which also means a stale
+        // one is not corrected automatically. Clearing the field is how you
+        // force a refresh, and the web form says so.
         if (i < n && nt == ct) {
             if (nn.isEmpty()) nn = cn;
             if (ns.isEmpty()) ns = cs;
             // IP e check/access code: o valor LOCAL ganha (pode ter sido
             // corrigido pela descoberta na LAN ou a mao no portal). O Firebase
-            // so preenche quando o campo local esta vazio.
+            // only fills in when the local field is empty
             if (ch.length()) nh = ch;
             if (cc.length()) nc = cc; else if (nc.isEmpty()) nc = cc;
         }
@@ -481,7 +489,7 @@ bool ttcloud::syncNow(String& summary) {
 bool ttcloud::consumeChanged() { bool v = g_changed; g_changed = false; return v; }
 
 // ---------------------------------------------------------------------------
-//  Sync asynchrone : l'ecran principal ne doit JAMAIS attendre le reseau.
+//  Asynchronous sync: the home screen must NEVER wait on the network.
 //  La tache ne fait que reseau + ecriture NVS ; c'est la boucle UI qui
 //  rechargera printers[] via loadCfg() quand asyncDone() passe a true.
 // ---------------------------------------------------------------------------

@@ -37,8 +37,10 @@ namespace {
         return "PLA";
     }
 
-    // Paleta de 24 cores da Creator 5 (a impressora so aceita destas; um hex
-    // fora da paleta e ignorado -> por isso a cor "nao entrava").
+    // The Creator 5's own 24-colour palette. The printer accepts nothing else:
+    // any other hex is silently ignored and the slot reverts to white, while the
+    // call still answers success. The tag's colour is snapped to the nearest
+    // entry here - see docs/PRINTER-COMPATIBILITY.md.
     struct FfColor { uint32_t rgb; const char* name; };
     const FfColor FF_PALETTE[24] = {
         { 0xFFFFFF, "White" },      { 0xFFF245, "Yellow" },     { 0xDEF578, "Light Green" },
@@ -131,7 +133,7 @@ void FlashForgeC5Backend::tryAuth() {
 void FlashForgeC5Backend::loop() {
     if (g_auth) {
         if (millis() - g_lastReq > 6000) { g_lastReq = millis(); refresh(); }
-    } else if (millis() - g_lastAuth > 20000) {   // re-tenta autenticar a cada 20 s
+    } else if (millis() - g_lastAuth > 20000) {   // re-authenticate every 20 s
         tryAuth();
     }
 }
@@ -178,7 +180,7 @@ bool FlashForgeC5Backend::assign(int idx, const TagInfo& t) {
 
     // ajusta a cor da tag a mais proxima da paleta da Creator 5.
     // A C5 exige o formato "#RRGGBB" MAIUSCULAS COM o '#' (a doc publica esta
-    // errada); qualquer outro valor e silenciosamente ignorado (slot volta a
+    // wrong. Any other value is silently ignored and the slot reverts to
     // #FFFFFF) apesar de responder code:0.
     const FfColor& pc = ffNearest(t.r, t.g, t.b);
     char rgb[9]; snprintf(rgb, sizeof(rgb), "#%06X", pc.rgb);

@@ -158,9 +158,10 @@ void BambuBackend::begin(const PrinterCfg& cfg) {
     g_topReport  = String("device/") + g_sn + "/report";
     g_topRequest = String("device/") + g_sn + "/request";
 
-    net.setInsecure();                 // certificado auto-assinado da impressora
+    net.setInsecure();                 // the printer presents a self-signed cert
     mqtt.setServer(g_host.c_str(), 8883);
-    // o pushall de uma X1 com 4 AMS chega a ~50 KB; se nao couber, a topologia
+    // A pushall from an X1 with four AMS units reaches about 50 KB. If the
+    // buffer cannot hold it the topology
     // (nr de unidades) nunca e detetada. Buffer generoso (heap chega, o sprite
     // LVGL esta em PSRAM).
     mqtt.setBufferSize(51200);

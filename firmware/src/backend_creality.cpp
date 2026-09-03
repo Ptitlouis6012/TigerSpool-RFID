@@ -82,7 +82,7 @@ void CrealityBackend::begin(const PrinterCfg& cfg) {
     g_status = "K2: a ligar...";
     ws.begin(cfg.host, 9999, "/");
     ws.onEvent(onEvent);
-    ws.setReconnectInterval(10000);           // impressora offline -> menos spam
+    ws.setReconnectInterval(10000);           // printer offline -> stop hammering it
     ws.enableHeartbeat(15000, 3000, 2);
 }
 

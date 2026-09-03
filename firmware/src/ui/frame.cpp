@@ -1,0 +1,182 @@
+#include "frame.h"
+#include "theme.h"
+
+namespace {
+lv_obj_t* s_screen = nullptr;
+lv_obj_t* s_header = nullptr;
+lv_obj_t* s_body   = nullptr;
+lv_obj_t* s_dots[3] = { nullptr, nullptr, nullptr };
+frame::Callback s_onBack = nullptr;
+
+void backCb(lv_event_t*)  { if (s_onBack) s_onBack(); }
+
+void clickCb(lv_event_t* e) {
+    auto fn = (frame::Callback)lv_event_get_user_data(e);
+    if (fn) fn();
+}
+
+lv_obj_t* dot(lv_obj_t* parent) {
+    lv_obj_t* d = lv_obj_create(parent);
+    lv_obj_remove_style_all(d);
+    lv_obj_set_size(d, 9, 9);
+    lv_obj_set_style_radius(d, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_opa(d, LV_OPA_COVER, 0);
+    lv_obj_set_style_bg_color(d, lv_color_hex(theme::TEXT_DIM), 0);
+    return d;
+}
+}  // namespace
+
+namespace frame {
+
+lv_obj_t* build(const char* title, Callback onBack) {
+    s_onBack = onBack;
+
+    lv_obj_t* old = s_screen;
+    s_screen = lv_obj_create(nullptr);
+    lv_obj_add_style(s_screen, theme::screenStyle(), 0);
+    lv_obj_clear_flag(s_screen, LV_OBJ_FLAG_SCROLLABLE);
+
+    s_header = lv_obj_create(s_screen);
+    lv_obj_remove_style_all(s_header);
+    lv_obj_add_style(s_header, theme::headerStyle(), 0);
+    lv_obj_set_size(s_header, theme::SCREEN_W, theme::HEADER_H);
+    lv_obj_align(s_header, LV_ALIGN_TOP_MID, 0, 0);
+    lv_obj_clear_flag(s_header, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_coord_t titleX = 9;
+    if (onBack) {
+        // 56 x 44 of hit area for a 24 px glyph. The chevron carries no word:
+        // "back" cost 40 px of a 240 px bar and said nothing the arrow does not.
+        lv_obj_t* back = lv_btn_create(s_header);
+        lv_obj_remove_style_all(back);
+        lv_obj_set_size(back, 56, theme::HEADER_H);
+        lv_obj_align(back, LV_ALIGN_LEFT_MID, 0, 0);
+        lv_obj_add_event_cb(back, backCb, LV_EVENT_CLICKED, nullptr);
+        lv_obj_t* g = lv_label_create(back);
+        lv_label_set_text(g, LV_SYMBOL_LEFT);
+        lv_obj_set_style_text_font(g, &lv_font_montserrat_20, 0);
+        lv_obj_center(g);
+        titleX = 56;
+    }
+
+    lv_obj_t* t = lv_label_create(s_header);
+    lv_label_set_text(t, title);
+    lv_label_set_long_mode(t, LV_LABEL_LONG_DOT);
+    lv_obj_set_width(t, theme::SCREEN_W - titleX - 60);
+    lv_obj_set_style_text_font(t, &lv_font_montserrat_16, 0);
+    lv_obj_align(t, LV_ALIGN_LEFT_MID, titleX, 0);
+
+    for (int i = 0; i < 3; i++) {
+        s_dots[i] = dot(s_header);
+        lv_obj_align(s_dots[i], LV_ALIGN_RIGHT_MID, -8 - (2 - i) * 14, 0);
+        lv_obj_add_flag(s_dots[i], LV_OBJ_FLAG_HIDDEN);
+    }
+
+    s_body = lv_obj_create(s_screen);
+    lv_obj_remove_style_all(s_body);
+    lv_obj_set_size(s_body, theme::SCREEN_W, theme::SCREEN_H - theme::HEADER_H);
+    lv_obj_align(s_body, LV_ALIGN_BOTTOM_MID, 0, 0);
+    lv_obj_set_style_pad_all(s_body, theme::PAD, 0);
+    lv_obj_set_style_pad_row(s_body, theme::GAP, 0);
+    lv_obj_set_flex_flow(s_body, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(s_body, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_bg_opa(s_body, LV_OPA_TRANSP, 0);
+    lv_obj_clear_flag(s_body, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_scr_load(s_screen);
+    // Freeing the previous screen only after the new one is loaded: deleting a
+    // screen LVGL is still showing takes the whole UI down with it.
+    if (old) lv_obj_del(old);
+    return s_body;
+}
+
+lv_obj_t* screen() { return s_screen; }
+lv_obj_t* header() { return s_header; }
+lv_obj_t* body()   { return s_body; }
+
+void setDots(int syncing, int wifiUp, int readerUp) {
+    const int  vals[3]    = { syncing, wifiUp, readerUp };
+    const uint32_t on[3]  = { theme::OK, theme::OK, theme::OK };
+    for (int i = 0; i < 3; i++) {
+        if (!s_dots[i]) continue;
+        if (vals[i] < 0) { lv_obj_add_flag(s_dots[i], LV_OBJ_FLAG_HIDDEN); continue; }
+        lv_obj_clear_flag(s_dots[i], LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_style_bg_color(s_dots[i],
+            lv_color_hex(vals[i] ? on[i] : theme::DANGER), 0);
+    }
+}
+
+lv_obj_t* caption(const char* text, uint32_t colour, const lv_font_t* font) {
+    lv_obj_t* l = lv_label_create(s_body);
+    lv_label_set_text(l, text);
+    lv_label_set_long_mode(l, LV_LABEL_LONG_WRAP);
+    lv_obj_set_width(l, theme::SCREEN_W - 2 * theme::PAD - 6);
+    lv_obj_set_style_text_align(l, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_style_text_color(l, lv_color_hex(colour), 0);
+    lv_obj_set_style_text_font(l, font ? font : &lv_font_montserrat_12, 0);
+    return l;
+}
+
+lv_obj_t* bigLabel(const char* text, uint32_t colour) {
+    lv_obj_t* l = lv_label_create(s_body);
+    lv_label_set_text(l, text);
+    lv_label_set_long_mode(l, LV_LABEL_LONG_DOT);
+    lv_obj_set_width(l, theme::SCREEN_W - 2 * theme::PAD);
+    lv_obj_set_style_text_align(l, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_style_text_color(l, lv_color_hex(colour), 0);
+    lv_obj_set_style_text_font(l, &lv_font_montserrat_20, 0);
+    return l;
+}
+
+lv_obj_t* button(lv_obj_t* parent, const char* text, int tone, Callback onClick) {
+    lv_obj_t* b = lv_btn_create(parent);
+    lv_obj_remove_style_all(b);
+    lv_obj_add_style(b, theme::rowStyle(), 0);
+    lv_obj_add_style(b, theme::rowPressedStyle(), LV_STATE_PRESSED);
+    lv_obj_set_size(b, LV_PCT(100), theme::BUTTON_H);
+    if (tone == 1) lv_obj_set_style_bg_color(b, lv_color_hex(theme::GO_BG), 0);
+    if (tone == 2) lv_obj_set_style_bg_color(b, lv_color_hex(theme::NO_BG), 0);
+    lv_obj_add_event_cb(b, clickCb, LV_EVENT_CLICKED, (void*)onClick);
+    lv_obj_t* l = lv_label_create(b);
+    lv_label_set_text(l, text);
+    lv_obj_set_style_text_font(l, &lv_font_montserrat_14, 0);
+    lv_obj_center(l);
+    return b;
+}
+
+lv_obj_t* row(lv_obj_t* parent, const char* label, const char* value,
+              bool chevron, lv_event_cb_t cb, void* userData) {
+    lv_obj_t* r = lv_btn_create(parent);
+    lv_obj_remove_style_all(r);
+    lv_obj_add_style(r, theme::rowStyle(), 0);
+    lv_obj_add_style(r, theme::rowPressedStyle(), LV_STATE_PRESSED);
+    lv_obj_set_size(r, LV_PCT(100), theme::ROW_H);
+    lv_obj_set_flex_flow(r, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(r, LV_FLEX_ALIGN_START,
+                          LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(r, 6, 0);
+    if (cb) lv_obj_add_event_cb(r, cb, LV_EVENT_CLICKED, userData);
+
+    lv_obj_t* l = lv_label_create(r);
+    lv_label_set_text(l, label);
+    lv_label_set_long_mode(l, LV_LABEL_LONG_DOT);
+    lv_obj_set_flex_grow(l, 1);
+    lv_obj_set_style_text_font(l, &lv_font_montserrat_14, 0);
+
+    if (value && *value) {
+        lv_obj_t* v = lv_label_create(r);
+        lv_label_set_text(v, value);
+        lv_obj_set_style_text_color(v, lv_color_hex(theme::TEXT_DIM), 0);
+        lv_obj_set_style_text_font(v, &lv_font_montserrat_12, 0);
+    }
+    if (chevron) {
+        lv_obj_t* c = lv_label_create(r);
+        lv_label_set_text(c, LV_SYMBOL_RIGHT);
+        lv_obj_set_style_text_color(c, lv_color_hex(theme::TEXT_DIM), 0);
+        lv_obj_set_style_text_font(c, &lv_font_montserrat_12, 0);
+    }
+    return r;
+}
+
+}  // namespace frame
