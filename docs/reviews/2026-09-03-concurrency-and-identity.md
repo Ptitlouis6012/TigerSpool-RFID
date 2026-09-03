@@ -8,7 +8,9 @@ identified in storage. Plus what the panel actually shows.
 while looking for bugs. Finding 3 was found by flashing this branch and looking
 at the panel over `/screen.bmp`.
 
-All three findings are **deferred**, with reasons below. They are recorded here rather
+Findings 1 and 2 are **deferred**, with reasons below. Finding 3 was deferred
+and then fixed in the same cycle — the reason for deferring it did not survive
+contact with the observation that it was guardable. They are recorded here rather
 than in `CODEMAP.md` because a landmine row explains a hazard to the next agent
 but does not track it — and a documented bug reads as an accepted one.
 
@@ -79,7 +81,7 @@ devices that already store the positional form, which is exactly the kind of
 storage change that has to be settled deliberately. It is also entangled with
 finding 1: both are about who owns the printer list.
 
-### 3. Settings and home are half-translated on screen — deferred
+### 3. Settings and home are half-translated on screen — FIXED
 
 **Where:** `ui/screen_settings.cpp`, `ui/screen_home.cpp`.
 
@@ -98,10 +100,17 @@ product that half-forgot.
 Verified by looking at the panel over `/screen.bmp` after flashing this branch,
 not inferred from the source.
 
-**Why deferred.** It is roughly twenty new keys across eight languages, landing
-in exactly the table the new i18n guard protects, and it is product work rather
-than a guard fix. Doing it at a merge gate would break the one-guard-one-commit
-discipline the rest of this branch holds to.
+**Fixed**, and guarded. Nineteen keys added across eight languages, and
+twenty-five literals replaced. It was first deferred as product work, which was
+the wrong call: unlike findings 1 and 2 it is not design work, and it is
+*guardable*. `scripts/check-ui-translated.py` now fails when a string literal
+carrying a word appears in a UI source outside the three contexts that never
+reach the panel. Translating them fixed it once; the guard makes it not come
+back.
+
+Note what the guard's first shape would have missed: watching call sites alone
+let through five of the fifteen, because the settings menu keeps its labels in a
+table and hands the table to `frame::row`.
 
 ## Decisions recorded, so they are not re-litigated
 

@@ -67,6 +67,7 @@ step "documentation: internal notes unpublished, links resolve" "$PY" scripts/ch
 step "documented reader wiring matches config.h" "$PY" scripts/check-wiring.py
 step "documented device names match the ones the firmware builds" "$PY" scripts/check-device-names.py
 step "committed comments and strings are English" "$PY" scripts/check-text-english.py
+step "drawn text comes from the translation table" "$PY" scripts/check-ui-translated.py
 step "every drawn string is in a compiled font" "$PY" scripts/check-ui-fonts.py
 step "translation tables agree with their enums" "$PY" scripts/check-i18n.py
 step "generated files match their generator" "$PY" scripts/check-generated.py

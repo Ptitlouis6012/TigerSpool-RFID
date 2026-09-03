@@ -50,11 +50,11 @@ void showMenu(const char* network, const char* account,
         { E_PRINTERS, i18n::T(S_PRINTER),      printersVal },
         { E_WIFI,     "Wi-Fi",                 network     },
         { E_ACCOUNT,  i18n::T(S_TT_ACCOUNT),   account     },
-        { E_SCREEN,   "Screen",                ""          },
-        { E_LANGUAGE, "Language",              i18n::name(i18n::current()) },
-        { E_UPDATE,   "Update",                TIGERSPOOL_FW_VERSION       },
-        { E_RESTART,  "Restart",               ""          },
-        { E_FACTORY,  "Factory reset",         ""          },
+        { E_SCREEN,   i18n::T(S_SCREEN),                ""          },
+        { E_LANGUAGE, i18n::T(S_LANGUAGE),              i18n::name(i18n::current()) },
+        { E_UPDATE,   i18n::T(S_UPDATE),                TIGERSPOOL_FW_VERSION       },
+        { E_RESTART,  i18n::T(S_RESTART),               ""          },
+        { E_FACTORY,  i18n::T(S_FACTORY),         ""          },
     };
     for (auto& r : rows) {
         lv_obj_t* row = frame::row(body, r.label, r.value, true, onEntry,
@@ -272,7 +272,7 @@ void showAccount(const char* email, int printers, bool linked) {
 
     // Signing out clears the session AND the imported printers: leaving them
     // behind would show a list belonging to an account nobody is logged into.
-    frame::button(body, "Sign out", 2, []() { s_action = A_SIGN_OUT; });
+    frame::button(body, i18n::T(S_SIGN_OUT), 2, []() { s_action = A_SIGN_OUT; });
 }
 
 void showScreen(uint8_t brightness, int sleepSeconds) {
@@ -280,13 +280,13 @@ void showScreen(uint8_t brightness, int sleepSeconds) {
     if (sig == s_viewSig) return;
     s_viewSig = sig;
 
-    lv_obj_t* body = frame::build("Screen", onBack);
+    lv_obj_t* body = frame::build(i18n::T(S_SCREEN), onBack);
     lv_obj_set_flex_align(body, LV_FLEX_ALIGN_START,
                           LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
     char b[8];
     snprintf(b, sizeof(b), "%u%%", brightness);
-    kv(body, "Brightness", b, theme::TEXT);
+    kv(body, i18n::T(S_BRIGHTNESS), b, theme::TEXT);
     static const char* const bl[] = { "30", "60", "80", "100" };
     static const int bv[] = { 30, 60, 80, 100 };
     segmented(body, bl, bv, 4, brightness, onBright);
@@ -297,9 +297,9 @@ void showScreen(uint8_t brightness, int sleepSeconds) {
 
     char sl[16];
     if (sleepSeconds) snprintf(sl, sizeof(sl), "%d s", sleepSeconds);
-    else              snprintf(sl, sizeof(sl), "Never");
-    kv(body, "Sleep after", sl, theme::TEXT);
-    static const char* const tl[] = { "30s", "1m", "5m", "Off" };
+    else              snprintf(sl, sizeof(sl), i18n::T(S_NEVER));
+    kv(body, i18n::T(S_SLEEP_AFTER), sl, theme::TEXT);
+    static const char* const tl[] = { "30s", "1m", "5m", i18n::T(S_OFF) };
     static const int tv[] = { 30, 60, 300, 0 };
     segmented(body, tl, tv, 4, sleepSeconds, onSleep);
 
@@ -312,22 +312,22 @@ void showUpdate(const char* version, const char* channel) {
     if (sig == s_viewSig) return;
     s_viewSig = sig;
 
-    lv_obj_t* body = frame::build("Update", onBack);
+    lv_obj_t* body = frame::build(i18n::T(S_UPDATE), onBack);
     lv_obj_set_flex_align(body, LV_FLEX_ALIGN_CENTER,
                           LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
-    frame::caption("Installed", theme::TEXT_DIM);
+    frame::caption(i18n::T(S_INSTALLED), theme::TEXT_DIM);
     frame::bigLabel(version, theme::TEXT);
 
     lv_obj_t* spacer = lv_obj_create(body);
     lv_obj_remove_style_all(spacer);
     lv_obj_set_size(spacer, 1, 20);
 
-    kv(body, "Channel", channel, theme::TEXT);
+    kv(body, i18n::T(S_CHANNEL), channel, theme::TEXT);
 
     // Honest: there is no OTA yet. A "Check for updates" button that cannot
     // check is worse than a sentence saying so. See docs/OTA.md.
-    frame::caption("Over-the-air updates are not enabled on this build.",
+    frame::caption(i18n::T(S_OTA_OFF),
                    theme::TEXT_DIM);
 }
 
@@ -335,18 +335,18 @@ void showRestart() {
     if (s_viewSig == 0xD0000000u) return;
     s_viewSig = 0xD0000000u;
 
-    lv_obj_t* body = frame::build("Restart", onBack);
+    lv_obj_t* body = frame::build(i18n::T(S_RESTART), onBack);
     lv_obj_set_flex_align(body, LV_FLEX_ALIGN_CENTER,
                           LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
-    frame::bigLabel("Restart the box?", theme::TEXT);
-    frame::caption("Takes about ten seconds. Nothing is lost.", theme::TEXT_DIM);
+    frame::bigLabel(i18n::T(S_RESTART_Q), theme::TEXT);
+    frame::caption(i18n::T(S_RESTART_NOTE), theme::TEXT_DIM);
 
     lv_obj_t* spacer = lv_obj_create(body);
     lv_obj_remove_style_all(spacer);
     lv_obj_set_size(spacer, 1, 22);
 
-    frame::button(body, "Restart", 1, []() { s_action = A_RESTART; });
+    frame::button(body, i18n::T(S_RESTART), 1, []() { s_action = A_RESTART; });
 }
 
 void showFactory(int holdPercent) {
@@ -354,11 +354,11 @@ void showFactory(int holdPercent) {
     if (sig == s_viewSig) return;
     s_viewSig = sig;
 
-    lv_obj_t* body = frame::build("Factory reset", onBack);
+    lv_obj_t* body = frame::build(i18n::T(S_FACTORY), onBack);
     lv_obj_set_flex_align(body, LV_FLEX_ALIGN_START,
                           LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
-    frame::caption("This erases the network, the account and the printers.",
+    frame::caption(i18n::T(S_FACTORY_WARN),
                    theme::TEXT);
 
     lv_obj_t* spacer = lv_obj_create(body);
@@ -368,7 +368,7 @@ void showFactory(int holdPercent) {
     // What comes back matters as much as what goes: the printers live in the
     // account, so linking it again restores them. That line is the difference
     // between a frightening button and a usable one.
-    frame::caption("Your printers stay in your account.", theme::TEXT_DIM);
+    frame::caption(i18n::T(S_FACTORY_NOTE), theme::TEXT_DIM);
 
     lv_obj_t* spacer2 = lv_obj_create(body);
     lv_obj_remove_style_all(spacer2);
@@ -396,7 +396,7 @@ void showFactory(int holdPercent) {
     }
 
     lv_obj_t* l = lv_label_create(hold);
-    lv_label_set_text(l, holdPercent > 0 ? "Keep holding..." : "Hold to erase");
+    lv_label_set_text(l, holdPercent > 0 ? i18n::T(S_KEEP_HOLDING) : i18n::T(S_HOLD_ERASE));
     lv_obj_set_style_text_font(l, &lv_font_montserrat_14, 0);
     lv_obj_center(l);
 }
