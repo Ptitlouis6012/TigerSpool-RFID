@@ -291,10 +291,30 @@ namespace {
     // Networks, strongest first and deduplicated. The signal is reported in dBm
     // and the page turns it into arcs - the mapping belongs with the drawing,
     // not here.
-    void handleApiScan() {
+    // Kicked off the moment the access point comes up, so the results are
+    // usually already waiting by the time a phone has joined, opened the page
+    // and asked. Scanning on request made every user watch a spinner for two
+    // seconds that the device could have spent before they arrived.
+    void startBackgroundScan() {
         WiFi.mode(WIFI_AP_STA);
         WiFi.scanDelete();
-        int n = WiFi.scanNetworks(false, true);
+        WiFi.scanNetworks(true, true);      // async
+    }
+
+    void handleApiScan() {
+        int n = WiFi.scanComplete();
+        if (n == WIFI_SCAN_RUNNING) {
+            // One is already in flight - wait for it rather than starting a
+            // second, which would abort the first and double the wait.
+            uint32_t t0 = millis();
+            while ((n = WiFi.scanComplete()) == WIFI_SCAN_RUNNING && millis() - t0 < 6000)
+                delay(60);
+        }
+        if (n < 0) {                         // never ran, or failed
+            WiFi.mode(WIFI_AP_STA);
+            WiFi.scanDelete();
+            n = WiFi.scanNetworks(false, true);
+        }
         if (n < 0) n = 0;
 
         int idx[32], m = n > 32 ? 32 : n;
@@ -320,6 +340,7 @@ namespace {
 
         // Back to AP-only: leaving the station interface scanning makes the
         // radio hop channels and the phone falls off the setup network.
+        WiFi.scanDelete();
         if (apMode) WiFi.mode(WIFI_AP);
     }
 
@@ -714,7 +735,8 @@ void webcfg::beginAP() {
     dns.start(53, "*", AP_IP);
     routes(true);
     server.begin();
-    Serial.printf("[webcfg] AP '%s' (canal 1)  http://192.168.4.1/\n", AP_SSID);
+    Serial.printf("[webcfg] AP '%s' (channel 1)  http://192.168.4.1/\n", AP_SSID);
+    startBackgroundScan();      // results ready before the first phone arrives
 }
 
 void webcfg::loop() {

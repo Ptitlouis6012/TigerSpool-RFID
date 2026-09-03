@@ -39,10 +39,13 @@ p.l{margin:0 0 24px;color:var(--dim)}
 .tg{position:relative;width:64px;height:40px;border-radius:20px;padding:0;background:var(--surf);
 border:1px solid var(--line);cursor:pointer;flex:0 0 64px}
 .tg .k{position:absolute;top:4px;left:4px;width:30px;height:30px;border-radius:50%;
-background:var(--acc);transition:transform .22s cubic-bezier(.32,.72,0,1)}
+background:var(--acc);transition:transform .22s cubic-bezier(.32,.72,0,1);z-index:0}
+.tg .ic{z-index:1}
 .light .tg .k{transform:translateX(24px)}
-.tg i{position:absolute;top:0;height:100%;width:30px;display:grid;place-items:center}
-.tg i svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.tg .ic{position:absolute;top:0;height:100%;width:30px;display:grid;place-items:center;
+pointer-events:none;transition:color .22s}
+.tg .ic svg{width:15px;height:15px;display:block;fill:none;stroke:currentColor;stroke-width:2;
+stroke-linecap:round;stroke-linejoin:round}
 .tg .s{left:4px;color:var(--btnfg)}.tg .m{right:4px;color:var(--dim)}
 .light .tg .s{color:var(--dim)}.light .tg .m{color:#FFF}
 .lw{position:relative}
