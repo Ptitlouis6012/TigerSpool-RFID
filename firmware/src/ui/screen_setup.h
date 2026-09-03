@@ -55,6 +55,10 @@ void showEmailPairing(const char* deviceUrl);
 // them a second later is worse than making them wait.
 void showPreparing();
 
+// A spinner and one line, for any wait the user should be told about rather
+// than left to interpret. `withBack` false on waits there is no way out of.
+void showBusy(const char* text, bool withBack);
+
 void showAccountIntro();
 void showPairing(const char* verifyUrl, const char* code, int secondsLeft);
 void showPairFailed(const char* reason);

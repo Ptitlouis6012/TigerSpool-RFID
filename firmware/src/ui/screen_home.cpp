@@ -82,9 +82,31 @@ void buildScreen() {
 
 namespace screen_home {
 
+// A cheap signature of everything on screen. show() is called from the main
+// loop, and rebuilding the list on every one of those calls destroys each row
+// under the finger that is pressing it - taps never land, the CPU does nothing
+// else, and the screen looks frozen while the device is perfectly healthy.
+static uint32_t signature(const PrinterCfg* printers, int count,
+                          int selected, const bool* online, bool syncing) {
+    uint32_t h = 2166136261u ^ (uint32_t)selected ^ ((uint32_t)syncing << 16);
+    for (int i = 0; i < count; i++) {
+        h = h * 16777619u ^ (uint32_t)printers[i].type;
+        h = h * 16777619u ^ (uint32_t)(online && online[i]);
+        for (const char* p = printers[i].name.c_str(); *p; p++)
+            h = h * 16777619u ^ (uint8_t)*p;
+    }
+    return h;
+}
+
 void show(const PrinterCfg* printers, int count,
           int selected, const bool* online, bool syncing) {
     if (!s_screen) buildScreen();
+
+    static uint32_t lastSig = 0;
+    static bool     everBuilt = false;
+    uint32_t sig = signature(printers, count, selected, online, syncing);
+    if (everBuilt && s_active && sig == lastSig) return;
+    lastSig = sig; everBuilt = true;
 
     lv_obj_clean(s_list);
     int shown = 0;

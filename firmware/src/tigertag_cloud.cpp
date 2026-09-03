@@ -286,6 +286,8 @@ bool ttcloud::signInWithCustomToken(const String& customToken, const String& ema
 
 static bool g_syncedOk = false;
 
+bool ttcloud::everSynced() { return g_lastSync != 0; }
+
 bool ttcloud::due() {
     if (!haveSession() || WiFi.status() != WL_CONNECTED) return false;
     if (g_lastSync == 0) return (millis() - g_bootAt > 8000);         // 1a sync ~8 s apos arranque

@@ -167,11 +167,18 @@ lv_obj_t* row(lv_obj_t* parent, const char* label, const char* value,
     lv_label_set_text(l, label);
     lv_label_set_long_mode(l, LV_LABEL_LONG_DOT);
     lv_obj_set_flex_grow(l, 1);
+    lv_obj_set_style_min_width(l, 84, 0);
     lv_obj_set_style_text_font(l, &lv_font_montserrat_14, 0);
 
     if (value && *value) {
+        // The value gets a ceiling and truncates; the label never does. An
+        // email address is longer than the row, and letting it take the space
+        // it asks for wrapped "Account" onto two lines - the one word on the
+        // row that has to stay readable.
         lv_obj_t* v = lv_label_create(r);
         lv_label_set_text(v, value);
+        lv_label_set_long_mode(v, LV_LABEL_LONG_DOT);
+        lv_obj_set_style_max_width(v, 108, 0);
         lv_obj_set_style_text_color(v, lv_color_hex(theme::TEXT_DIM), 0);
         lv_obj_set_style_text_font(v, &lv_font_montserrat_12, 0);
     }

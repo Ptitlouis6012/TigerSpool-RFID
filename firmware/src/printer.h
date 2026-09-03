@@ -26,6 +26,14 @@ struct PrinterCfg {
     String host;        // IP address on the LAN
     String sn;          // serial number (FlashForge, Bambu Lab)
     String cc;          // check code / access code (FlashForge, Bambu Lab, Elegoo)
+
+    // Shown on the home screen. An account can hold ten printers while the
+    // machine next to this box is one of them; hiding the rest is the
+    // difference between a list you scan and a list you read.
+    //
+    // Defaults to true: a printer that appears in the account should appear on
+    // the device, and a user who wants fewer says so once.
+    bool visible = true;
 };
 
 // What the printer says is currently in one slot.

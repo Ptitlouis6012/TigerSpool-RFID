@@ -42,6 +42,7 @@ static const Row STR[S_COUNT] = {
 /* S_TT_LINKED      */ {{ "Account linked", "Compte connecte", "Konto verbunden", "Cuenta vinculada", "Account collegato", "Konto polaczone", "Conta vinculada", "Conta ligada" }},
 /* S_ADD_WEB        */ {{ "Add them in Tiger Studio", "Ajoutez-les dans Tiger Studio", "In Tiger Studio hinzufugen", "Anadelas en Tiger Studio", "Aggiungile in Tiger Studio", "Dodaj je w Tiger Studio", "Adicione no Tiger Studio", "Adicione no Tiger Studio" }},
 /* S_CONFIG_WEB     */ {{ "Settings:", "Reglages :", "Einstellungen:", "Ajustes:", "Impostazioni:", "Ustawienia:", "Ajustes:", "Definicoes:" }},
+/* S_SETTINGS        */ {{ "Settings", "Reglages", "Einstellungen", "Ajustes", "Impostazioni", "Ustawienia", "Ajustes", "Definicoes" }},
 /* S_AP_TITLE       */ {{ "Wi-Fi setup", "Configuration Wi-Fi", "WLAN einrichten", "Configurar Wi-Fi", "Configura Wi-Fi", "Konfiguracja Wi-Fi", "Configurar Wi-Fi", "Configurar Wi-Fi" }},
 /* S_AP_JOIN         */ {{ "Scan with your phone", "Scannez avec votre telephone", "Mit dem Handy scannen", "Escanea con el movil", "Inquadra col telefono", "Zeskanuj telefonem", "Escaneie com o celular", "Digitalize com o telemovel" }},
 /* S_OR_JOIN         */ {{ "Or join Wi-Fi", "Ou rejoignez le Wi-Fi", "Oder WLAN beitreten", "O conecta al Wi-Fi", "O connettiti al Wi-Fi", "Lub polacz z Wi-Fi", "Ou conecte ao Wi-Fi", "Ou ligue ao Wi-Fi" }},

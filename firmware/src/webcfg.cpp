@@ -11,6 +11,7 @@
 #include "ui/screen_home.h"
 #include "ui/screen_slots.h"
 #include "ui/screen_scan.h"
+#include "ui/screen_settings.h"
 #include "net/portal_page.h"
 #include "version.h"
 #include <ArduinoJson.h>
@@ -220,6 +221,7 @@ namespace {
         else if (preview == "signin")  screen_setup::showSignInChoice();
         else if (preview == "waiting") screen_setup::showPreparing();
         else if (preview == "email")   screen_setup::showEmailPairing("http://192.168.20.170");
+        else if (preview == "settings") screen_settings::showMenu("Atelier", "benoit@atome3d.com", 3, 6);
 
         lvgl_port::requestCapture(true);
         lv_obj_invalidate(lv_scr_act());
@@ -240,6 +242,7 @@ namespace {
             screen_home::leave();
             screen_slots::invalidate();
             screen_scan::invalidate();
+            screen_settings::invalidate();
         }
 
         const int W = 240, H = 320;

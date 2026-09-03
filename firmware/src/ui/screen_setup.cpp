@@ -437,7 +437,40 @@ void showAccountIntro() {
     lv_obj_center(l);
 }
 
+void showBusy(const char* text, bool withBack) {
+    static String lastText;
+    static bool lastBack = false;
+    if (s_active && lastText == text && lastBack == withBack) return;
+    lastText = text; lastBack = withBack;
+
+    frame(nullptr);
+    if (withBack) {
+        addBack();
+        lv_obj_set_style_pad_bottom(s_body, 56, 0);
+    }
+
+    lv_obj_t* sp = lv_spinner_create(s_body, 1300, 60);
+    lv_obj_set_size(sp, 76, 76);
+    lv_obj_set_style_arc_color(sp, lv_color_hex(0x1E2530), LV_PART_MAIN);
+    lv_obj_set_style_arc_color(sp, lv_color_hex(theme::ACCENT), LV_PART_INDICATOR);
+    lv_obj_set_style_pad_bottom(sp, 22, 0);
+
+    lv_obj_t* t = lv_label_create(s_body);
+    lv_label_set_text(t, text);
+    lv_label_set_long_mode(t, LV_LABEL_LONG_WRAP);
+    lv_obj_set_width(t, theme::SCREEN_W - 2 * theme::PAD - 6);
+    lv_obj_set_style_text_align(t, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_style_text_font(t, &lv_font_montserrat_16, 0);
+    lv_obj_set_style_text_color(t, lv_color_hex(theme::TEXT), 0);
+}
+
 void showPreparing() {
+    // "Waiting", not "Importing printers": nothing is being imported here. The
+    // device is asking the cloud for a pairing code.
+    showBusy(i18n::T(S_WAITING), true);
+}
+
+void showPreparingOld() {
     static bool built = false;
     if (built && s_active) return;
     built = true;

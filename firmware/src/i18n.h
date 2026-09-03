@@ -53,6 +53,7 @@ enum StrId : uint8_t {
     S_TT_LINKED,
     S_ADD_WEB,
     S_CONFIG_WEB,
+    S_SETTINGS,
     S_AP_TITLE,
     S_AP_JOIN,
     S_OR_JOIN,

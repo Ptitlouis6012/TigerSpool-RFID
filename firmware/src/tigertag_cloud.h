@@ -38,6 +38,10 @@ namespace ttcloud {
                                  String& err);
 
     bool   due();                         // is a re-sync due?
+    // Has the account ever been read on this boot? Distinguishes "still
+    // loading" from "this account really has no printers" - two states that
+    // look identical on an empty list and mean opposite things.
+    bool   everSynced();
     bool   syncNow(String& summary);      // blocking; prefer startAsyncSync()
     bool   consumeChanged();              // true once, if the last sync changed anything
 

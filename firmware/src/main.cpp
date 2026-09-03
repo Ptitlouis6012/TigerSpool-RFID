@@ -33,6 +33,7 @@
 #include "ui/screen_setup.h"
 #include "ui/screen_slots.h"
 #include "ui/screen_scan.h"
+#include "ui/screen_settings.h"
 
 // ---- cores -------------------------------------------------------------
 #define C_BG    0x0000
@@ -62,7 +63,7 @@ BambuBackend         bambuBackend;
 SnapmakerBackend     snapmakerBackend;
 bool webStarted = false;
 
-enum State { ST_LANG, ST_WIFI, ST_AP, ST_ACCOUNT, ST_PRINTER, ST_GRID, ST_SCAN, ST_REVIEW, ST_RESULT };
+enum State { ST_LANG, ST_WIFI, ST_AP, ST_ACCOUNT, ST_SETTINGS, ST_PICK, ST_PRINTER, ST_GRID, ST_SCAN, ST_REVIEW, ST_RESULT };
 State   state = ST_LANG;
 bool    nfcReady = false;
 uint32_t nfcLastTry = 0;
@@ -137,7 +138,7 @@ static int onlineCount() {
 // filter: the TCP probe is not reliable enough to hide anything, and a printer
 // para esconder nada - K2/FF com Modo LAN off dao RST na porta.
 static bool printerVisible(int i) {
-    return printers[i].type != PT_NONE;
+    return printers[i].type != PT_NONE && printers[i].visible;
 }
 
 // ---- descoberta de Creality na LAN (auto-corrige IPs errados) -----------
@@ -336,6 +337,7 @@ static void loadCfg() {
         snprintf(k, sizeof(k), "p%dh", i); printers[i].host = nvs.getString(k, "");
         snprintf(k, sizeof(k), "p%ds", i); printers[i].sn   = nvs.getString(k, "");
         snprintf(k, sizeof(k), "p%dc", i); printers[i].cc   = nvs.getString(k, "");
+        snprintf(k, sizeof(k), "p%dv", i); printers[i].visible = nvs.getBool(k, true);
     }
     String oldK2 = nvs.getString("k2ip", "");
     nvs.end();
@@ -357,6 +359,17 @@ static void loadCfg() {
         for (int i = 0; i < MAX_PRINTERS; i++) if (printers[i].type != PT_NONE) { selectedPrinter = i; break; }
     }
 }
+// Visibility is the user's, not the account's: a sync must never put a printer
+// back on screen that someone deliberately hid.
+static void savePrinterVisible(int i, bool v) {
+    char k[6];
+    snprintf(k, sizeof(k), "p%dv", i);
+    nvs.begin("tigerspool", false);
+    nvs.putBool(k, v);
+    nvs.end();
+    printers[i].visible = v;
+}
+
 static void saveSel(int i) {
     nvs.begin("tigerspool", false);
     nvs.putInt("printerIdx", i);
@@ -508,7 +521,18 @@ void loop() {
         screen_setup::showLanguage();
         lvgl_port::loop();
         int pick = screen_setup::takeLanguage();
-        if (pick >= 0) { i18n::set((Lang)pick); screen_setup::hide(); goAfterLang(); }
+        if (pick >= 0) {
+            i18n::set((Lang)pick);
+            screen_setup::hide();
+            // Reached from settings on a device that is already running: go
+            // back there, not through first-boot again.
+            if (WiFi.isConnected()) {
+                screen_settings::invalidate();
+                state = ST_SETTINGS; stateSince = millis();
+            } else {
+                goAfterLang();
+            }
+        }
         break;
     }
 
@@ -672,8 +696,62 @@ void loop() {
         {
             int tapped = screen_home::takeTappedPrinter();
             if (tapped >= 0) { screen_home::leave(); selectPrinter(tapped); }
-            else if (screen_home::takeSettingsTap())
-                Serial.println("[ui] settings tapped - screen not ported yet");
+            else if (screen_home::takeSettingsTap()) {
+                screen_home::leave();
+                screen_settings::invalidate();
+                state = ST_SETTINGS; stateSince = millis();
+            }
+        }
+        break;
+    }
+
+    case ST_SETTINGS: {
+        int visible = 0, total = 0;
+        for (int i = 0; i < MAX_PRINTERS; i++) {
+            if (printers[i].type == PT_NONE) continue;
+            total++; if (printers[i].visible) visible++;
+        }
+        screen_settings::showMenu(
+            WiFi.isConnected() ? WiFi.SSID().c_str() : i18n::T(S_OFFLINE),
+            ttcloud::haveSession() ? ttcloud::email().c_str() : i18n::T(S_ADD_WEB),
+            visible, total);
+        lvgl_port::loop();
+
+        if (screen_settings::takeBack()) {
+            screen_home::leave();
+            state = ST_PRINTER; stateSince = millis(); break;
+        }
+        switch (screen_settings::takeEntry()) {
+            case screen_settings::E_PRINTERS:
+                screen_settings::invalidate();
+                state = ST_PICK; stateSince = millis();
+                break;
+            case screen_settings::E_LANGUAGE:
+                screen_setup::hide();
+                state = ST_LANG; stateSince = millis();
+                break;
+            case screen_settings::E_RESTART:
+                Serial.println("[ui] restart from settings");
+                delay(120); ESP.restart();
+                break;
+            // The rest are listed so the menu is honest about what exists;
+            // wiring them is the next pass, and a row that does nothing is
+            // better than a row that is missing and unexplained.
+            default: break;
+        }
+        break;
+    }
+
+    case ST_PICK: {
+        screen_settings::showPrinters(printers, MAX_PRINTERS);
+        lvgl_port::loop();
+
+        int t = screen_settings::takeToggled();
+        if (t >= 0) savePrinterVisible(t, !printers[t].visible);
+
+        if (screen_settings::takeBack()) {
+            screen_settings::invalidate();
+            state = ST_SETTINGS; stateSince = millis();
         }
         break;
     }
