@@ -3,10 +3,12 @@
 **Date:** 2026-09-03
 **Scope:** `firmware/src/main.cpp`, `firmware/src/tigertag_cloud.cpp` — the
 boundary between the UI loop and the two background tasks, and how a printer is
-identified in storage.
-**Method:** read-only. Found while mapping the code, not while looking for bugs.
+identified in storage. Plus what the panel actually shows.
+**Method:** read-only. Findings 1 and 2 were found while mapping the code, not
+while looking for bugs. Finding 3 was found by flashing this branch and looking
+at the panel over `/screen.bmp`.
 
-Both findings are **deferred**, with reasons below. They are recorded here rather
+All three findings are **deferred**, with reasons below. They are recorded here rather
 than in `CODEMAP.md` because a landmine row explains a hazard to the next agent
 but does not track it — and a documented bug reads as an accepted one.
 
@@ -77,12 +79,76 @@ devices that already store the positional form, which is exactly the kind of
 storage change that has to be settled deliberately. It is also entangled with
 finding 1: both are about who owns the printer list.
 
+### 3. Settings and home are half-translated on screen — deferred
+
+**Where:** `ui/screen_settings.cpp`, `ui/screen_home.cpp`.
+
+**What breaks.** Some user-visible labels go through `i18n::T()` and others are
+English string literals in the source. Counted per screen: settings has 10
+translated and 15 hardcoded; home has 2 and 1; the setup flow, by contrast, has
+19 and 4.
+
+**Failure scenario.** No timing needed — it is on screen right now. On a device
+set to French, the settings menu reads *Reglages / Imprimantes / Wi-Fi / Compte
+/ **Screen** / **Language** / **Update** / **Restart** / **Factory reset***, and
+the account screen offers **Sign out** under a French heading. The home screen
+is titled **Printers**. A user who chose their language during setup is shown a
+product that half-forgot.
+
+Verified by looking at the panel over `/screen.bmp` after flashing this branch,
+not inferred from the source.
+
+**Why deferred.** It is roughly twenty new keys across eight languages, landing
+in exactly the table the new i18n guard protects, and it is product work rather
+than a guard fix. Doing it at a merge gate would break the one-guard-one-commit
+discipline the rest of this branch holds to.
+
+## Decisions recorded, so they are not re-litigated
+
+### Mojibake has no guard, deliberately — for now
+
+`check-file-format.py` covers CRLF, byte-order marks, invalid UTF-8, invisible
+and bidirectional controls, and missing final newlines. **Mojibake is none of
+those.** A double-encoded sequence like `Ã©` is valid, visible UTF-8 and passes
+every one of those checks. Nothing in the nine guards covers it.
+
+So the position is *uncovered*, not *covered*, and the earlier claim that the
+format guard subsumed it was wrong.
+
+It is still not being written today, on narrower grounds: this repository has
+never had the incident, and a guard that can find nothing is ceremony that
+teaches people to skim output. But the provenance is exactly the risk profile —
+a Portuguese prototype, hand-translated in bulk, with at least one commit made
+through a web editor rather than a client index. If a single `Ã` ever appears in
+a diff, write the guard that day rather than fixing the one occurrence.
+
+### The guards depend on `firmware/.pio`, and should not
+
+`scripts/font_range.py` reads the compiled font's real character range from
+LVGL's generated font source, which lives under `firmware/.pio/libdeps`. It
+raises rather than guessing when that is absent — correct, because a validator
+that assumes a range accepts exactly the characters it exists to reject.
+
+The cost is that `verify.sh --quick`, and therefore the pre-commit hook, cannot
+run in a fresh clone until someone runs `pio pkg install`. A hook that does not
+work out of the box is a hook that gets uninstalled.
+
+The fix is a pattern already in this repository: extract the range into a small
+**committed generated fact**, register its generator with
+`scripts/check-generated.py` so CI proves it still matches the LVGL source, and
+have `check-ui-fonts.py` read the committed fact rather than the build tree. CI
+keeps the fact honest; the hook stops needing a build tree. Third application of
+the same shape, after the reference header and the device names.
+
 ## What was not looked at
 
 - The four printer backends, beyond the interface they share.
 - The LVGL screens, except where they read state.
 - The captive portal and the legacy web page.
 - The reader and the NFC decode path.
-- Anything on hardware. Both findings are read from the source; neither has been
+- Findings 1 and 2 on hardware. Both are read from the source; neither has been
   reproduced on a device, and the timing of finding 1 in particular has not been
-  measured.
+  measured. Finding 3 was seen on the panel.
+- The scan and result screens with a real tag. The two brand names whose
+  no-break space was removed this cycle cannot be confirmed on screen without a
+  Duramic 3D or Filament PM spool in front of the reader.

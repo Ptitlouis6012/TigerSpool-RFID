@@ -35,7 +35,8 @@ are settled. This file adds what a Claude session needs on top of it.
 |---|---|
 | **The PN532 is on GPIO43/44, never GPIO6/7.** | GPIO6/7 is an I²C bus on this board, with pull-ups, shared with the IMU and the camera header. A reader wired there powers up, enumerates and answers — and returns random UIDs with failing reads. It looks like a flaky tag or a bad antenna. It is neither. |
 | **The compiled font is ASCII only.** | `lv_font_montserrat_*` is built with `-r 0x20-0x7F,0xB0,0x2022` — ASCII, degree sign, bullet. Not Latin-1. Any accented character reaches the panel as a blank box, and LVGL logs nothing when it does. Restoring diacritics needs a generated Latin subset font first, and Polish needs Latin Extended-A on top of that. |
-| **The framebuffer capture is not the panel.** | `/screen.bmp` serialises what LVGL drew. Colour, backlight and geometry can differ from the glass. Use it to check layout and text; do not use it to settle a question about colour. |
+| **You can see the screen — use it.** | `http://<device>.local/screen.bmp` returns the current framebuffer, and `/screen` a page that refreshes it. `?preview=<name>` renders any screen without touching the device's state (the names are listed in `webcfg.cpp`). "Does it look right?" is a question to answer yourself, not one to hand to whoever is holding the board — it is the single largest saving on any visual change. |
+| **The capture is not the panel, though.** | It serialises what LVGL drew. Colour, backlight and geometry can differ from the glass. Use it for layout, text and translation; do not use it to settle a question about colour. |
 | **`main.cpp` is the only place that owns state.** | Screens are drawn from state, never the reverse. A screen that mutates state directly produces a device whose display and behaviour disagree after the next redraw. |
 
 ## Working in the source
