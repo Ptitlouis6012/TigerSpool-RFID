@@ -209,7 +209,7 @@ namespace {
         // state a developer cannot get a networked screenshot out of.
         String preview = server.hasArg("preview") ? server.arg("preview") : String();
         if      (preview == "lang") screen_setup::showLanguage(true);
-        else if (preview == "wifi") screen_setup::showWifi("TigerSpool-Setup", 0);
+        else if (preview == "wifi") { buildNames(); screen_setup::showWifi(AP_SSID); }
         else if (preview == "pair") screen_setup::showPairing(
                      "https://tigersystem.io/pair?c=K7QF3M2P", "K7QF-3M2P", 587);
         else if (preview == "pairfail") screen_setup::showPairFailed("Code expired");

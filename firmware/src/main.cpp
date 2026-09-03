@@ -508,14 +508,10 @@ void loop() {
         return;
 
     case ST_AP: {
-        // The QR is redrawn only when the client count changes: encoding it is
-        // the most expensive thing on this screen and the payload never varies.
-        static int lastClients = -99;
-        int clients = webcfg::apClients();
-        if (clients != lastClients) {
-            screen_setup::showWifi(webcfg::apName(), clients);
-            lastClients = clients;
-        }
+        // Drawn once. The screen has nothing that changes: encoding the QR is
+        // the most expensive thing on it, and the payload never varies.
+        static bool drawn = false;
+        if (!drawn) { screen_setup::showWifi(webcfg::apName()); drawn = true; }
         lvgl_port::loop();
         return;
     }

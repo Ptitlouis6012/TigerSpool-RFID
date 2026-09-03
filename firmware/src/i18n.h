@@ -57,8 +57,6 @@ enum StrId : uint8_t {
     S_AP_JOIN,
     S_AP_OPEN,
     S_AP_CHOOSE,
-    S_AP_WAITING,
-    S_AP_CLIENTS,
     S_TT_IMPORTING,
     S_TT_ACCOUNT,
     S_ONLINE,

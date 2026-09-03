@@ -70,12 +70,27 @@ text-align:left}
 .n .k{display:flex;color:var(--dim);opacity:.5}
 /* An opened row is one card, not a row with a panel stuck under it: the border
    wraps both, and the button loses its own so the seam disappears. */
-.it{border:1px solid var(--line);border-radius:14px;background:var(--surf);overflow:hidden}
+.it{border:1px solid var(--line);border-radius:14px;background:var(--surf);overflow:hidden;
+transition:border-color .24s ease}
 .it .n{border:0;background:none;border-radius:0}
 .it.op{border-color:var(--acc)}
-.ex{padding:2px 16px 16px}
+/* The panel grows from nothing rather than appearing.
+   grid-template-rows 0fr -> 1fr is the one way to animate to a height nobody
+   measured; max-height needs a guess, and a guess either clips the content or
+   makes the easing lie about how far it has to travel.
+   The inner div carries overflow:hidden and min-height:0 - without min-height a
+   grid item refuses to shrink below its content and nothing moves at all. */
+.exw{display:grid;grid-template-rows:0fr;transition:grid-template-rows .28s cubic-bezier(.32,.72,0,1)}
+.exw.o{grid-template-rows:1fr}
+.exw>div{overflow:hidden;min-height:0}
+/* The content follows slightly behind the box, so it reads as being revealed by
+   the opening rather than as a second thing that also appeared. */
+.ex{padding:2px 16px 16px;opacity:0;transform:translateY(-5px);
+transition:opacity .2s ease .07s,transform .2s cubic-bezier(.32,.72,0,1) .07s}
+.exw.o .ex{opacity:1;transform:none}
 .ex label{margin-top:4px}
 .ex .b{margin-top:14px}
+@media(prefers-reduced-motion:reduce){.exw,.ex,.it{transition:none}}
 .sig{display:flex;color:var(--fg)}
 .gh{width:100%;min-height:52px;border:1px solid var(--line);border-radius:14px;background:none;
 color:var(--dim);font:inherit;font-size:15px;cursor:pointer}
@@ -207,13 +222,13 @@ sig(bars(st.nets[i].r))+'<span class=nm>'+e(st.nets[i].s)+"</span>"+
 (st.nets[i].k?'<span class=k>'+LOCK+"</span>":"")+"</button>";
 /* The password opens under the network it belongs to. The name stays on
    screen, so there is nothing to remember and nothing to go back from. */
-if(op){h+='<div class=ex>';
+if(op){h+='<div class=exw id=exw><div><div class=ex>';
 if(st.bad)h+='<div class=al>'+WARN+"<span><b>"+e(t("badT"))+"</b><span>"+e(t("badB"))+
 "</span></span></div>";
 h+="<label for=pw>"+e(t("pw"))+'</label><div class=fld><input id=pw type=password '+
 'autocomplete=current-password autocapitalize=off autocorrect=off spellcheck=false>'+
 '<button class=eye id=rv type=button aria-pressed=false aria-label="'+e(t("show"))+'">'+EYE+
-'</button></div><button class=b data-g=1>'+e(t("join"))+"</button></div>"}
+'</button></div><button class=b data-g=1>'+e(t("join"))+"</button></div></div></div>"}
 h+="</div>"}
 h+='</div><button class=gh data-o=1>'+e(t("other"))+'</button><button class="b s" data-r=1>'+
 e(t("rescan"))+"</button>"}
@@ -240,23 +255,32 @@ r.innerHTML=sh?EYE:EYEOFF;f.focus();try{f.setSelectionRange(p,p)}catch(x){}retur
 var n=ev.target.closest("[data-i]");
 if(n){var i=+n.dataset.i,k=st.nets[i];st.pick=k.s;
 if(!k.k){join("");return}
-st.open=(st.open===i?-1:i);st.bad=false;render();
-if(st.open===i)openRow(i);
+st.bad=false;
+if(st.open===i){closeRow(function(){st.open=-1;render()});return}
+if(st.open>=0){closeRow(function(){st.open=i;render();openRow(i)});return}
+st.open=i;render();openRow(i);
 return}
 if(ev.target.closest("[data-o]")){st.pick="";st.view="other";render();return}
 if(ev.target.closest("[data-b]")){st.view="list";st.open=-1;st.bad=false;render();return}
 if(ev.target.closest("[data-r]")){scan();return}
 if(ev.target.closest("[data-g]")){var ss=document.getElementById("ss");
 if(ss)st.pick=ss.value;join(document.getElementById("pw").value)}};
-/* The phone keyboard covers the bottom half of the screen. Without this the
-   field of a network low in the list opens straight underneath it, and inline
-   entry would be worse than a separate page rather than better. Scroll the row
-   up first, then focus - in that order, so the browser does not fight it. */
-function openRow(i){var el=document.getElementById("it"+i);if(!el)return;
-setTimeout(function(){
-  var y=el.getBoundingClientRect().top+window.scrollY-14;
-  window.scrollTo({top:y<0?0:y,behavior:"smooth"});
-  setTimeout(function(){var f=document.getElementById("pw");if(f)f.focus()},260)},20)}
+/* Focus is all that is needed: the browser scrolls a focused input into view
+   itself when the keyboard opens. Doing it here as well put two scrolls in
+   flight at once, which is what makes a page judder. */
+function openRow(i){var w=document.getElementById("exw");
+// The class has to land on a frame AFTER the element exists, or there is no
+// starting value to animate from and it snaps open.
+if(w)requestAnimationFrame(function(){requestAnimationFrame(function(){w.classList.add("o")})});
+// After the panel has grown, so the field is at its final position when the
+// keyboard arrives.
+setTimeout(function(){var f=document.getElementById("pw");if(f)f.focus()},300)}
+
+// Collapse before the row disappears, so closing is the opening run backwards
+// rather than the panel blinking out.
+function closeRow(after){var w=document.getElementById("exw");
+if(!w){after();return}
+w.classList.remove("o");setTimeout(after,260)}
 
 function scan(){st.view="scanning";render();
 fetch("/api/scan").then(function(r){return r.json()}).then(function(j){

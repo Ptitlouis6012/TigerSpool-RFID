@@ -46,8 +46,6 @@ static const Row STR[S_COUNT] = {
 /* S_AP_JOIN        */ {{ "Scan with your phone camera, or join", "Scannez avec votre telephone, ou rejoignez", "Mit dem Handy scannen oder beitreten", "Escanea con el movil, o conecta a", "Inquadra col telefono, o connettiti a", "Zeskanuj telefonem lub polacz z", "Escaneie com o celular, ou conecte a", "Digitalize com o telemovel, ou ligue a" }},
 /* S_AP_OPEN        */ {{ "Then open", "Puis ouvrez", "Dann offnen", "Luego abre", "Poi apri", "Nastepnie otworz", "Depois abra", "Depois abra" }},
 /* S_AP_CHOOSE      */ {{ "and pick your network", "et choisissez votre reseau", "und Netzwerk wahlen", "y elige tu red", "e scegli la rete", "i wybierz siec", "e escolha sua rede", "e escolha a sua rede" }},
-/* S_AP_WAITING     */ {{ "Waiting for a phone", "En attente d'un telephone", "Warte auf ein Handy", "Esperando un movil", "In attesa di un telefono", "Czekam na telefon", "Aguardando um celular", "A aguardar um telemovel" }},
-/* S_AP_CLIENTS     */ {{ "%d connected", "%d connecte(s)", "%d verbunden", "%d conectado(s)", "%d connesso/i", "%d polaczono", "%d conectado(s)", "%d ligado(s)" }},
 /* S_TT_IMPORTING   */ {{ "Importing printers", "Import des imprimantes", "Drucker werden importiert", "Importando impresoras", "Importazione stampanti", "Importowanie drukarek", "Importando impressoras", "A importar impressoras" }},
 /* S_TT_ACCOUNT     */ {{ "Account", "Compte", "Konto", "Cuenta", "Account", "Konto", "Conta", "Conta" }},
 /* S_ONLINE         */ {{ "online", "en ligne", "online", "en linea", "online", "online", "online", "online" }},

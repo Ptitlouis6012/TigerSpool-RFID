@@ -115,24 +115,30 @@ void showLanguage(bool force) {
 
 int takeLanguage() { int v = s_lang; s_lang = -1; return v; }
 
-void showWifi(const char* apSsid, int clientsConnected) {
+void showWifi(const char* apSsid) {
     frame(i18n::T(S_AP_TITLE));
-    // The payload is the standard Wi-Fi join format both phone cameras
-    // recognise natively - no app, and no SSID read off a small screen.
+
+    // The instruction goes ABOVE the QR: it is what tells you the square below
+    // is meant to be scanned, and reading it after the fact is reading it too
+    // late.
+    caption(i18n::T(S_AP_JOIN));
+
+    // The standard Wi-Fi join format, which both phone cameras recognise
+    // natively - no app, and no SSID read off a small screen and typed.
     char payload[96];
     snprintf(payload, sizeof(payload), "WIFI:S:%s;T:nopass;;", apSsid);
     qr(payload);
-    caption(i18n::T(S_AP_JOIN));
 
+    // The network name, for anyone whose camera will not scan.
     lv_obj_t* ssid = lv_label_create(s_body);
     lv_label_set_text(ssid, apSsid);
     lv_obj_set_style_text_font(ssid, &lv_font_montserrat_16, 0);
     lv_obj_set_style_text_color(ssid, lv_color_hex(theme::ACCENT), 0);
 
-    char status[40];
-    if (clientsConnected) snprintf(status, sizeof(status), i18n::T(S_AP_CLIENTS), clientsConnected);
-    else                  snprintf(status, sizeof(status), "%s", i18n::T(S_AP_WAITING));
-    caption(status, clientsConnected ? theme::OK : theme::TEXT_DIM);
+    // No "waiting for a phone", and no count of connected devices. Neither
+    // tells the user anything they can act on: the screen already says what to
+    // do, and how many phones happen to be attached is the device's business,
+    // not theirs.
 }
 
 void showWifiConnecting(const char* ssid, int secondsLeft) {
