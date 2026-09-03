@@ -65,6 +65,20 @@ message, and reset it to this header.
   `--port`, `--fs`, `--erase` and `--monitor`, documenting which image is written
   at which offset and therefore why saved Wi-Fi survives an ordinary flash.
 
+- `docs/REVIEW-BRIEF.md` — the standing review brief: read-only, six axes
+  written for this codebase, and reports that are permanent and annotated.
+- `.claude/agents/locator.md` and `single-edit.md`, both narrow by construction,
+  with `.gitignore` narrowed to `settings.local.json` so the definitions ship.
+- `CLAUDE.md` gains a path-to-consequence table, and names the one case where a
+  green bench does not guarantee a green CI.
+- `docs/OTA.md` records the release decisions that stop being decisions after
+  the first public release: manifest generated not committed, assembled around
+  the latest release, binaries never rebuilt, a key layout safe to grow, one
+  workflow allowed to deploy, and what `verify-published-site.py` must compare.
+- `docs/reviews/2026-09-03` names the deadline three items share — the partition
+  table, the manifest keys, and printer identity being an array index — and says
+  explicitly that the mutex finding does not share it.
+
 ### Fixed
 
 - The reference-data generator could not run at all, wrote a Portuguese banner,
