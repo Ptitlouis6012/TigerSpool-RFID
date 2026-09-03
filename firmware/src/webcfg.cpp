@@ -8,6 +8,9 @@
 #include <lvgl.h>
 #include "ui/lvgl_port.h"
 #include "ui/screen_setup.h"
+#include "ui/screen_home.h"
+#include "ui/screen_slots.h"
+#include "ui/screen_scan.h"
 #include "net/portal_page.h"
 #include "version.h"
 #include <ArduinoJson.h>
@@ -219,6 +222,22 @@ namespace {
         lv_obj_invalidate(lv_scr_act());
         for (uint32_t t0 = millis(); millis() - t0 < 400; ) { lv_timer_handler(); delay(5); }
         lvgl_port::requestCapture(false);
+
+        // Hand the display back to the state machine.
+        //
+        // Every screen carries a "already showing, do not rebuild" guard so it
+        // does not tear itself down under the finger pressing it. Rendering a
+        // preview leaves those guards believing their screen is up, and the
+        // state machine then never redraws - the device looks frozen while its
+        // main loop is running perfectly, which is exactly what happened.
+        //
+        // A debug tool that changes what it is measuring is worse than no tool.
+        if (preview.length()) {
+            screen_setup::hide();
+            screen_home::leave();
+            screen_slots::invalidate();
+            screen_scan::invalidate();
+        }
 
         const int W = 240, H = 320;
         const uint32_t rowBytes  = (uint32_t)W * 3;
