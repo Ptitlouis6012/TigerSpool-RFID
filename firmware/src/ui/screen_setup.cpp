@@ -19,22 +19,40 @@ void onBack(lv_event_t*) { s_back = true; }
 
 // A floating chevron for the header-less screens. 56 x 44 of hit area for a
 // 20 px glyph, the same target as everywhere else on this device.
+// Back is the whole top strip, not a chevron.
+//
+// A 56 x 44 icon was too small to hit reliably - which is the same mistake as
+// sizing a target to its glyph, made again after saying not to. The strip is
+// the full 240 px wide and 56 tall, carries the word next to the arrow, and
+// fires on PRESS rather than on release: a back control that waits for the
+// finger to lift feels broken on a screen this size, because a slight drag
+// between press and release cancels it.
 void addBack() {
-    // The chevron floats over the screen, so the body has to step out of its
-    // way: without this it lands on the first line of text, which is exactly
-    // what a screenshot showed it doing.
-    if (s_body) lv_obj_set_style_pad_top(s_body, 40, 0);
+    if (s_body) lv_obj_set_style_pad_top(s_body, 56, 0);
 
     lv_obj_t* b = lv_btn_create(s_screen);
     lv_obj_remove_style_all(b);
-    lv_obj_set_size(b, 56, 44);
+    lv_obj_set_size(b, theme::SCREEN_W, 56);
     lv_obj_align(b, LV_ALIGN_TOP_LEFT, 0, 0);
-    lv_obj_add_event_cb(b, onBack, LV_EVENT_CLICKED, nullptr);
+    lv_obj_set_flex_flow(b, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(b, LV_FLEX_ALIGN_START,
+                          LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_left(b, 8, 0);
+    lv_obj_set_style_pad_column(b, 4, 0);
+    // No pressed state: firing on PRESS means the screen is already gone by the
+    // time a highlight could be seen. Feedback that never renders is a frame of
+    // work per touch for nothing.
+    lv_obj_add_event_cb(b, onBack, LV_EVENT_PRESSED, nullptr);
+
     lv_obj_t* g = lv_label_create(b);
     lv_label_set_text(g, LV_SYMBOL_LEFT);
     lv_obj_set_style_text_font(g, &lv_font_montserrat_20, 0);
     lv_obj_set_style_text_color(g, lv_color_hex(theme::TEXT_DIM), 0);
-    lv_obj_center(g);
+
+    lv_obj_t* w = lv_label_create(b);
+    lv_label_set_text(w, i18n::T(S_BACK));
+    lv_obj_set_style_text_font(w, &lv_font_montserrat_16, 0);
+    lv_obj_set_style_text_color(w, lv_color_hex(theme::TEXT_DIM), 0);
 }
 void onChoice(lv_event_t* e) { s_choice = (int)(intptr_t)lv_event_get_user_data(e); }
 
@@ -426,6 +444,11 @@ void showPreparing() {
 
     frame(nullptr);
     addBack();
+    // addBack() reserves 40 px at the top for the chevron, which on a screen
+    // whose whole content is a spinner and one word pushes everything visibly
+    // off centre. Matching it at the bottom makes the free space symmetric
+    // again, so the pair really does sit in the middle of the glass.
+    lv_obj_set_style_pad_bottom(s_body, 56, 0);
 
     lv_obj_t* sp = lv_spinner_create(s_body, 1300, 60);
     lv_obj_set_size(sp, 76, 76);
@@ -433,8 +456,11 @@ void showPreparing() {
     lv_obj_set_style_arc_color(sp, lv_color_hex(theme::ACCENT), LV_PART_INDICATOR);
     lv_obj_set_style_pad_bottom(sp, 22, 0);
 
+    // "Waiting", not "Importing printers": nothing is being imported here. The
+    // device is asking the cloud for a pairing code, and naming the wrong
+    // operation is how a user learns not to trust what the screen says.
     lv_obj_t* t = lv_label_create(s_body);
-    lv_label_set_text(t, i18n::T(S_TT_IMPORTING));
+    lv_label_set_text(t, i18n::T(S_WAITING));
     lv_obj_set_style_text_font(t, &lv_font_montserrat_16, 0);
     lv_obj_set_style_text_color(t, lv_color_hex(theme::TEXT), 0);
 }

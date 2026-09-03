@@ -217,6 +217,9 @@ namespace {
                      "https://tigersystem.io/pair?c=K7QF3M2P", "K7QF-3M2P", 587);
         else if (preview == "pairfail") screen_setup::showPairFailed("Code expired");
         else if (preview == "account") screen_setup::showAccountIntro();
+        else if (preview == "signin")  screen_setup::showSignInChoice();
+        else if (preview == "waiting") screen_setup::showPreparing();
+        else if (preview == "email")   screen_setup::showEmailPairing("http://192.168.20.170");
 
         lvgl_port::requestCapture(true);
         lv_obj_invalidate(lv_scr_act());

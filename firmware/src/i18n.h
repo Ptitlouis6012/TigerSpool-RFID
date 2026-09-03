@@ -70,6 +70,7 @@ enum StrId : uint8_t {
     S_ACCOUNT_WHY,
     S_LINK_ACCOUNT,
     S_SIGN_IN,
+    S_WAITING,
     S_WITH_EMAIL,
     S_WITH_GOOGLE,
     S_SCAN_TO_LINK,
