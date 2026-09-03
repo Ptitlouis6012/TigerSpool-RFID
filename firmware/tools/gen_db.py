@@ -1,41 +1,99 @@
-# Gera include/tigertag_db.h a partir de data_src/id_material.json e id_brand.json
-# (tabelas de referencia TigerTag). Uso:
-#   ~/.platformio/python3/python.exe gen_db.py
-import json, os
+#!/usr/bin/env python3
+"""Generate firmware/include/tigertag_db.h from the TigerTag reference data.
 
-here = os.path.dirname(os.path.abspath(__file__))
-src  = os.path.join(here, "data_src")
-out  = os.path.join(here, "include", "tigertag_db.h")
+    python3 firmware/tools/gen_db.py
 
-with open(os.path.join(src, "id_material.json"), encoding="utf-8") as f:
-    materials = json.load(f)
-with open(os.path.join(src, "id_brand.json"), encoding="utf-8") as f:
-    brands = json.load(f)
+Reads data_src/id_material.json and data_src/id_brand.json and writes the
+id-to-label tables the reader uses, so a scan needs no network.
 
-mats = sorted(((int(m["id"]), str(m["label"])) for m in materials), key=lambda x: x[0])
-brs  = sorted(((int(b["id"]), str(b["name"]))  for b in brands),    key=lambda x: x[0])
+The output is verified: scripts/check-generated.py re-runs this and fails if the
+committed header differs. That is what makes the header's own "do NOT edit by
+hand" banner true rather than aspirational.
 
-def esc(s): return s.replace('\\', '\\\\').replace('"', '\\"')
+Labels from this data are drawn on the panel, so the input is validated against
+what the compiled font can actually draw. See scripts/font_range.py — the
+allowed set is read from the font, never restated here, so it widens by itself
+the day a Latin subset font ships.
+"""
 
-with open(out, "w", encoding="utf-8") as f:
-    f.write("// GERADO por gen_db.py - NAO editar a mao.\n")
-    f.write("// Tabelas de referencia TigerTag (id -> label), ordenadas por id.\n")
-    f.write("#pragma once\n#include <Arduino.h>\n\n")
-    f.write("struct TTEntry { uint16_t id; const char* label; };\n\n")
+import json
+import os
+import pathlib
+import sys
 
-    f.write(f"static const TTEntry TT_MATERIALS[] = {{\n")
-    for i, lab in mats:
-        f.write(f'  {{ {i}, "{esc(lab)}" }},\n')
-    f.write("};\n")
-    f.write(f"static const size_t TT_MATERIALS_N = {len(mats)};\n\n")
+HERE = os.path.dirname(os.path.abspath(__file__))
+REPO = os.path.dirname(os.path.dirname(HERE))
+SRC = os.path.join(HERE, "data_src")
 
-    f.write(f"static const TTEntry TT_BRANDS[] = {{\n")
-    for i, name in brs:
-        f.write(f'  {{ {i}, "{esc(name)}" }},\n')
-    f.write("};\n")
-    f.write(f"static const size_t TT_BRANDS_N = {len(brs)};\n\n")
+# The compiled header lives where the compiler looks for it: platformio.ini
+# passes -I include, which resolves to firmware/include. Writing anywhere else
+# produces a second copy that nothing builds, while the built one goes stale.
+OUT = os.path.join(REPO, "firmware", "include", "tigertag_db.h")
 
-    f.write("""static inline const char* tt_lookup(const TTEntry* t, size_t n, uint16_t id) {
+sys.path.insert(0, os.path.join(REPO, "scripts"))
+import font_range  # noqa: E402
+
+
+def load(name):
+    with open(os.path.join(SRC, name), encoding="utf-8") as f:
+        return json.load(f)
+
+
+def validate(entries, source):
+    """Reject labels the panel cannot render, naming the entry and the character.
+
+    esc() below escapes backslash and double quote and nothing else, so anything
+    else in the JSON goes straight into a C string literal. A newline breaks the
+    build, which is safe. A non-breaking space, a NUL byte or a bidirectional
+    override all compile - and produce a blank glyph on the panel, a silently
+    truncated string, or source that displays to a reviewer in the wrong order.
+    The dangerous inputs are exactly the ones that compile, so they are stopped
+    here rather than downstream.
+    """
+    allowed, spec = font_range.compiled_range(pathlib.Path(REPO))
+    problems = []
+    for ident, label in entries:
+        for _, cp in font_range.offending(label, allowed):
+            problems.append(
+                f"  {source} id {ident}: {label!r} contains "
+                f"{font_range.describe(cp)}, which lv_font_montserrat "
+                f"(range {spec}) cannot draw"
+            )
+    return problems
+
+
+def main():
+    materials = [(int(m["id"]), str(m["label"])) for m in load("id_material.json")]
+    brands = [(int(b["id"]), str(b["name"])) for b in load("id_brand.json")]
+
+    problems = validate(materials, "id_material.json") + validate(brands, "id_brand.json")
+    if problems:
+        print("error: reference data contains characters the UI font cannot draw:",
+              file=sys.stderr)
+        print("\n".join(problems), file=sys.stderr)
+        print("\nfix the JSON, not the generated header.", file=sys.stderr)
+        return 1
+
+    materials.sort(key=lambda x: x[0])
+    brands.sort(key=lambda x: x[0])
+
+    def esc(s):
+        return s.replace("\\", "\\\\").replace('"', '\\"')
+
+    with open(OUT, "w", encoding="utf-8") as f:
+        f.write("// GENERATED by gen_db.py - do NOT edit by hand.\n")
+        f.write("// TigerTag reference tables (id -> label), ordered by id.\n")
+        f.write("#pragma once\n#include <Arduino.h>\n\n")
+        f.write("struct TTEntry { uint16_t id; const char* label; };\n\n")
+
+        for name, rows in (("TT_MATERIALS", materials), ("TT_BRANDS", brands)):
+            f.write(f"static const TTEntry {name}[] = {{\n")
+            for ident, label in rows:
+                f.write(f'  {{ {ident}, "{esc(label)}" }},\n')
+            f.write("};\n")
+            f.write(f"static const size_t {name}_N = {len(rows)};\n\n")
+
+        f.write("""static inline const char* tt_lookup(const TTEntry* t, size_t n, uint16_t id) {
   size_t lo = 0, hi = n;
   while (lo < hi) {
     size_t mid = (lo + hi) / 2;
@@ -48,4 +106,9 @@ static inline const char* tt_material(uint16_t id) { return tt_lookup(TT_MATERIA
 static inline const char* tt_brand(uint16_t id)    { return tt_lookup(TT_BRANDS,    TT_BRANDS_N,    id); }
 """)
 
-print(f"OK -> {out}   ({len(mats)} materiais, {len(brs)} marcas)")
+    print(f"OK -> {OUT}   ({len(materials)} materials, {len(brands)} brands)")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
