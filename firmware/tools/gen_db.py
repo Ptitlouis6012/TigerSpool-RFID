@@ -50,7 +50,13 @@ def validate(entries, source):
     The dangerous inputs are exactly the ones that compile, so they are stopped
     here rather than downstream.
     """
-    allowed, spec = font_range.compiled_range(pathlib.Path(REPO))
+    try:
+        allowed, spec = font_range.compiled_range(pathlib.Path(REPO))
+    except font_range.FontRangeUnavailable as e:
+        # Never guess the range: a validator that assumes a font it did not
+        # read accepts characters the panel cannot draw, which is the exact
+        # failure it exists to prevent.
+        raise SystemExit(f"error: cannot validate labels: {e}")
     problems = []
     for ident, label in entries:
         for _, cp in font_range.offending(label, allowed):
