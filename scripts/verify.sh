@@ -62,6 +62,7 @@ if [ "$MODE" = "fix" ]; then
   "$PY" firmware/tools/gen_db.py || { echo "generator failed - fix its input first"; exit 1; }
 fi
 
+step "file format: line endings, marks, invisible characters" "$PY" scripts/check-file-format.py
 step "generated files match their generator" "$PY" scripts/check-generated.py
 step "the version macro is the single source of truth" bash scripts/check-version.sh
 
