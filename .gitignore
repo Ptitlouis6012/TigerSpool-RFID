@@ -18,7 +18,9 @@ Thumbs.db
 # IDE & editor
 .vscode/
 .idea/
-.claude/
+# Agent definitions are shared knowledge and belong in the repository; only
+# machine-local settings do not.
+.claude/settings.local.json
 *.swp
 *.swo
 *~
