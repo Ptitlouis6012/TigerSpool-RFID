@@ -63,6 +63,7 @@ if [ "$MODE" = "fix" ]; then
 fi
 
 step "file format: line endings, marks, invisible characters" "$PY" scripts/check-file-format.py
+step "documented device names match the ones the firmware builds" "$PY" scripts/check-device-names.py
 step "committed comments and strings are English" "$PY" scripts/check-text-english.py
 step "every drawn string is in a compiled font" "$PY" scripts/check-ui-fonts.py
 step "translation tables agree with their enums" "$PY" scripts/check-i18n.py

@@ -87,7 +87,7 @@ structure and decisions only.
   an update possible, not reversible; real rollback needs the bootloader option
   *and* an explicit validity call. V3 has neither while its comments claim
   otherwise. ([docs/OTA.md](docs/OTA.md#rollback))
-- Identifiers fixed: `tigerspool.local`, `TigerSpool-Setup`, PlatformIO env
+- Identifiers fixed: `tigerspool-xxxx.local`, `TigerSpool-Setup-XXXX`, PlatformIO env
   `tigerspool`, NVS namespace `tigerspool`.
 
 ### Verified on hardware
@@ -120,7 +120,7 @@ LVGL. Highlights, in the order they matter to someone holding the device:
   next to the box is one of them. Hiding is not deleting, and visibility
   belongs to the user rather than the account.
 - **The screen sleeps** — dim, dark, wake on touch. Only the light stops.
-- **Per-device names**: `tigerspool-XXXX.local` and `TigerSpool-Setup-XXXX`,
+- **Per-device names**: `tigerspool-xxxx.local` and `TigerSpool-Setup-XXXX`,
   because two devices could not previously coexist on one network.
 - **Two OTA partitions** on a 16 MB layout. The prototype declared no table
   and built against an 8 MB default, leaving half the flash unreachable.

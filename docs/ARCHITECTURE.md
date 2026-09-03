@@ -281,8 +281,8 @@ names belong to a Creality-only ancestor and do not survive.
 
 | | Value |
 |---|---|
-| mDNS hostname | `tigerspool.local` |
-| Setup AP SSID | `TigerSpool-Setup` |
+| mDNS hostname | `tigerspool-xxxx.local` |
+| Setup AP SSID | `TigerSpool-Setup-XXXX` |
 | Firmware binary | `tigerspool-v1.0.0.bin` |
 | PlatformIO env | `tigerspool` |
 | MQTT client id | `tigerspool-<mac6>` |

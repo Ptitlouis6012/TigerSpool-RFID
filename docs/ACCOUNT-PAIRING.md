@@ -32,7 +32,7 @@ arrive with accounts created either way, so both paths stay.
 
 ### 1. Email and password — typed on the phone
 
-Reached from the configuration web page, at `http://tigerspool.local` on the LAN
+Reached from the configuration web page, at `http://tigerspool-xxxx.local` on the LAN
 or through the setup portal. The user types their email and password **on their
 phone's keyboard**, with their password manager available, on a page the device
 serves.

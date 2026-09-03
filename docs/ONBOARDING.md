@@ -70,13 +70,13 @@ in the language chosen here — including the error messages.
         │  Scan with your phone      │
         │  camera, or join           │
         │                            │
-        │      TigerSpool-Setup      │
+        │   TigerSpool-Setup-XXXX    │
         │                            │
         │  Waiting for a phone…      │
         └────────────────────────────┘
 ```
 
-1. The user points their phone camera at the QR. It offers *"Join TigerSpool-Setup"*.
+1. The user points their phone camera at the QR. It offers *"Join TigerSpool-Setup-XXXX"*.
 2. One tap and the phone is on the box's network.
 3. A page opens by itself, listing every Wi-Fi network the box can see.
 4. The user taps theirs and types the password **on their phone**.
@@ -116,7 +116,7 @@ The short code is printed under the QR for a phone that will not scan, and it is
 readable aloud over the phone if someone is helping remotely.
 
 Users whose account has a password can instead sign in from the box's web page at
-`http://tigerspool.local`, typing on their phone. Both paths:
+`http://tigerspool-xxxx.local`, typing on their phone. Both paths:
 [ACCOUNT-PAIRING.md](ACCOUNT-PAIRING.md).
 
 ---
