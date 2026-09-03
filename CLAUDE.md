@@ -79,6 +79,26 @@ Releasing is a human decision, so no script makes it for you.
 three separate permissions and none is implied by the steps above it. The tag is
 the one action no later edit undoes.
 
+## What a push sets off
+
+| What you changed | What runs |
+|---|---|
+| Anything, on any branch | **guards** — `verify.sh --quick`, about 40 s — and **build firmware**, about 2 min. Both, every time. |
+| A pull request to `main` | The same two. Nothing extra. |
+| A `v*` tag | **release** — verifies the tag against the version macro, builds from the tagged source, publishes the binaries and `SHA256SUMS.txt`. |
+| `installer/` | Nothing yet. `pages.yml` is a placeholder that fails on purpose and only runs by hand. |
+
+There is no path filtering, deliberately: the firmware job costs two minutes and
+skipping it on a documentation change would mean maintaining a list of paths
+that decides whether the build runs. That list is a second source of truth about
+what a change affects, and it goes wrong quietly.
+
+**One caveat on "green locally means green in CI".** CI installs the LVGL
+sources, so `check-generated.py` re-derives the font range there. A bench without
+`firmware/.pio` reports that one item as *unverifiable* and passes. If the
+committed `scripts/font_range.json` has genuinely drifted, only CI will say so.
+Run `pio pkg install` in `firmware/` once and the two agree again.
+
 ## When a check goes red
 
 | Symptom | Remedy |
