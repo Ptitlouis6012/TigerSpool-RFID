@@ -38,3 +38,18 @@ Verified on hardware: home, settings, update (checking / up to date), Wi-Fi
 setup and Wi-Fi settings, driven over `/api/tap` and read back from
 `/screen.bmp`.
 
+### Changed (same cycle, folded into 1.5.0)
+
+- `theme::WARN` added. Restart orange, factory reset red, and the Settings
+  Update row orange when a version is waiting.
+- One OTA check twenty seconds after boot, so the menu can show that.
+- Update page: `v` prefix, smaller badge (62 px, proportionate to 240 px),
+  "Wi-Fi, account and printers are kept" under an available update.
+- Wording taken from the scale after reading its live view directly:
+  "Installed version", "Your TigerSpool is up to date".
+
+Answers from the TigerScale agent are in `_internal/TIGERSCALE-UI-ANSWERS.md`.
+Still open from them: row icons (the scale carries the colour on a 26 px icon
+and keeps the label white - we carry it on the label, having no icons), and the
+font fallback chain that would restore accents.
+

@@ -29,6 +29,21 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   up to date, an update waiting, or a failure — is a glyph in a coloured ring,
   legible before a word is read.
 - The update channel row is gone. It offered one channel.
+- **Orange is now a category of its own, not a weaker red.** Red means an action
+  destroys something that cannot be rebuilt from the device; orange means it
+  interrupts what is on screen and destroys nothing. Restart is orange, factory
+  reset stays red. Without the distinction everything consequential turns red
+  and red stops meaning anything.
+- **A waiting update announces itself on the Settings menu**, in orange, with
+  the new version on the row. The device checks once, twenty seconds after
+  boot. That is the only announcement it gets: a spool reader is not a phone,
+  and it is never checked on a timer afterwards.
+- The update page now says "Version installed — v1.5.0", with the `v` the rest
+  of the ecosystem prints, and answers the question people ask before pressing
+  Install: Wi-Fi, account and printers are kept.
+- Wording aligned with the TigerScale where the two devices name the same
+  thing: "Your TigerSpool is up to date" as a sentence rather than "Up to
+  date", and "Installed version" rather than "Installed".
 
 ### Fixed
 

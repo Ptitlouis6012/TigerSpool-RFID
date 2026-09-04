@@ -32,9 +32,11 @@ namespace screen_settings {
 void invalidate() { s_menuSig = 0; s_pickSig = 0; }
 
 void showMenu(const char* network, const char* account,
-              int visiblePrinters, int totalPrinters) {
+              int visiblePrinters, int totalPrinters,
+              bool updateWaiting, const char* latest) {
     uint32_t sig = hashOf(network) ^ hashOf(account)
-                 ^ ((uint32_t)visiblePrinters << 8) ^ (uint32_t)totalPrinters;
+                 ^ ((uint32_t)visiblePrinters << 8) ^ (uint32_t)totalPrinters
+                 ^ (updateWaiting ? 0x5A5A5A5Au : 0u) ^ hashOf(latest);
     if (sig == s_menuSig) return;
     s_menuSig = sig;
 
@@ -55,18 +57,25 @@ void showMenu(const char* network, const char* account,
         { E_ACCOUNT,  i18n::T(S_TT_ACCOUNT),   account     },
         { E_SCREEN,   i18n::T(S_SCREEN),                ""          },
         { E_LANGUAGE, i18n::T(S_LANGUAGE),              i18n::name(i18n::current()) },
-        { E_UPDATE,   i18n::T(S_UPDATE),                TIGERSPOOL_FW_VERSION       },
+        { E_UPDATE,   i18n::T(S_UPDATE),
+          updateWaiting && latest && *latest ? latest : TIGERSPOOL_FW_VERSION },
         { E_RESTART,  i18n::T(S_RESTART),               ""          },
         { E_FACTORY,  i18n::T(S_FACTORY),         ""          },
     };
     for (auto& r : rows) {
         lv_obj_t* row = frame::row(body, r.label, r.value, true, onEntry,
                                    (void*)(intptr_t)r.id);
-        if (r.id == E_FACTORY) {
-            // The one entry that cannot be undone reads as such before it is
-            // opened, not only after.
+        // Red for the one entry that cannot be undone, orange for the one that
+        // interrupts without destroying, orange again for an update waiting to
+        // be installed. Each reads as what it is before it is opened, not
+        // only after.
+        uint32_t tint = 0;
+        if (r.id == E_FACTORY)                        tint = theme::DANGER;
+        else if (r.id == E_RESTART)                   tint = theme::WARN;
+        else if (r.id == E_UPDATE && updateWaiting)   tint = theme::WARN;
+        if (tint) {
             lv_obj_t* label = lv_obj_get_child(row, 0);
-            lv_obj_set_style_text_color(label, lv_color_hex(theme::DANGER), 0);
+            lv_obj_set_style_text_color(label, lv_color_hex(tint), 0);
         }
     }
 }
@@ -323,10 +332,10 @@ void showScreen(uint8_t brightness, int sleepSeconds) {
 static void badge(lv_obj_t* parent, const char* glyph, uint32_t colour) {
     lv_obj_t* ring = lv_obj_create(parent);
     lv_obj_remove_style_all(ring);
-    lv_obj_set_size(ring, 76, 76);
+    lv_obj_set_size(ring, 62, 62);
     lv_obj_set_style_radius(ring, LV_RADIUS_CIRCLE, 0);
     lv_obj_set_style_border_color(ring, lv_color_hex(colour), 0);
-    lv_obj_set_style_border_width(ring, 3, 0);
+    lv_obj_set_style_border_width(ring, 2, 0);
     lv_obj_set_style_border_opa(ring, LV_OPA_COVER, 0);
     lv_obj_clear_flag(ring, LV_OBJ_FLAG_SCROLLABLE);
 
@@ -413,7 +422,11 @@ void showUpdate(const char* version, const char* channel,
     // The headline belongs to the answer the user came for: is it up to date.
     lv_obj_set_flex_align(body, LV_FLEX_ALIGN_START,
                           LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    frame::row(body, i18n::T(S_INSTALLED), version, false, nullptr, nullptr);
+    // "v1.5.0", not "1.5.0". The prefix is what the rest of the ecosystem
+    // prints, on the scale's screen and on this repository's tags alike.
+    char vbuf[24];
+    snprintf(vbuf, sizeof(vbuf), "v%s", version);
+    frame::row(body, i18n::T(S_INSTALLED), vbuf, false, nullptr, nullptr);
 
     lv_obj_t* spacer = lv_obj_create(body);
     lv_obj_remove_style_all(spacer);
@@ -446,6 +459,12 @@ void showUpdate(const char* version, const char* channel,
         frame::button(body, i18n::T(S_CHECK_UPDATE), 1, onCheck);
         break;
     }
+
+    // The question everybody asks before pressing Install, answered before it
+    // is asked. Nothing an update writes touches the NVS partition; saying so
+    // is cheaper than a support message.
+    if (otaState == ota::AVAILABLE)
+        frame::caption(i18n::T(S_UPDATE_KEEPS), theme::TEXT_DIM);
 }
 
 void showRestart() {

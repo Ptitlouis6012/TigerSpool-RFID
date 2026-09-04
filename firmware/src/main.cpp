@@ -568,6 +568,16 @@ void loop() {
     if (backend) backend->loop();
     if (webStarted || webcfg::apActive()) webcfg::loop();
 
+    // One check, once, a little after boot. It is what lets the Settings menu
+    // colour the Update row before anyone opens the update page - the only
+    // announcement a waiting update gets. Deliberately not repeated on a timer:
+    // nothing here needs to know within the hour, and a device that phones home
+    // every few minutes is a device that phones home for no reason.
+    static bool bootChecked = false;
+    if (!bootChecked && WiFi.isConnected() && millis() > 20000) {
+        bootChecked = ota::checkAsync();
+    }
+
     if (!nfcReady && millis() - nfcLastTry > 2000) {
         nfcLastTry = millis();
         nfcReady = reader::begin();
@@ -784,7 +794,8 @@ void loop() {
         screen_settings::showMenu(
             WiFi.isConnected() ? WiFi.SSID().c_str() : i18n::T(S_OFFLINE),
             ttcloud::haveSession() ? ttcloud::email().c_str() : i18n::T(S_ADD_WEB),
-            visible, total);
+            visible, total,
+            ota::state() == ota::AVAILABLE, ota::latestVersion());
         lvgl_port::loop();
 
         if (screen_settings::takeBack()) {

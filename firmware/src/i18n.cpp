@@ -78,7 +78,7 @@ static const Row STR[S_COUNT] = {
 /* S_BRIGHTNESS     */ {{ "Brightness", "Luminosite", "Helligkeit", "Brillo", "Luminosita", "Jasnosc", "Brilho", "Brilho" }},
 /* S_SLEEP_AFTER    */ {{ "Sleep after", "Veille apres", "Ruhe nach", "Reposo tras", "Standby dopo", "Uspij po", "Suspender apos", "Suspender apos" }},
 /* S_NEVER          */ {{ "Never", "Jamais", "Nie", "Nunca", "Mai", "Nigdy", "Nunca", "Nunca" }},
-/* S_INSTALLED      */ {{ "Installed", "Installee", "Installiert", "Instalada", "Installata", "Zainstalowana", "Instalada", "Instalada" }},
+/* S_INSTALLED      */ {{ "Installed version", "Version installee", "Installierte Version", "Version instalada", "Versione installata", "Zainstalowana wersja", "Versao instalada", "Versao instalada" }},
 /* S_OTA_OFF        */ {{ "Over-the-air updates are not enabled on this build.", "Les mises a jour par le reseau ne sont pas actives.", "Updates uber Funk sind in diesem Build nicht aktiv.", "Las actualizaciones por red no estan activas.", "Gli aggiornamenti via rete non sono attivi.", "Aktualizacje przez siec nie sa wlaczone.", "As atualizacoes pela rede nao estao ativas.", "As atualizacoes pela rede nao estao ativas." }},
 /* S_RESTART_Q      */ {{ "Restart the box?", "Redemarrer le boitier ?", "Box neu starten?", "Reiniciar la caja?", "Riavviare la scatola?", "Uruchomic ponownie?", "Reiniciar a caixa?", "Reiniciar a caixa?" }},
 /* S_RESTART_NOTE   */ {{ "Takes about ten seconds. Nothing is lost.", "Environ dix secondes. Rien n'est perdu.", "Etwa zehn Sekunden. Nichts geht verloren.", "Unos diez segundos. No se pierde nada.", "Circa dieci secondi. Non si perde nulla.", "Okolo dziesieciu sekund. Nic nie ginie.", "Cerca de dez segundos. Nada e perdido.", "Cerca de dez segundos. Nada se perde." }},
@@ -88,11 +88,12 @@ static const Row STR[S_COUNT] = {
 /* S_KEEP_HOLDING   */ {{ "Keep holding...", "Continuez...", "Weiter halten...", "Sigue pulsando...", "Continua a tenere...", "Trzymaj dalej...", "Continue segurando...", "Continue a premir..." }},
 /* S_CHECK_UPDATE   */ {{ "Check for updates", "Rechercher une mise a jour", "Nach Updates suchen", "Buscar actualizaciones", "Cerca aggiornamenti", "Sprawdz aktualizacje", "Procurar atualizacoes", "Procurar atualizacoes" }},
 /* S_CHECKING       */ {{ "Checking...", "Recherche...", "Suche...", "Buscando...", "Ricerca...", "Sprawdzanie...", "Procurando...", "A procurar..." }},
-/* S_UP_TO_DATE     */ {{ "Up to date", "A jour", "Aktuell", "Actualizado", "Aggiornato", "Aktualne", "Atualizado", "Atualizado" }},
+/* S_UP_TO_DATE     */ {{ "Your TigerSpool is up to date", "Votre TigerSpool est a jour", "Ihr TigerSpool ist aktuell", "Tu TigerSpool esta actualizado", "Il tuo TigerSpool e aggiornato", "Twoj TigerSpool jest aktualny", "Seu TigerSpool esta atualizado", "O seu TigerSpool esta atualizado" }},
 /* S_AVAILABLE      */ {{ "Version available", "Version disponible", "Version verfugbar", "Version disponible", "Versione disponibile", "Dostepna wersja", "Versao disponivel", "Versao disponivel" }},
 /* S_INSTALL        */ {{ "Install", "Installer", "Installieren", "Instalar", "Installa", "Zainstaluj", "Instalar", "Instalar" }},
 /* S_DOWNLOADING    */ {{ "Downloading", "Telechargement", "Wird geladen", "Descargando", "Download", "Pobieranie", "Baixando", "A transferir" }},
 /* S_DONT_UNPLUG    */ {{ "Do not unplug the box.", "Ne debranchez pas le boitier.", "Gerat nicht trennen.", "No desconectes la caja.", "Non scollegare la scatola.", "Nie odlaczaj urzadzenia.", "Nao desconecte a caixa.", "Nao desligue a caixa." }},
+/* S_UPDATE_KEEPS   */ {{ "Wi-Fi, account and printers are kept.", "Wi-Fi, compte et imprimantes sont conserves.", "WLAN, Konto und Drucker bleiben erhalten.", "Wi-Fi, cuenta e impresoras se conservan.", "Wi-Fi, account e stampanti sono conservati.", "Wi-Fi, konto i drukarki zostaja zachowane.", "Wi-Fi, conta e impressoras sao mantidos.", "Wi-Fi, conta e impressoras sao mantidos." }},
 /* S_RESTARTING     */ {{ "Installed. Restarting...", "Installe. Redemarrage...", "Installiert. Neustart...", "Instalado. Reiniciando...", "Installato. Riavvio...", "Zainstalowano. Restart...", "Instalado. Reiniciando...", "Instalado. A reiniciar..." }},
 };
 

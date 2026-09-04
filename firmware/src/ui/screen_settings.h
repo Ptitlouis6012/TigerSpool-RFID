@@ -19,8 +19,12 @@ enum Entry {
     E_COUNT
 };
 
+// `updateWaiting` colours the Update row and puts the new version on it. It is
+// the only place a waiting update is announced outside its own page: a spool
+// reader is not a phone, and a badge on the home screen would be nagging.
 void showMenu(const char* network, const char* account,
-              int visiblePrinters, int totalPrinters);
+              int visiblePrinters, int totalPrinters,
+              bool updateWaiting, const char* latest);
 Entry takeEntry();
 bool  takeBack();
 void  invalidate();

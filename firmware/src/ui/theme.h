@@ -30,6 +30,11 @@ constexpr uint32_t TEXT_DIM  = 0x7C8590;
 constexpr uint32_t ACCENT    = 0xF2C744;   // selection, focus, progress
 constexpr uint32_t OK        = 0x3FA85E;   // reachable, success
 constexpr uint32_t DANGER    = 0xE0483C;   // unreachable, destructive
+// Orange is not a weaker red, it is a different category: it interrupts what
+// is on screen without destroying anything. Restarting is orange, a factory
+// reset is red. Without the distinction everything consequential turns red
+// and red stops meaning anything.
+constexpr uint32_t WARN      = 0xE8821E;   // interrupts, destroys nothing
 constexpr uint32_t GO_BG     = 0x1E5B33;   // confirm button
 constexpr uint32_t NO_BG     = 0x5A2320;   // cancel button
 

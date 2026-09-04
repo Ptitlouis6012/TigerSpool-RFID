@@ -102,6 +102,7 @@ enum StrId : uint8_t {
     S_INSTALL,
     S_DOWNLOADING,
     S_DONT_UNPLUG,
+    S_UPDATE_KEEPS,
     S_RESTARTING,
     S_COUNT
 };
