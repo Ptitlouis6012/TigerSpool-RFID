@@ -4,21 +4,33 @@ Everything needed to build one TigerSpool. **The electronics are identical for
 every printer brand** — only the printed shell changes ([models/](../models/)).
 
 > **Prices are indicative** and were not re-checked at the time of writing.
-> No vendor links are given yet: they will be added once a reference build is
-> assembled and verified. **TODO — to confirm with Benoit** whether affiliate
-> links are used here, as they are in [Tiger-Scale](https://github.com/TigerTag-Project/Tiger-Scale/blob/main/hardware/BOM.md).
+>
+> Some links here are Amazon affiliate links: buying through them pays the
+> project a small commission at no cost to you. Nothing on this list is chosen
+> because it is affiliated — the parts came first, and any equivalent module
+> works. Where a link is missing, the part is named precisely enough to search
+> for.
 
-## Electronics
+## Three things to buy
 
-| Part | Why this one | ~Price |
-|---|---|---|
-| **Waveshare ESP32-S3-Touch-LCD-2** | 2.0" 240×320 IPS with CST816S capacitive touch, ESP32-S3R8, 16 MB flash, 8 MB octal PSRAM. The screen, the touch panel and the MCU are one board — no separate display wiring. 16 MB is what makes two OTA slots comfortable. | ~25 € |
-| **PN532 NFC module** (red V3 breakout) | Reads NTAG21x. Must support **HSU/UART** mode — the DIP-switch variants do. | ~6 € |
-| **6 × Dupont jumper wires**, female–female | 3V3, GND, TX, RX, RST, and one spare | ~2 € |
-| **USB-C cable and a 5 V supply** | Powers the board; also used for the first flash | ~5 € |
-| **3D-printed case** | [models/](../models/) | ~30 g of filament |
+| # | Part | Why this one | ~Price |
+|---|---|---|---|
+| 1 | **Waveshare ESP32-S3 2inch Capacitive Touch Display Development Board** — 240×320 IPS, LX7 dual-core to 240 MHz, Wi-Fi and Bluetooth. (Sold with an OV5640 camera header; the camera is not included and is not used.) | 2.0" 240×320 IPS with CST816S capacitive touch, ESP32-S3**R8**, 16 MB flash, 8 MB octal PSRAM. The screen, the touch panel and the MCU are one board — there is no separate display to wire. The 16 MB is what makes two OTA slots comfortable. | ~25 € |
+| 2 | **PN532 NFC module**, V3 breakout with DIP switches — e.g. [this two-pack](https://www.amazon.fr/dp/B0FHDNV21X?tag=tigertag09-21) | Reads the NTAG21x chips TigerTag uses. It **must** support **HSU/UART** mode; the DIP-switch V3 boards do, and both switches go to `0` / OFF. A two-pack costs barely more than one, and the spare settles "is it the module or my wiring?" in a minute. | ~9 € the pair |
+| 3 | **A USB-C to USB-A cable that carries data** | Powers the board and flashes it. | ~5 € |
+
+Plus **six female-to-female Dupont jumper wires** (3V3, GND, TX, RX, RST and a
+spare, ~2 €) and a **3D-printed case** from [models/](../models/), about 30 g of
+filament.
 
 **Indicative total: ~40 €** plus filament.
+
+> **The cable is not a detail.** Plenty of USB-C cables carry power and nothing
+> else — the ones bundled with phone chargers usually do. With a charge-only
+> cable the board lights up, the screen works, and no computer ever sees a serial
+> port: the web installer finds nothing to install to and `scripts/flash.sh`
+> reports no device. It reads exactly like a dead board. If a cable you know
+> transfers files works, use that one.
 
 ## What is deliberately not on this list
 

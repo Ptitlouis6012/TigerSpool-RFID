@@ -161,10 +161,14 @@ printer brand — only the 3D-printed shell changes.
 
 | Part | Notes |
 |---|---|
-| Waveshare ESP32-S3-Touch-LCD-2 | 2.0" 240×320 touchscreen, 16 MB flash, 8 MB octal PSRAM |
-| PN532 NFC module | Wired in **HSU (UART)** mode — not I²C, not SPI |
-| Six jumper wires | 3V3, GND, and four signal lines |
+| **Waveshare ESP32-S3 2inch Capacitive Touch Display** development board | 240×320 IPS, ESP32-S3R8, 16 MB flash, 8 MB octal PSRAM. Screen, touch and MCU on one board. |
+| **PN532 NFC module**, V3 with DIP switches | Set to **HSU (UART)** — not I²C, not SPI. Both switches `0` / OFF. |
+| **A USB-C to USB-A cable that carries data** | Powers and flashes the board. A charge-only cable makes a working board look dead — no serial port ever appears. |
+| Six female-to-female jumper wires | 3V3, GND, and four signal lines |
 | A 3D-printed case | [models/](models/) — one per printer brand, plus a desktop stand |
+
+**About 40 €** in total, plus filament. Parts, links and prices:
+**[hardware/BOM.md](hardware/BOM.md)**.
 
 Full parts list: **[hardware/BOM.md](hardware/BOM.md)** ·
 Wiring: **[docs/WIRING.md](docs/WIRING.md)** and **[hardware/pinout.md](hardware/pinout.md)**
