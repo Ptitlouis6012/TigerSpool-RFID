@@ -98,8 +98,12 @@ void showReview(const char* slotLabel, const TagInfo& tag,
     lv_obj_set_flex_flow(actions, LV_FLEX_FLOW_ROW);
     lv_obj_set_style_pad_column(actions, theme::GAP, 0);
     lv_obj_clear_flag(actions, LV_OBJ_FLAG_SCROLLABLE);
-    frame::button(actions, i18n::T(S_NO), 2, onCancel);
-    frame::button(actions, i18n::T(S_SEND), 1, onSend);
+    // frame::button() is full-width by design, because almost every button in
+    // this UI is stacked. Two of them in a flex ROW means the first takes the
+    // whole row and the second is laid out past the edge - and this container
+    // does not scroll, so it simply is not there. flex_grow makes them share.
+    lv_obj_set_flex_grow(frame::button(actions, i18n::T(S_NO), 2, onCancel), 1);
+    lv_obj_set_flex_grow(frame::button(actions, i18n::T(S_SEND), 1, onSend), 1);
 }
 
 void showResult(const char* slotLabel, bool ok, const char* message,
