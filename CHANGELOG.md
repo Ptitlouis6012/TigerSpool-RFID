@@ -41,6 +41,11 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The update page now says "Version installed — v1.5.0", with the `v` the rest
   of the ecosystem prints, and answers the question people ask before pressing
   Install: Wi-Fi, account and printers are kept.
+- **Every Settings row carries an icon, and the icon carries the state.** Green
+  when something is reachable — Wi-Fi joined, account signed in, printers
+  present — red when it is not, orange for what interrupts, red for what
+  destroys. The label stays white, so eight rows read at a glance instead of
+  turning into a colour chart. Taken from the TigerScale, which does the same.
 - Wording aligned with the TigerScale where the two devices name the same
   thing: "Your TigerSpool is up to date" as a sentence rather than "Up to
   date", and "Installed version" rather than "Installed".

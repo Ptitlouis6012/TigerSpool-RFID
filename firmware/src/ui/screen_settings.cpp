@@ -31,12 +31,12 @@ namespace screen_settings {
 
 void invalidate() { s_menuSig = 0; s_pickSig = 0; }
 
-void showMenu(const char* network, const char* account,
-              int visiblePrinters, int totalPrinters,
-              bool updateWaiting, const char* latest) {
-    uint32_t sig = hashOf(network) ^ hashOf(account)
-                 ^ ((uint32_t)visiblePrinters << 8) ^ (uint32_t)totalPrinters
-                 ^ (updateWaiting ? 0x5A5A5A5Au : 0u) ^ hashOf(latest);
+void showMenu(const MenuState& st) {
+    uint32_t sig = hashOf(st.network) ^ hashOf(st.account)
+                 ^ ((uint32_t)st.visiblePrinters << 8) ^ (uint32_t)st.totalPrinters
+                 ^ (st.wifiUp   ? 0x00010000u : 0u)
+                 ^ (st.signedIn ? 0x00020000u : 0u)
+                 ^ (st.updateWaiting ? 0x5A5A5A5Au : 0u) ^ hashOf(st.latest);
     if (sig == s_menuSig) return;
     s_menuSig = sig;
 
@@ -48,34 +48,43 @@ void showMenu(const char* network, const char* account,
     lv_obj_set_scrollbar_mode(body, LV_SCROLLBAR_MODE_AUTO);
 
     char printersVal[16];
-    snprintf(printersVal, sizeof(printersVal), "%d/%d", visiblePrinters, totalPrinters);
+    snprintf(printersVal, sizeof(printersVal), "%d/%d",
+             st.visiblePrinters, st.totalPrinters);
 
-    struct Row { Entry id; const char* label; const char* value; };
+    // The icon carries the state, the label stays white. Green for something
+    // that is reachable, red for something that is not, orange for what
+    // interrupts, red for what destroys. Eight rows, one glance.
+    struct Row { Entry id; const char* label; const char* value;
+                 const char* icon; uint32_t tint; };
     const Row rows[] = {
-        { E_PRINTERS, i18n::T(S_PRINTER),      printersVal },
-        { E_WIFI,     "Wi-Fi",                 network     },
-        { E_ACCOUNT,  i18n::T(S_TT_ACCOUNT),   account     },
-        { E_SCREEN,   i18n::T(S_SCREEN),                ""          },
-        { E_LANGUAGE, i18n::T(S_LANGUAGE),              i18n::name(i18n::current()) },
+        { E_PRINTERS, i18n::T(S_PRINTER),    printersVal,
+          LV_SYMBOL_LIST,     st.totalPrinters ? theme::OK : theme::DANGER },
+        { E_WIFI,     "Wi-Fi",               st.network,
+          LV_SYMBOL_WIFI,     st.wifiUp   ? theme::OK : theme::DANGER },
+        { E_ACCOUNT,  i18n::T(S_TT_ACCOUNT), st.account,
+          LV_SYMBOL_ENVELOPE, st.signedIn ? theme::OK : theme::DANGER },
+        { E_SCREEN,   i18n::T(S_SCREEN),     "",
+          LV_SYMBOL_IMAGE,    0 },
+        { E_LANGUAGE, i18n::T(S_LANGUAGE),   i18n::name(i18n::current()),
+          LV_SYMBOL_KEYBOARD, 0 },
         { E_UPDATE,   i18n::T(S_UPDATE),
-          updateWaiting && latest && *latest ? latest : TIGERSPOOL_FW_VERSION },
-        { E_RESTART,  i18n::T(S_RESTART),               ""          },
-        { E_FACTORY,  i18n::T(S_FACTORY),         ""          },
+          st.updateWaiting && st.latest && *st.latest
+              ? st.latest : TIGERSPOOL_FW_VERSION,
+          LV_SYMBOL_DOWNLOAD, st.updateWaiting ? theme::WARN : 0 },
+        { E_RESTART,  i18n::T(S_RESTART),    "",
+          LV_SYMBOL_REFRESH,  theme::WARN },
+        { E_FACTORY,  i18n::T(S_FACTORY),    "",
+          LV_SYMBOL_TRASH,    theme::DANGER },
     };
     for (auto& r : rows) {
         lv_obj_t* row = frame::row(body, r.label, r.value, true, onEntry,
-                                   (void*)(intptr_t)r.id);
-        // Red for the one entry that cannot be undone, orange for the one that
-        // interrupts without destroying, orange again for an update waiting to
-        // be installed. Each reads as what it is before it is opened, not
-        // only after.
-        uint32_t tint = 0;
-        if (r.id == E_FACTORY)                        tint = theme::DANGER;
-        else if (r.id == E_RESTART)                   tint = theme::WARN;
-        else if (r.id == E_UPDATE && updateWaiting)   tint = theme::WARN;
-        if (tint) {
-            lv_obj_t* label = lv_obj_get_child(row, 0);
-            lv_obj_set_style_text_color(label, lv_color_hex(tint), 0);
+                                   (void*)(intptr_t)r.id, r.icon, r.tint);
+        if (r.id == E_FACTORY) {
+            // The single entry that cannot be undone is the one place the
+            // label is tinted too. Its icon alone would put it on the same
+            // footing as Restart, and the two are not the same kind of thing.
+            lv_obj_t* label = lv_obj_get_child(row, 1);
+            lv_obj_set_style_text_color(label, lv_color_hex(theme::DANGER), 0);
         }
     }
 }

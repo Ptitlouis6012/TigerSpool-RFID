@@ -53,3 +53,9 @@ Still open from them: row icons (the scale carries the colour on a 26 px icon
 and keeps the label white - we carry it on the label, having no icons), and the
 font fallback chain that would restore accents.
 
+- Settings rows now have icons. `frame::row` takes an optional LV_SYMBOL_* and
+  a tint; the value's width cap drops from 108 to 84 when there is one, because
+  the 28 px icon column was pushing the chevron off the row. `showMenu` takes a
+  `MenuState` struct - four adjacent bools as positional arguments is a swap
+  waiting to happen.
+

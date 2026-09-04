@@ -791,11 +791,16 @@ void loop() {
             if (printers[i].type == PT_NONE) continue;
             total++; if (printers[i].visible) visible++;
         }
-        screen_settings::showMenu(
-            WiFi.isConnected() ? WiFi.SSID().c_str() : i18n::T(S_OFFLINE),
-            ttcloud::haveSession() ? ttcloud::email().c_str() : i18n::T(S_ADD_WEB),
-            visible, total,
-            ota::state() == ota::AVAILABLE, ota::latestVersion());
+        screen_settings::MenuState menu{};
+        menu.wifiUp   = WiFi.isConnected();
+        menu.signedIn = ttcloud::haveSession();
+        menu.network  = menu.wifiUp   ? WiFi.SSID().c_str()      : i18n::T(S_OFFLINE);
+        menu.account  = menu.signedIn ? ttcloud::email().c_str() : i18n::T(S_ADD_WEB);
+        menu.visiblePrinters = visible;
+        menu.totalPrinters   = total;
+        menu.updateWaiting   = (ota::state() == ota::AVAILABLE);
+        menu.latest          = ota::latestVersion();
+        screen_settings::showMenu(menu);
         lvgl_port::loop();
 
         if (screen_settings::takeBack()) {

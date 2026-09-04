@@ -19,12 +19,24 @@ enum Entry {
     E_COUNT
 };
 
+// What the menu draws. A struct rather than eight positional arguments: two
+// adjacent bools in a call are two bools nobody can read at the call site, and
+// swapping them compiles.
+//
 // `updateWaiting` colours the Update row and puts the new version on it. It is
 // the only place a waiting update is announced outside its own page: a spool
 // reader is not a phone, and a badge on the home screen would be nagging.
-void showMenu(const char* network, const char* account,
-              int visiblePrinters, int totalPrinters,
-              bool updateWaiting, const char* latest);
+struct MenuState {
+    const char* network;          // the SSID, or the offline label
+    const char* account;          // the e-mail, or the "add it on the web" label
+    int         visiblePrinters;
+    int         totalPrinters;
+    bool        wifiUp;           // tints the Wi-Fi icon
+    bool        signedIn;         // tints the Account icon
+    bool        updateWaiting;
+    const char* latest;
+};
+void showMenu(const MenuState& st);
 Entry takeEntry();
 bool  takeBack();
 void  invalidate();

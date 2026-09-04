@@ -34,7 +34,13 @@ lv_obj_t* bigLabel(const char* text, uint32_t colour);
 lv_obj_t* button(lv_obj_t* parent, const char* text, int tone, Callback onClick);
 
 // A 48 px row with a label, an optional dim value and an optional chevron.
+//
+// `icon` is an LV_SYMBOL_* and takes the left of the row. It is where the
+// row's state is expressed - green for reachable, orange for interrupts,
+// red for destroys - so the label itself stays white and readable. Pass 0 for
+// `iconColour` to leave it the dim default.
 lv_obj_t* row(lv_obj_t* parent, const char* label, const char* value,
-              bool chevron, lv_event_cb_t cb, void* userData);
+              bool chevron, lv_event_cb_t cb, void* userData,
+              const char* icon = nullptr, uint32_t iconColour = 0);
 
 }  // namespace frame
