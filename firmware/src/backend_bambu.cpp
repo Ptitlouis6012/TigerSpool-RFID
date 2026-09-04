@@ -16,7 +16,7 @@ namespace {
         { "", 255, 254 },
         { "A1", 0, 0 }, { "A2", 0, 1 }, { "A3", 0, 2 }, { "A4", 0, 3 },  // assumed until the first report
     };
-    int  g_nSlots = 5;                          // ate ao 1o relatorio
+    int  g_nSlots = 5;                          // until the first report
 
     WiFiClientSecure net;
     PubSubClient     mqtt(net);
@@ -158,14 +158,19 @@ namespace {
 
 void BambuBackend::begin(const PrinterCfg& cfg) {
     g_host = cfg.host; g_sn = cfg.sn; g_cc = cfg.cc;   // user "bblp", pass = access code (Modo LAN)
-    setDefaultMap();                              // Ext + A..D ate ao 1o pushall
+    setDefaultMap();                     // assumed until the first pushall
     for (int i = 0; i < BMAX; i++) g_slots[i] = SlotState{};
     g_connected = false;
     g_status = "Bambu: connecting...";
     g_topReport  = String("device/") + g_sn + "/report";
     g_topRequest = String("device/") + g_sn + "/request";
 
-    net.setInsecure();                 // the printer presents a self-signed cert
+    // setInsecure() is correct here and must stay. The printer is on the local
+    // network and presents a self-signed certificate: there is no authority to
+    // verify it against, and no certificate store would accept it. Trust comes
+    // from the access code, which the user read off the printer's own screen.
+    // Calls that leave the network are verified - see net/tls.h.
+    net.setInsecure();
     mqtt.setServer(g_host.c_str(), 8883);
     // A pushall from an X1 with four AMS units reaches about 50 KB. If the
     // buffer cannot hold it the topology

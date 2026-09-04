@@ -14,12 +14,10 @@
 // at any point leaves the device exactly as it was — the worst case is a wasted
 // download.
 //
-// WHAT THIS DOES NOT DO, and it matters. The image is not signed. The SHA-256
-// proves the bytes arrived intact; it does not prove who produced them, because
-// the hash is fetched over the same connection as the image. Certificate
-// verification is not enabled either. Anyone who can intercept the connection
-// can serve both a firmware and a matching hash. That is acceptable on a bench
-// and is a release blocker — see docs/OTA.md.
+// The connection is verified against the root CA store (net/tls.h), so the
+// device knows who it is talking to. What it still does not know is who
+// produced the image: that is a signature, and it is a separate decision with
+// its own condition — see docs/OTA.md.
 namespace ota {
 
 enum State : uint8_t {

@@ -2,6 +2,7 @@
 #include "version.h"
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
+#include "tls.h"
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <Update.h>
@@ -64,7 +65,7 @@ bool fetchManifest() {
     if (!WiFi.isConnected()) { fail("no network"); return false; }
 
     WiFiClientSecure client;
-    client.setInsecure();
+    tls::secure(client);
     client.setTimeout(15);
 
     HTTPClient http;
@@ -126,7 +127,7 @@ bool download() {
                   (unsigned)ESP.getFreeHeap(), (unsigned)ESP.getMaxAllocHeap());
 
     WiFiClientSecure client;
-    client.setInsecure();
+    tls::secure(client);
     client.setTimeout(15);
 
     HTTPClient http;

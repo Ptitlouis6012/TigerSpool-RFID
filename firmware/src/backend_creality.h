@@ -7,7 +7,7 @@ public:
     void loop() override;
     void stop() override;
     bool connected() override;
-    int  slotCount() override { return 5; }        // Suporte + 1A..1D
+    int  slotCount() override { return 5; }        // external holder + 1A..1D
     const char* slotLabel(int i) override;
     const SlotState& slot(int i) override;
     bool assign(int i, const TagInfo& t) override;

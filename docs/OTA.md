@@ -313,17 +313,49 @@ runnable by hand any time there is doubt about what devices can see. **Verify
 the published result, not the workflow's green check** — a deployment can report
 success and serve the previous build.
 
-### Signing is the remaining blocker
+### The certificate is verified. The image is not signed.
 
-Everything above is built. The image is still **not signed**, and certificate
-verification is still off. The SHA-256 proves the bytes arrived intact; it does
-not prove who produced them, because it is fetched over the same connection as
-the image. Anyone who can intercept that connection can serve a firmware and a
-matching hash.
+These are two different protections and they are worth separating, because the
+first was the real hole and the second is a decision with conditions.
 
-That is acceptable on a bench and not acceptable in the field, and it is the one
-thing between this and a public release. It is also the third of the three gaps
-found in the sibling project's OTA and deliberately not copied here.
+**Certificate verification is done.** Every call that leaves the network — the
+manifest, the firmware image, the account sign-in, the token refresh, the
+pairing, the Firestore import — goes through `net/tls.h` and is checked against
+the root CA store the Arduino core embeds. Before that, all of them ran
+`setInsecure()`: anyone able to intercept the connection could read the TigerTag
+refresh token off the wire, and could serve a firmware image together with a
+matching checksum, which the device would faithfully verify against the
+attacker's own hash and install.
+
+The store is used rather than a pinned root on purpose. Pinning is smaller and
+breaks the day a host changes certificate authority — which takes the update
+channel down on every device in the field, a worse outcome than the problem it
+solves.
+
+The one deliberate exception is the Bambu backend. That printer is on the local
+network and presents a self-signed certificate; there is no authority that could
+vouch for it, and trust comes from the access code the user read off the
+printer's own screen. It is commented as such so it is not "fixed".
+
+**Signing is open, with a condition.** A signature proves who *produced* the
+image, which certificate verification does not: it defends against a compromised
+distribution channel rather than a compromised network.
+
+It is worth doing **only if the private key never touches CI.** A key held in a
+GitHub Actions secret protects against nothing that certificate verification
+does not already cover — whoever controls the repository controls the workflow,
+and can equally push a malicious commit and release it, signed. The signature
+earns its cost the day releases are signed from a machine, offline.
+
+Two things must be settled before the first signed release, not after:
+
+- **Where the key lives**, and that it is not in this repository or in CI.
+- **How it rotates.** The public key is compiled into devices in the field. If
+  the private key leaks, changing it needs an update signed with the leaked key.
+  A rotation plan that does not exist before the first release will not exist
+  after it.
+
+The sibling project has no signing key either, so this is not a gap against it.
 
 ### Release notes cannot be forgotten
 

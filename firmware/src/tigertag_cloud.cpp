@@ -2,6 +2,7 @@
 #include "printer.h"
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
+#include "net/tls.h"
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <Preferences.h>
@@ -29,7 +30,7 @@ namespace {
     // ---- HTTPS ----------------------------------------------------------------
     int httpsPOST(const String& url, const String& body, String& resp, const char* bearer = nullptr) {
         if (WiFi.status() != WL_CONNECTED) return -1;
-        WiFiClientSecure c; c.setInsecure(); c.setHandshakeTimeout(15);
+        WiFiClientSecure c; tls::secure(c);
         HTTPClient h;
         if (!h.begin(c, url)) return -2;
         h.setTimeout(10000);
@@ -42,7 +43,7 @@ namespace {
     }
     int httpsGET(const String& url, String& resp, const char* bearer) {
         if (WiFi.status() != WL_CONNECTED) return -1;
-        WiFiClientSecure c; c.setInsecure(); c.setHandshakeTimeout(15);
+        WiFiClientSecure c; tls::secure(c);
         HTTPClient h;
         if (!h.begin(c, url)) return -2;
         h.setTimeout(10000);
@@ -485,7 +486,7 @@ bool ttcloud::syncNow(String& summary) {
     summary = String("TigerTag: ") + n + " LAN" +
               (cloudN  ? (String(", ") + cloudN + " cloud")   : "") +
               (noip    ? (String(", ") + noip + " without IP")    : "") +
-              (ignored ? (String(", ") + ignored + " ignoradas") : "") +
+              (ignored ? (String(", ") + ignored + " ignored") : "") +
               (diff ? " - updated" : " - no change");
     g_lastResult = summary;
     Serial.printf("[account] sync: %s\n", summary.c_str());

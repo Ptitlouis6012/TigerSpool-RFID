@@ -54,6 +54,12 @@ MARKERS = {
     "como", "esta", "falhou", "falha", "nenhuma", "ligar", "aguardar",
     "aprovacao", "enviado", "erro", "cama", "guardar", "tela", "arquivo",
     "sao", "sua", "seu", "seja", "entao", "apos", "ultima", "primeiro",
+    # Nouns and participles, not function words. Every one of these was found on
+    # a screen or in a log AFTER a sweep declared the tree clean: the list is a
+    # heuristic and grows by being wrong in public.
+    "ignoradas", "ignorada", "relatorio", "suporte", "unidade", "palpite",
+    "estacao", "maquinas", "telemovel", "ecrã", "aguardar", "alteracoes",
+    "pendente", "transitoria", "credenciais", "ligacoes", "ligacao",
     # French
     "les", "des", "une", "dans", "pour", "avec", "qui", "cette", "tout",
     "toute", "meme", "même", "cote", "côté", "ecriture", "boucle", "dessin",
