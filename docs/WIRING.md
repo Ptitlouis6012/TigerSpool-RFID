@@ -23,7 +23,7 @@ octal PSRAM, 2.0" 240×320 IPS with a CST816S capacitive touch panel.
 | `GND` | `GND` | — | Common ground. |
 | `TXD` | **GPIO44** | PN532 → ESP32 RX | Crossed. |
 | `RXD` | **GPIO43** | ESP32 TX → PN532 | Crossed. |
-| `RSTO` | `GPIO4` | ESP32 → PN532 | Optional, recommended — makes init far more reliable. |
+| `RSTO` | — | — | **Not connected.** The firmware defines no reset pin and never drives one; `config.h` declares the UART and nothing else. Leave it unwired. |
 | `IRQ` | — | — | Not used. |
 
 **Module DIP switches: both to `0` / OFF.** That selects HSU on the usual red V3

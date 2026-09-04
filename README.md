@@ -156,7 +156,7 @@ chip and is how you get a genuine first-boot again.
 
 ## Hardware
 
-One board, one reader, six wires. The electronics are identical for every
+One board, one reader, four wires. The electronics are identical for every
 printer brand — only the 3D-printed shell changes.
 
 | Part | Notes |
@@ -164,7 +164,7 @@ printer brand — only the 3D-printed shell changes.
 | **Waveshare ESP32-S3 2inch Capacitive Touch Display** development board | 240×320 IPS, ESP32-S3R8, 16 MB flash, 8 MB octal PSRAM. Screen, touch and MCU on one board. |
 | **PN532 NFC module**, V3 with DIP switches | Set to **HSU (UART)** — not I²C, not SPI. Both switches `0` / OFF. |
 | **A USB-C to USB-A cable that carries data** | Powers and flashes the board. A charge-only cable makes a working board look dead — no serial port ever appears. |
-| Six female-to-female jumper wires | 3V3, GND, and four signal lines |
+| Four jumper wires | 3V3, GND, TX, RX. **Supplied with the PN532** — nothing to buy. |
 | A 3D-printed case | [models/](models/) — one per printer brand, plus a desktop stand |
 
 **About 40 €** in total, plus filament. Parts, links and prices:
@@ -210,7 +210,7 @@ document.
 | [ACCOUNT-DATA.md](docs/ACCOUNT-DATA.md) | The shape a printer arrives in |
 | [OTA.md](docs/OTA.md) | Partitions, the manifest, and what is settled before the first release |
 | [PRINTER-COMPATIBILITY.md](docs/PRINTER-COMPATIBILITY.md) | Per-brand status and slot naming |
-| [WIRING.md](docs/WIRING.md) | The six wires |
+| [WIRING.md](docs/WIRING.md) | The four wires |
 
 Contributors and agents start at **[AGENTS.md](AGENTS.md)** and
 **[CODEMAP.md](CODEMAP.md)**.

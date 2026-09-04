@@ -34,7 +34,7 @@ look fine and are not, each of which cost somebody a debugging session.
 - [docs/ACCOUNT-DATA.md](docs/ACCOUNT-DATA.md): the Firestore shape a printer arrives in.
 - [docs/OTA.md](docs/OTA.md): the partition layout, and the release decisions that stop being decisions after the first public release.
 - [docs/PRINTER-COMPATIBILITY.md](docs/PRINTER-COMPATIBILITY.md): which printers work, what "supported" means, and the slot-naming table per brand.
-- [docs/WIRING.md](docs/WIRING.md) and [hardware/pinout.md](hardware/pinout.md): the six wires. **The reader is on GPIO43/44, never GPIO6/7** — that pair is an I²C bus with pull-ups on this board, and a reader wired there answers and returns random UIDs.
+- [docs/WIRING.md](docs/WIRING.md) and [hardware/pinout.md](hardware/pinout.md): the four wires. **The reader is on GPIO43/44, never GPIO6/7** — that pair is an I²C bus with pull-ups on this board, and a reader wired there answers and returns random UIDs.
 
 ## Verification
 

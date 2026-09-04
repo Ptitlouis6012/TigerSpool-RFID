@@ -14,7 +14,7 @@ for the first time.
 | Ground | `GND` | PN532 `GND` | — |
 | UART1 RX | **44** | PN532 `TXD` | in |
 | UART1 TX | **43** | PN532 `RXD` | out |
-| Reader reset | **4** | PN532 `RSTO` | out |
+| ~~Reader reset~~ | — | PN532 `RSTO` | **not connected** — the firmware drives no reset line |
 
 UART1, 115200 baud, 8N1. PN532 DIP switches both `0` / OFF.
 
