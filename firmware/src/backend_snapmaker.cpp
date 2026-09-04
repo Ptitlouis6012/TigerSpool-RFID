@@ -3,7 +3,9 @@
 #include <ArduinoJson.h>
 
 namespace {
-    const char* SLOTS[4] = { "A", "B", "C", "D" };
+    // One extruder per slot. The Moonraker script addresses them as
+    // CONFIG_EXTRUDER 0..3, and the machine's own UI calls them E1..E4.
+    const char* SLOTS[4] = { "E1", "E2", "E3", "E4" };
 
     WebSocketsClient ws;
     bool      g_connected = false;

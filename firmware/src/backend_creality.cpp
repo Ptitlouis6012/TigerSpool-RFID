@@ -1,4 +1,5 @@
 #include "backend_creality.h"
+#include "i18n.h"
 #include <WebSocketsClient.h>
 #include <ArduinoJson.h>
 
@@ -6,7 +7,10 @@
 namespace {
     struct CrealitySlot { const char* name; uint8_t box; uint8_t slot; };
     const CrealitySlot CREALITY_SLOTS[5] = {
-        { "Suporte", 0, 0 }, { "1A", 1, 0 }, { "1B", 1, 1 }, { "1C", 1, 2 }, { "1D", 1, 3 },
+        // A null name means the external holder - the spool that is not in the
+        // CFS. Its label is the one slot name that is a word rather than a
+        // position, so it comes from the translation table at draw time.
+        { nullptr, 0, 0 }, { "1A", 1, 0 }, { "1B", 1, 1 }, { "1C", 1, 2 }, { "1D", 1, 3 },
     };
 
     WebSocketsClient ws;
@@ -99,7 +103,10 @@ void CrealityBackend::stop() {
 
 bool CrealityBackend::connected() { return g_connected; }
 String CrealityBackend::status()  { return g_status; }
-const char* CrealityBackend::slotLabel(int i) { return CREALITY_SLOTS[i < 5 ? i : 0].name; }
+const char* CrealityBackend::slotLabel(int i) {
+    const char* n = CREALITY_SLOTS[i < 5 ? i : 0].name;
+    return n ? n : i18n::T(S_HOLDER);
+}
 const SlotState& CrealityBackend::slot(int i) { return g_slots[i < 5 ? i : 0]; }
 
 void CrealityBackend::refresh() {

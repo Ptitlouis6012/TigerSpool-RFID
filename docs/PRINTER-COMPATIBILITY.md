@@ -127,6 +127,71 @@ implemented in the prototype.
   holds across a brand's range is worth far more than one that fits one machine.
 - **Testing** once the backends exist.
 
+## Slot names
+
+A slot name is what the user reads on the box and matches against the machine in
+front of them. It has to be the name the printer's own interface uses, and the
+same one Tiger Studio shows — a slot called something else here is a slot the
+user has to translate in their head.
+
+These are taken from Tiger Studio's renderers, which are the reference:
+
+| Brand | External | Units |
+|---|---|---|
+| **Bambu Lab** | `Ext.` | `A1`–`A4` for the first AMS, `B1`–`B4` for the second, and so on |
+| **Creality** | `Ext.` | `1A`–`1D` for the first CFS box, `2A`–`2D` for the second |
+| **FlashForge** | `Ext.` | `1A`–`1D` for the material station. `T1`–`T4` are something else: the Creator 5 Pro's tool-changer nozzles, not station slots. |
+| **Elegoo** | `Ext.` | `S1`–`S4` |
+| **Snapmaker** | — | `E1`–`E4`, one per extruder |
+| **Anycubic** | see below | `A1`–`A4`, `B1`–`B4`, … one row per ACE unit |
+
+**There is one external slot per printer.** Not one per CFS, AMS or ACE unit —
+one for the machine. It belongs to the printer, and it is drawn once. That is why
+Tiger Studio puts `Ext.` on the first row and an invisible spacer in the same
+column on every row after it: the grid stays aligned without inventing an
+external spool that does not exist.
+
+Both backends here follow it: the external slot is index 0, written once, before
+any unit.
+
+**The letter and the digit swap places between brands.** Bambu is
+unit-then-position (`A1`), Creality is box-then-position (`1A`). They are not
+typos.
+
+**Reported slots are not loadable colours.** A Kobra X has four inputs in its
+head. One feeds a splitter serving four ACE units — sixteen colours — and the
+other three take one spool each, so the machine holds **nineteen** colours. Four
+ACE units are sixteen slots, not twenty.
+
+### Anycubic, and what is actually known
+
+**The protocol does not describe the wiring, and a backend must not try to.** You
+receive the list of ACE units. You do not learn which head input each one hangs
+off, and you do not need to: the printer resolves a box and slot to a physical
+path itself. Modelling the topology would be inventing a fact the machine never
+sends.
+
+What the hardware does, from the bench:
+
+- A **Kobra X** has four inputs on the print head. Each takes one spool directly,
+  or an ACE unit. So the same machine can be four direct colours, or sixteen
+  through four ACE units, or a mix — and the report looks the same shape either
+  way.
+- A **Kobra S1** and **S1 Max** have a slot the machine calls **"Holder"**. That
+  is the `Ext.` equivalent, one per printer, consistent with the rule above.
+
+**What is not settled is how box `-1` should be labelled.** Tiger Studio's
+renderer builds a per-slot prefix of `E` for box `-1`, giving `E1`–`E4` — four
+external slots, against the one-per-printer rule. The header comment in that same
+file says `[Ext.] [A1] [A2] …` instead. The two disagree inside one file, and the
+Kobra X reports four slots on box `-1` while the S1's "Holder" is plainly one.
+
+Decide it against a machine, not against the report. Everything else in this
+table is settled.
+
+Slot **names** are decoupled from slot **indices**: renaming is safe, adding a
+slot changes the protocol mapping and is not.
+
 ## What "supported" does and does not mean
 
 **It means:** TigerSpool can write a material name, a colour and nozzle/bed

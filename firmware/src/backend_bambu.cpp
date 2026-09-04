@@ -1,4 +1,5 @@
 #include "backend_bambu.h"
+#include "i18n.h"
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <PubSubClient.h>
@@ -9,8 +10,11 @@ namespace {
     static const int BMAX = 17;                 // external spool + 4 AMS units x 4 trays
     struct BSlot { char name[4]; int ams; int tray; };
     BSlot g_map[BMAX] = {
-        { "Ext", 255, 254 },                    // external spool (vt_tray)
-        { "A", 0, 0 }, { "B", 0, 1 }, { "C", 0, 2 }, { "D", 0, 3 },   // palpite AMS Lite
+        // An empty name means the external spool (vt_tray) - the one slot
+        // label that is a word rather than a position, so it is translated at
+        // draw time rather than stored here.
+        { "", 255, 254 },
+        { "A1", 0, 0 }, { "A2", 0, 1 }, { "A3", 0, 2 }, { "A4", 0, 3 },  // assumed until the first report
     };
     int  g_nSlots = 5;                          // ate ao 1o relatorio
 
@@ -26,7 +30,7 @@ namespace {
 
     void setDefaultMap() {
         static const BSlot def[5] = {
-            { "Ext", 255, 254 }, { "A", 0, 0 }, { "B", 0, 1 }, { "C", 0, 2 }, { "D", 0, 3 },
+            { "", 255, 254 }, { "A1", 0, 0 }, { "A2", 0, 1 }, { "A3", 0, 2 }, { "A4", 0, 3 },
         };
         for (int i = 0; i < 5; i++) g_map[i] = def[i];
         g_nSlots = 5;
@@ -48,17 +52,20 @@ namespace {
                 if (ids[j] < ids[i]) { int t = ids[i]; ids[i] = ids[j]; ids[j] = t; }
 
         int n = 0;
-        strcpy(g_map[n].name, "Ext"); g_map[n].ams = 255; g_map[n].tray = 254; n++;
+        g_map[n].name[0] = 0;   // external spool: translated at draw time
+        g_map[n].ams = 255; g_map[n].tray = 254; n++;
         for (int u = 0; u < nu && n < BMAX; u++)
             for (int tr = 0; tr < 4 && n < BMAX; tr++) {
-                char L = 'A' + tr;
-                if (nu > 1) snprintf(g_map[n].name, 4, "%d%c", ids[u] + 1, L);
-                else        snprintf(g_map[n].name, 4, "%c", L);
+                // The unit is a letter and the tray a number: A1..A4 for the
+                // first AMS, B1..B4 for the second. That is what Bambu Studio
+                // shows, and matching it is the difference between a user
+                // reading the slot and having to work it out.
+                snprintf(g_map[n].name, 4, "%c%d", 'A' + ids[u], tr + 1);
                 g_map[n].ams = ids[u];
                 g_map[n].tray = tr;
                 n++;
             }
-        if (n != g_nSlots) Serial.printf("[bambu] AMS: %d unidade(s) -> %d slots\n", nu, n);
+        if (n != g_nSlots) Serial.printf("[bambu] AMS: %d unit(s) -> %d slots\n", nu, n);
         g_nSlots = n;
     }
 
@@ -202,7 +209,10 @@ void BambuBackend::stop() {
 bool BambuBackend::connected() { return g_connected; }
 String BambuBackend::status()  { return g_status; }
 int  BambuBackend::slotCount() { return g_nSlots; }
-const char* BambuBackend::slotLabel(int i) { return g_map[(i >= 0 && i < g_nSlots) ? i : 0].name; }
+const char* BambuBackend::slotLabel(int i) {
+    const char* n = g_map[(i >= 0 && i < g_nSlots) ? i : 0].name;
+    return (n && *n) ? n : i18n::T(S_HOLDER);
+}
 const SlotState& BambuBackend::slot(int i) { return g_slots[(i >= 0 && i < g_nSlots) ? i : 0]; }
 
 void BambuBackend::refresh() {

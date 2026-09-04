@@ -9,7 +9,7 @@ public:
     void begin(const PrinterCfg& cfg) override;
     void loop() override;
     bool connected() override;
-    int  slotCount() override { return 4; }        // estacao de 4 slots (T1..T4)
+    int  slotCount() override { return 4; }        // material station, 1A..1D
     const char* slotLabel(int i) override;
     const SlotState& slot(int i) override;
     bool assign(int i, const TagInfo& t) override;

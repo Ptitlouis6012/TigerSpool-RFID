@@ -10,7 +10,9 @@ namespace {
     SlotState g_slots[4];
     uint32_t  g_lastReq = 0;
     uint32_t  g_lastAuth = 0;
-    const char* LABELS[4] = { "T1", "T2", "T3", "T4" };
+    // The material station's four slots. Named as the printer names them:
+    // station number then position, so a second station would be 2A..2D.
+    const char* LABELS[4] = { "1A", "1B", "1C", "1D" };
 
     // TigerTag material -> the Creator 5's list of 21 materials
     String ffMaterial(const String& in) {
