@@ -617,6 +617,51 @@ namespace {
         return h;
     }
 
+    // GET /login - the page the sign-in QR points at.
+    //
+    // It used to point at "/", which serves the configuration page. That page
+    // opens with the Wi-Fi picker and puts the account form some forty lines
+    // below it, so a phone scanning the QR landed on a network selector and had
+    // to scroll to find what it came for. Worse, the first thing under the
+    // finger was a "save and restart" that could take the device off the
+    // network it had just joined.
+    //
+    // So the QR gets a page with one job on it. The POST target is the same
+    // handler as before; only the wrapper is new.
+    void handleLogin() {
+        if (ttcloud::haveSession()) { reply(wl(W_CONNECTED) + esc(ttcloud::email()), ""); return; }
+
+        String h; h.reserve(1800);
+        h += F("<!doctype html><html><head><meta charset=utf-8>"
+               "<meta name=viewport content=\"width=device-width,initial-scale=1\">"
+               "<title>TigerSpool</title><style>"
+               "body{font-family:system-ui,sans-serif;background:#0a0b0f;color:#f4f5f8;"
+               "margin:0;padding:26px 18px;display:flex;justify-content:center}"
+               ".card{width:100%;max-width:380px}"
+               "h1{font-size:1.25rem;margin:.2rem 0 .2rem}"
+               ".hint{color:#9aa0b0;font-size:.86rem;margin:0 0 1.3rem}"
+               "label{display:block;margin:.9rem 0 .3rem;font-size:.82rem;color:#9aa0b0}"
+               "input{width:100%;box-sizing:border-box;padding:12px;border-radius:10px;"
+               "border:1px solid #262a36;background:#12141b;color:#f4f5f8;font-size:1rem}"
+               "button{margin-top:1.4rem;width:100%;padding:14px;border:0;border-radius:999px;"
+               "background:linear-gradient(96deg,#ff7a18,#e6352b);color:#fff;font-weight:700;"
+               "font-size:1rem;font-family:inherit}"
+               ".g{background:#fff;color:#1c2030;margin-top:.7rem}"
+               "</style></head><body><div class=card>");
+        h += F("<h1>"); h += wl(W_TT_ACCOUNT); h += F("</h1>");
+        h += F("<p class=hint>"); h += wl(W_TT_HINT); h += F("</p>");
+        h += F("<form method=POST action=/tt-login>"
+               "<label>Email</label>"
+               "<input name=ttmail type=email autocomplete=username inputmode=email>"
+               "<label>"); h += wl(W_PASS); h += F("</label>"
+               "<input name=ttpass type=password autocomplete=current-password>"
+               "<button type=submit>"); h += wl(W_TT_LOGIN); h += F("</button></form>"
+               "<form method=POST action=/tt-gstart>"
+               "<button type=submit class=g>"); h += wl(W_GOOGLE); h += F("</button></form>");
+        h += F("</div></body></html>");
+        server.send(200, "text/html", h);
+    }
+
     void handleRoot() {
         if (apMode && server.hasArg("rescan")) doScan();
         server.send(200, "text/html", page());
@@ -758,6 +803,7 @@ namespace {
         server.on("/api/join", HTTP_POST, handleApiJoin);
         server.on("/api/lang", handleApiLang);
         server.on("/api/tap",  handleApiTap);
+        server.on("/login",    handleLogin);
         server.on("/screen.bmp", handleShot);      // raw panel capture
         server.on("/screen", handleShotPage);      // page that refreshes it
         server.on("/save", HTTP_POST, handleSave);

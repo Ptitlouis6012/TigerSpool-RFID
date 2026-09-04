@@ -1,10 +1,15 @@
 // Translations for the web installer.
 //
-// The same eight languages as the device itself (firmware/src/i18n.cpp), so
-// somebody who reads the box in Polish also reads the page that flashes it in
-// Polish. `pt` and `pt-pt` are kept apart on purpose: that split exists in the
-// firmware too, and Brazilian and European Portuguese differ in exactly the
+// The eight languages the device itself speaks (firmware/src/i18n.cpp), plus
+// Chinese. Somebody who reads the box in Polish also reads the page that flashes
+// it in Polish. `pt` and `pt-pt` are kept apart on purpose: that split exists in
+// the firmware too, and Brazilian and European Portuguese differ in exactly the
 // words this page uses.
+//
+// Chinese is HERE and not on the device, and the difference is the font. The
+// panel draws from a Montserrat subset with no CJK glyphs, so a Chinese string
+// would reach it as a row of empty boxes. A browser has the whole system font
+// and simply renders it.
 //
 // Unlike the device's strings, these carry accents. This is HTML rendered by a
 // browser, not LVGL drawing from a font subset that has none.
@@ -560,6 +565,74 @@ pt: {
   f_releases: "Versões",
   f_manifest: "version.json",
   f_license: "Licença MIT",
+},
+
+zh: {
+  lang_name: "中文",
+  lang_label: "选择语言",
+  theme_label: "切换浅色和深色",
+  h1_install: "安装",
+  tagline: "把开发板插到这台电脑上，点击安装，等待约一分钟。无需工具链，无需命令行。",
+  fw: "固件",
+
+  s1_title: "你需要什么",
+  s1_lede: "两块板、四根线，以及一根能传输数据的线缆。",
+  n_board_html: "一块 <b>Waveshare ESP32-S3 2inch Capacitive Touch Display</b> 开发板。",
+  n_pn532_html: "一个 <b>PN532 NFC 模块</b>，V3 版本，两个 DIP 开关都拨到 <code>0</code> / OFF，接到 <b>GPIO44</b> 和 <b>GPIO43</b> —— 绝不要接 GPIO6/7。四根线，模块自带。<a href=\"https://github.com/TigerTag-Project/TigerSpool-RFID/blob/main/docs/WIRING.md\">接线图</a>。",
+  n_cable_html: "一根<b>能传输数据的 USB-C 转 USB-A 线</b>，不是只能充电的那种。",
+  n_browser_html: "台式机或笔记本上的 <b>Chrome、Edge 或 Opera</b>。",
+  n_account_html: "一个 <b>TigerTag 账户</b>，在 <a href=\"https://github.com/TigerTag-Project/TigerTag-Studio-Manager\">Tiger Studio Manager</a> 中创建 —— 见第 4 步。",
+
+  s2_title: "安装",
+  cta_btn: "安装 TigerSpool",
+  cta_note: "写入引导程序、分区表、启动选择器和固件 —— 与该版本一同发布的四个镜像。",
+  unsup_t: "此浏览器无法烧录开发板。",
+  unsup_b_html: "安装需要 WebSerial，只有桌面版的 Chrome、Edge 和 Opera 支持。Safari、Firefox 和所有手机浏览器都不行。请用这三者之一打开本页，或者<a href=\"https://github.com/TigerTag-Project/TigerSpool-RFID#build-it-yourself\">自行编译并烧录</a>。",
+  erase_t: "只有第一次配置的开发板才选择 Erase。",
+  erase_b: "擦除会清空 NVS 分区，那里保存着 TigerSpool 的 Wi-Fi 凭据、TigerTag 会话和已导入的打印机。普通安装不会碰它们 —— 这正是两个 OTA 分区的用途。",
+  serial_t: "没有出现串口？",
+  serial_b: "通常是因为用了只能充电的 USB 线。板子会亮、屏幕会工作，但电脑始终看不到它。换一根你确定能传文件的线试试。",
+
+  s3_title: "在设备上完成设置",
+  a1_html: "<b>选择语言。</b>共八种，在其他一切之前。",
+  a2_html: "<b>连接 Wi-Fi。</b>设备显示一个二维码。用手机扫描后会打开一个页面，列出它能看到的网络 —— 选择你的网络并在手机上输入密码。小屏幕上不用输入任何内容，设备也不会重启。",
+  a3_html: "<b>登录</b>你的 TigerTag 账户，用邮箱，或者通过第二个二维码用 Google 登录。",
+  a4_html: "<b>你的打印机会出现</b>，来自你的账户。",
+  s3_foot: "然后把带标签的线材靠近设备，点选想要的槽位并确认。此后它会通过网络自行更新 —— 本页只用于首次安装。",
+
+  s4_title: "如果打印机列表是空的",
+  s4_lede: "这不是故障，设备上也没有什么需要修的。它显示的正是你账户里的内容。",
+  s4_body_html: "TigerSpool 没有键盘，也无法被告知打印机的地址 —— 这是有意的。打印机在 <a href=\"https://github.com/TigerTag-Project/TigerTag-Studio-Manager\"><b>Tiger Studio Manager</b></a> 中声明一次，连同访问码一起，你的每台 TigerSpool 都读取同一份列表。在那里添加打印机，下次同步时它就会出现在设备上。",
+  s4_1_html: "安装 <b>Tiger Studio Manager</b> 并创建 TigerTag 账户。",
+  s4_2: "把你的打印机添加进去。",
+  s4_3_html: "<b>然后</b>在设备上登录。",
+
+  cart_title: "需要购买什么",
+  cart_lede: "三样东西。无论你用哪种打印机，电子件都一样 —— 只有打印的外壳不同。",
+  p_board: "Waveshare ESP32-S3 2inch Touch Display",
+  p_board_n: "240×320 IPS，16 MB 闪存，8 MB PSRAM",
+  p_pn532: "PN532 NFC 模块，V3",
+  p_pn532_n: "两个一组出售 —— 备用的那个能在一分钟内排除接线疑问",
+  p_cable_html: "USB-A 转 USB-C 线，<b>数据</b>",
+  p_cable_n: "速度无所谓；只能充电的线则不行",
+  p_wires: "四根杜邦线",
+  p_wires_n: "随 PN532 附带 —— 无需另购",
+  p_case: "3D 打印外壳",
+  p_case_n: "约 30 克线材",
+  buy: "亚马逊",
+  models: "模型",
+  cart_warn_html: "PN532 必须是<b>带 DIP 开关的 V3 版本</b>，设置为 HSU。没有开关的仿品无法使用 UART，而本固件只会这一种。",
+  cart_total_html: "总共约 <b>40 €</b>，外加线材。",
+  cart_aff: "部分链接是亚马逊联盟链接：它们为本项目带来少量佣金，你无需多付。没有任何一样是因为有佣金才被选中 —— 任何同等模块都可以。",
+  cart_bom: "完整物料清单",
+  cart_wiring: "接线图",
+
+  f_source: "源代码",
+  f_wiring: "接线",
+  f_parts: "零件",
+  f_releases: "版本",
+  f_manifest: "version.json",
+  f_license: "MIT 许可",
 },
 
 };

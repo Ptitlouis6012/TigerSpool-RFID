@@ -642,7 +642,10 @@ void loop() {
         // where there is a keyboard and a password manager. The QR is just the
         // address - nothing to read off this screen and type into that one.
         if (step == EMAIL) {
-            String url = String("http://") + WiFi.localIP().toString();
+            // /login, not "/": the configuration page opens with the Wi-Fi
+            // picker and buries the account form below it, so a phone scanning
+            // this QR landed on a network selector.
+            String url = String("http://") + WiFi.localIP().toString() + "/login";
             screen_setup::showEmailPairing(url.c_str());
             lvgl_port::loop();
             if (screen_setup::takeBack()) { screen_setup::hide(); step = CHOICE; break; }
