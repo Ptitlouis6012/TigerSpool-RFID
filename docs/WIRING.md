@@ -17,6 +17,25 @@ octal PSRAM, 2.0" 240×320 IPS with a CST816S capacitive touch panel.
 
 ### PN532 → ESP32-S3
 
+Four wires. They come with the module, so there is nothing to buy.
+
+```
+   PN532 V3                                 Waveshare ESP32-S3-Touch-LCD-2
+   DIP switches: both 0 / OFF
+
+     VCC  ─────────────────────────────────  3V3       never 5 V
+     GND  ─────────────────────────────────  GND
+     TXD  ─────────────────────────────────  GPIO44    UART1 RX   transmit -> receive
+     RXD  ─────────────────────────────────  GPIO43    UART1 TX   receive  <- transmit
+
+     RSTO    not connected
+     IRQ     not connected
+```
+
+The lines do not cross on the board — they cross in the *names*. The reader's
+transmit pin lands on the ESP32's receive pin, which is why `TXD` sits opposite
+`GPIO44` and not `GPIO43`.
+
 | PN532 pin | ESP32-S3 | Direction | Notes |
 |---|---|---|---|
 | `VCC` | **3V3** | — | **Not 5 V.** |
