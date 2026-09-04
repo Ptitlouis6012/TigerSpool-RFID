@@ -28,6 +28,7 @@
 #include "backend_snapmaker.h"
 #include "webcfg.h"
 #include "net/ota.h"
+#include "splash.h"
 #include "tigertag_cloud.h"
 #include "ui/lvgl_port.h"
 #include "ui/screen_home.h"
@@ -483,7 +484,7 @@ static void selectPrinter(int i) {
     backend->begin(printers[i]);
     selSlot = -1; resultMsg = "";
     state = ST_GRID; stateSince = millis();
-    Serial.printf("[ui] impressora %d '%s' (%s)\n", i, printers[i].name.c_str(), typeTag(printers[i].type));
+    Serial.printf("[ui] printer %d '%s' (%s)\n", i, printers[i].name.c_str(), typeTag(printers[i].type));
 }
 
 // ---- setup / loop -----------------------------------------------------
@@ -493,6 +494,16 @@ void setup() {
     lcd.init();
     lcd.setRotation(SCR_ROTATION);
     lcd.setBrightness(200);
+
+    // The boot screen, pushed straight from flash before LVGL exists. Drawn
+    // here and not later because "here" is the first instant the panel can show
+    // anything: everything after this line - LVGL, the language table, the NVS
+    // read, the reader handshake - happens with the logo already up.
+    //
+    // No timer holds it. It stays until the first screen replaces it, so the
+    // device is never slower than it needs to be to look considered.
+    lcd.pushImage(0, 0, SPLASH_W, SPLASH_H, SPLASH_DATA);
+
     canvas.setPsram(true);
     canvas.setColorDepth(16);
     canvasReady = (canvas.createSprite(SCR_W, SCR_H) != nullptr);

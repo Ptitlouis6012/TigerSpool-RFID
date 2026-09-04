@@ -24,11 +24,18 @@ REPO = pathlib.Path(__file__).resolve().parent.parent
 
 # (generator, the file it owns). Add a row when a generator is added; the point
 # is that this list is the registry, not a convention someone remembers.
+# (command, the file it owns). The command is a list because not every
+# generator is a bare script: the bitmap converter takes its source and its
+# destination as arguments, and a wrapper script whose only job is to hold those
+# arguments would be a second place the filename lives.
 GENERATED = [
-    (REPO / "firmware" / "tools" / "gen_db.py",
+    (["firmware/tools/gen_db.py"],
      REPO / "firmware" / "include" / "tigertag_db.h"),
-    (REPO / "scripts" / "gen-font-range.py",
+    (["scripts/gen-font-range.py"],
      REPO / "scripts" / "font_range.json"),
+    (["scripts/make-rgb565-header.py", "assets/TigerSpoolRFID-BootScreen.png",
+      "--name", "SPLASH", "--out", "firmware/include/splash.h"],
+     REPO / "firmware" / "include" / "splash.h"),
 ]
 
 # A generator exiting with this says "I could not check", which is a different
@@ -47,10 +54,11 @@ def main() -> int:
 
     failures = 0
     unverifiable = []
-    for generator, committed in GENERATED:
+    for command, committed in GENERATED:
         rel = committed.relative_to(REPO)
+        generator = REPO / command[0]
         if not generator.exists():
-            print(f"error: generator missing: {generator.relative_to(REPO)}", file=sys.stderr)
+            print(f"error: generator missing: {command[0]}", file=sys.stderr)
             failures += 1
             continue
         if not committed.exists():
@@ -63,7 +71,7 @@ def main() -> int:
         with tempfile.TemporaryDirectory() as tmp:
             backup = pathlib.Path(tmp) / committed.name
             shutil.copy2(committed, backup)
-            proc = subprocess.run([sys.executable, str(generator)],
+            proc = subprocess.run([sys.executable] + command,
                                   capture_output=True, text=True, cwd=REPO)
             produced = committed.read_bytes()
             shutil.copy2(backup, committed)   # restore before judging
@@ -74,15 +82,14 @@ def main() -> int:
                 continue
 
             if proc.returncode != 0:
-                print(f"error: {generator.relative_to(REPO)} failed to run:", file=sys.stderr)
+                print(f"error: {command[0]} failed to run:", file=sys.stderr)
                 print((proc.stderr or proc.stdout).strip()[:800], file=sys.stderr)
                 failures += 1
                 continue
 
             if produced != backup.read_bytes():
-                print(f"error: {rel} does not match {generator.relative_to(REPO)}",
-                      file=sys.stderr)
-                print(f"       regenerate it: python3 {generator.relative_to(REPO)}",
+                print(f"error: {rel} does not match {command[0]}", file=sys.stderr)
+                print("       regenerate it: python3 " + " ".join(command),
                       file=sys.stderr)
                 print("       do not hand-edit it back into agreement.", file=sys.stderr)
                 failures += 1

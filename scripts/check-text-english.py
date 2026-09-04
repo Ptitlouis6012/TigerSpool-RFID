@@ -60,6 +60,7 @@ MARKERS = {
     "ignoradas", "ignorada", "relatorio", "suporte", "unidade", "palpite",
     "estacao", "maquinas", "telemovel", "ecrã", "aguardar", "alteracoes",
     "pendente", "transitoria", "credenciais", "ligacoes", "ligacao",
+    "impressora", "impressoras", "tabuleiros", "marca",
     # French
     "les", "des", "une", "dans", "pour", "avec", "qui", "cette", "tout",
     "toute", "meme", "même", "cote", "côté", "ecriture", "boucle", "dessin",
