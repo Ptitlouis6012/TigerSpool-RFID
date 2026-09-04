@@ -67,6 +67,12 @@ bool webStarted = false;
 enum State { ST_LANG, ST_WIFI, ST_AP, ST_ACCOUNT, ST_SETTINGS, ST_PICK, ST_SET_WIFI, ST_SET_ACCOUNT, ST_SET_SCREEN,
              ST_SET_UPDATE, ST_SET_RESTART, ST_SET_FACTORY, ST_PRINTER, ST_GRID, ST_SCAN, ST_REVIEW, ST_RESULT };
 State   state = ST_LANG;
+// Whether the language screen was opened from Settings rather than reached on
+// first boot. It decides two things: that the screen offers a way back, and
+// where picking a language returns to. Inferring it from WiFi.isConnected()
+// used to do both, and sent anyone whose network had dropped through first-boot
+// setup again.
+bool    langFromSettings = false;
 bool    nfcReady = false;
 uint32_t nfcLastTry = 0;
 int     selSlot = -1;
@@ -519,6 +525,7 @@ void setup() {
             Serial.printf("[wifi] associating to '%s' behind the language screen\n",
                           wifiSsid.c_str());
         }
+        langFromSettings = false;
         state = ST_LANG; stateSince = millis();
     }
 }
@@ -546,15 +553,23 @@ void loop() {
     switch (state) {
 
     case ST_LANG: {
-        screen_setup::showLanguage();
+        screen_setup::showLanguage(false, langFromSettings);
         lvgl_port::loop();
+
+        // Opened from Settings to see which language is set, and closed again
+        // without touching it. Without this the only way out was to pick one.
+        if (langFromSettings && screen_setup::takeBack()) {
+            screen_setup::hide();
+            screen_settings::invalidate();
+            state = ST_SETTINGS; stateSince = millis();
+            break;
+        }
+
         int pick = screen_setup::takeLanguage();
         if (pick >= 0) {
             i18n::set((Lang)pick);
             screen_setup::hide();
-            // Reached from settings on a device that is already running: go
-            // back there, not through first-boot again.
-            if (WiFi.isConnected()) {
+            if (langFromSettings) {
                 screen_settings::invalidate();
                 state = ST_SETTINGS; stateSince = millis();
             } else {
@@ -756,6 +771,7 @@ void loop() {
                 break;
             case screen_settings::E_LANGUAGE:
                 screen_setup::hide();
+                langFromSettings = true;
                 state = ST_LANG; stateSince = millis();
                 break;
             case screen_settings::E_WIFI:

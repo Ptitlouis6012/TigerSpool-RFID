@@ -245,7 +245,10 @@ void showLanguage(bool force, bool withBack) {
     if (s_langBuilt && s_active) return;
     s_langBuilt = true;
 
-    lv_obj_t* body = frame(i18n::T(S_CHOOSE_LANG), withBack);
+    // From Settings the title is the row that opened it, not the first-boot
+    // question: "Language" matches what the user tapped, and the long form does
+    // not fit beside a back chevron - it was clipped mid-word.
+    lv_obj_t* body = frame(i18n::T(withBack ? S_LANGUAGE : S_CHOOSE_LANG), withBack);
     lv_obj_set_flex_align(body, LV_FLEX_ALIGN_START,
                           LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_add_flag(body, LV_OBJ_FLAG_SCROLLABLE);
