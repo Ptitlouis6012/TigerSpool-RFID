@@ -20,6 +20,12 @@ uint32_t loop();
 void requestCapture(bool on);
 bool capturing();
 
+// Queue a synthetic touch at a panel coordinate, as if a finger had landed
+// there. Used by /api/tap so the interface can be navigated and screenshotted
+// without anyone standing at the bench. It obeys the sleep rule like a real
+// touch: on a dark screen it wakes and is consumed rather than acted on.
+void injectTap(int x, int y);
+
 void setBacklight(uint8_t percent);   // 0 = off, used by screen sleep
 uint8_t backlight();
 

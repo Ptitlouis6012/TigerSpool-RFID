@@ -83,9 +83,26 @@ void flushCb(lv_disp_drv_t* drv, const lv_area_t* area, lv_color_t* px) {
 uint32_t s_lastTouch = 0;
 bool     s_asleep    = false;
 
+// A tap queued over HTTP by /api/tap, so the interface can be driven and
+// photographed without a finger. It is reported to LVGL exactly like a real
+// touch: pressed for a few reads, then released, because a click LVGL can see
+// is a press and a release at the same point.
+//
+// It never bypasses the sleep rule below: a synthetic tap on a dark screen
+// wakes it and is consumed, the same as a real one. Anything else would let a
+// remote tap send filament to a slot while nobody can see the screen.
+volatile int32_t s_tapX = -1, s_tapY = -1;
+volatile int     s_tapReads = 0;
+
 void touchCb(lv_indev_drv_t*, lv_indev_data_t* data) {
     int32_t x, y;
     bool down = lcd.getTouch(&x, &y);
+
+    if (!down && s_tapReads > 0) {
+        x = s_tapX; y = s_tapY; down = true;
+        s_tapReads--;
+    }
+
     if (down) s_lastTouch = millis();
 
     // A dimmed or dark screen must not accept taps whose result cannot be
@@ -106,6 +123,11 @@ void touchCb(lv_indev_drv_t*, lv_indev_data_t* data) {
 }  // namespace
 
 namespace lvgl_port {
+
+void injectTap(int x, int y) {
+    s_tapX = x; s_tapY = y;
+    s_tapReads = 3;          // held for a few reads so LVGL sees a real press
+}
 
 void begin() {
     lv_init();

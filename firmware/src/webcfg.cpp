@@ -7,6 +7,7 @@
 #include <LovyanGFX.hpp>
 #include <lvgl.h>
 #include "ui/lvgl_port.h"
+#include "config.h"
 #include "ui/screen_setup.h"
 #include "ui/screen_home.h"
 #include "ui/screen_slots.h"
@@ -443,6 +444,35 @@ namespace {
         apTeardownAt = millis() + 6000;
     }
 
+    // POST/GET /api/tap?x=&y= - a synthetic touch at a panel coordinate.
+    //
+    // /screen.bmp made the interface readable from a desk; this makes it
+    // navigable. Together they close the loop: open a screen, tap, look at the
+    // result, without anyone standing at the bench. It is the difference
+    // between "does this look right?" being a question you ask someone and one
+    // you answer.
+    //
+    // LVGL is pumped here until the tap has been read and the screen has
+    // settled, so a single request leaves the panel in its new state and the
+    // caller can fetch /screen.bmp straight away. Same reasoning as the
+    // screenshot handler: this runs in the main loop, so pumping LVGL from it
+    // races nothing.
+    void handleApiTap() {
+        if (!server.hasArg("x") || !server.hasArg("y")) {
+            server.send(400, "text/plain", "need x and y");
+            return;
+        }
+        int x = server.arg("x").toInt();
+        int y = server.arg("y").toInt();
+        if (x < 0 || x >= SCR_W || y < 0 || y >= SCR_H) {
+            server.send(400, "text/plain", "outside the panel");
+            return;
+        }
+        lvgl_port::injectTap(x, y);
+        for (uint32_t t0 = millis(); millis() - t0 < 400; ) { lv_timer_handler(); delay(5); }
+        server.send(200, "text/plain", "ok");
+    }
+
     void handleApiLang() {
         String l = server.hasArg("l") ? server.arg("l") : String();
         for (int i = 0; i < (int)LANG_N; i++)
@@ -721,6 +751,7 @@ namespace {
         server.on("/api/scan", handleApiScan);
         server.on("/api/join", HTTP_POST, handleApiJoin);
         server.on("/api/lang", handleApiLang);
+        server.on("/api/tap",  handleApiTap);
         server.on("/screen.bmp", handleShot);      // raw panel capture
         server.on("/screen", handleShotPage);      // page that refreshes it
         server.on("/save", HTTP_POST, handleSave);
