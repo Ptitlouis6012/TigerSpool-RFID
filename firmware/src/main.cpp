@@ -28,7 +28,6 @@
 #include "backend_snapmaker.h"
 #include "webcfg.h"
 #include "net/ota.h"
-#include "splash.h"
 #include "tigertag_cloud.h"
 #include "ui/lvgl_port.h"
 #include "ui/screen_home.h"
@@ -500,9 +499,14 @@ void setup() {
     // anything: everything after this line - LVGL, the language table, the NVS
     // read, the reader handshake - happens with the logo already up.
     //
-    // No timer holds it. It stays until the first screen replaces it, so the
-    // device is never slower than it needs to be to look considered.
-    lcd.pushImage(0, 0, SPLASH_W, SPLASH_H, SPLASH_DATA);
+    // Held for a second, and the second is not wasted: the deadline is set
+    // here and only waited out at the END of setup(), so the whole boot -
+    // LVGL, the language table, NVS, the reader - happens inside it. On a
+    // board that takes longer than a second to come up, nothing is added at
+    // all. Without this the device boots faster than the eye reads, and the
+    // logo is a flicker nobody can see.
+    lvgl_port::drawSplash();
+    const uint32_t splashUntil = millis() + 1000;
 
     canvas.setPsram(true);
     canvas.setColorDepth(16);
@@ -543,6 +547,11 @@ void setup() {
         langFromSettings = false;
         state = ST_LANG; stateSince = millis();
     }
+
+    // Whatever is left of the splash's second. Usually nothing: the work above
+    // has already spent it.
+    while ((int32_t)(splashUntil - millis()) > 0) delay(5);
+
 }
 
 void loop() {

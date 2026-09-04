@@ -24,6 +24,10 @@ bool capturing();
 // there. Used by /api/tap so the interface can be navigated and screenshotted
 // without anyone standing at the bench. It obeys the sleep rule like a real
 // touch: on a dark screen it wakes and is consumed rather than acted on.
+// Draw the boot screen straight to the panel. Lives here because the bitmap is
+// 150 KB and a header included by two translation units is 150 KB twice.
+void drawSplash(bool alsoCanvas = false);
+
 void injectTap(int x, int y);
 
 // Drag from one point to another, reported as a moving press. Scrolls a list

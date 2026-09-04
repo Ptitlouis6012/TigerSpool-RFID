@@ -237,10 +237,21 @@ namespace {
         else if (preview == "setfactory") screen_settings::showFactory(-1);
         else if (preview == "pick")      screen_settings::showPrinters(nullptr, 0);
 
-        lvgl_port::requestCapture(true);
-        lv_obj_invalidate(lv_scr_act());
-        for (uint32_t t0 = millis(); millis() - t0 < 400; ) { lv_timer_handler(); delay(5); }
-        lvgl_port::requestCapture(false);
+        // The boot screen cannot be captured the way it is actually shown: it
+        // is drawn before the web server exists. This redraws it on demand so
+        // its geometry can be checked from a desk.
+        //
+        // It skips the LVGL pump below on purpose. That pump exists to make
+        // LVGL paint the requested screen into the sprite - and painting is
+        // exactly what would overwrite a bitmap that LVGL knows nothing about.
+        if (preview == "splash") {
+            lvgl_port::drawSplash(true);
+        } else {
+            lvgl_port::requestCapture(true);
+            lv_obj_invalidate(lv_scr_act());
+            for (uint32_t t0 = millis(); millis() - t0 < 400; ) { lv_timer_handler(); delay(5); }
+            lvgl_port::requestCapture(false);
+        }
 
         // Hand the display back to the state machine.
         //

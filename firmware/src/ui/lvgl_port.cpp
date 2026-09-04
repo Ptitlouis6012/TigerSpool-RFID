@@ -4,6 +4,7 @@
 #include <LovyanGFX.hpp>
 #include "LGFX_ESP32_S3_Touch_LCD_2.h"
 #include "config.h"
+#include "splash.h"
 
 extern LGFX        lcd;
 extern LGFX_Sprite canvas;      // shadow framebuffer, only for /screen.bmp
@@ -137,6 +138,14 @@ void touchCb(lv_indev_drv_t*, lv_indev_data_t* data) {
 }  // namespace
 
 namespace lvgl_port {
+
+void drawSplash(bool alsoCanvas) {
+    lcd.pushImage(0, 0, SPLASH_W, SPLASH_H, (lgfx::rgb565_t*)SPLASH_DATA);
+    // The capture route serialises the sprite, not the panel, so a screenshot
+    // of the boot screen needs it in both.
+    if (alsoCanvas && canvasReady)
+        canvas.pushImage(0, 0, SPLASH_W, SPLASH_H, (lgfx::rgb565_t*)SPLASH_DATA);
+}
 
 void injectTap(int x, int y) {
     s_tapX = x; s_tapY = y;
