@@ -232,7 +232,7 @@ namespace {
                                                                   WiFi.macAddress().c_str(), true);
         else if (preview == "setacct")  screen_settings::showAccount("benoit@atome3d.com", 6, true);
         else if (preview == "setscreen") screen_settings::showScreen(80, 60);
-        else if (preview == "setupdate") screen_settings::showUpdate(TIGERSPOOL_FW_VERSION, "stable");
+        else if (preview == "setupdate") screen_settings::showUpdate(TIGERSPOOL_FW_VERSION, "stable", 0, "", 0);
         else if (preview == "setrestart") screen_settings::showRestart();
         else if (preview == "setfactory") screen_settings::showFactory(-1);
         else if (preview == "pick")      screen_settings::showPrinters(nullptr, 0);
@@ -444,7 +444,8 @@ namespace {
         apTeardownAt = millis() + 6000;
     }
 
-    // POST/GET /api/tap?x=&y= - a synthetic touch at a panel coordinate.
+    // GET /api/tap?x=&y= - a synthetic touch at a panel coordinate.
+    // Add &x2=&y2= and it becomes a drag, which is how a list is scrolled.
     //
     // /screen.bmp made the interface readable from a desk; this makes it
     // navigable. Together they close the loop: open a screen, tap, look at the
@@ -468,7 +469,12 @@ namespace {
             server.send(400, "text/plain", "outside the panel");
             return;
         }
-        lvgl_port::injectTap(x, y);
+        if (server.hasArg("x2") && server.hasArg("y2")) {
+            lvgl_port::injectSwipe(x, y, server.arg("x2").toInt(),
+                                         server.arg("y2").toInt());
+        } else {
+            lvgl_port::injectTap(x, y);
+        }
         for (uint32_t t0 = millis(); millis() - t0 < 400; ) { lv_timer_handler(); delay(5); }
         server.send(200, "text/plain", "ok");
     }

@@ -3,6 +3,7 @@
 #include "theme.h"
 #include "i18n.h"
 #include "version.h"
+#include "../net/ota.h"
 #include <lvgl.h>
 
 namespace {
@@ -16,6 +17,8 @@ void onEntry(lv_event_t* e) {
     s_entry = (screen_settings::Entry)(intptr_t)lv_event_get_user_data(e);
 }
 void onBack()  { s_back = true; }
+void onCheck()   { ota::checkAsync(); }
+void onInstall() { ota::applyAsync(); }
 void onToggle(lv_event_t* e) { s_toggled = (int)(intptr_t)lv_event_get_user_data(e); }
 
 uint32_t hashOf(const char* s, uint32_t h = 2166136261u) {
@@ -311,8 +314,15 @@ void showScreen(uint8_t brightness, int sleepSeconds) {
     // a settings screen that did not explain itself above.
 }
 
-void showUpdate(const char* version, const char* channel) {
-    uint32_t sig = 0xC0000000u ^ hashOf(version) ^ hashOf(channel);
+// The update view redraws as the state machine moves through checking,
+// downloading and finishing, so its signature carries the state as well as the
+// version. Everything else on this screen is static; this one is a progress
+// report and has to be allowed to change.
+void showUpdate(const char* version, const char* channel,
+                int otaState, const char* latest, int percent) {
+    uint32_t sig = 0xC0000000u ^ hashOf(version) ^ hashOf(channel)
+                 ^ ((uint32_t)otaState << 20) ^ hashOf(latest)
+                 ^ ((uint32_t)percent << 8);
     if (sig == s_viewSig) return;
     s_viewSig = sig;
 
@@ -325,14 +335,49 @@ void showUpdate(const char* version, const char* channel) {
 
     lv_obj_t* spacer = lv_obj_create(body);
     lv_obj_remove_style_all(spacer);
-    lv_obj_set_size(spacer, 1, 20);
+    lv_obj_set_size(spacer, 1, 16);
 
     kv(body, i18n::T(S_CHANNEL), channel, theme::TEXT);
 
-    // Honest: there is no OTA yet. A "Check for updates" button that cannot
-    // check is worse than a sentence saying so. See docs/OTA.md.
-    frame::caption(i18n::T(S_OTA_OFF),
-                   theme::TEXT_DIM);
+    switch (otaState) {
+    case ota::CHECKING:
+        frame::caption(i18n::T(S_CHECKING), theme::TEXT_DIM);
+        break;
+
+    case ota::UP_TO_DATE:
+        frame::caption(i18n::T(S_UP_TO_DATE), theme::OK);
+        break;
+
+    case ota::AVAILABLE:
+        frame::caption(i18n::T(S_AVAILABLE), theme::TEXT_DIM);
+        frame::bigLabel(latest, theme::ACCENT);
+        frame::button(body, i18n::T(S_INSTALL), 1, onInstall);
+        break;
+
+    case ota::DOWNLOADING: {
+        char pct[24];
+        snprintf(pct, sizeof(pct), "%s  %d%%", i18n::T(S_DOWNLOADING), percent);
+        frame::caption(pct, theme::TEXT);
+        // The one screen where the warning earns its place: pulling the plug
+        // mid-write leaves a half-written slot, and the device boots the old
+        // one - recoverable, but it looks like a brick for a minute.
+        frame::caption(i18n::T(S_DONT_UNPLUG), theme::TEXT_DIM);
+        break;
+    }
+
+    case ota::DONE:
+        frame::caption(i18n::T(S_RESTARTING), theme::OK);
+        break;
+
+    case ota::FAILED:
+        frame::caption(ota::message(), theme::DANGER);
+        frame::button(body, i18n::T(S_CHECK_UPDATE), 2, onCheck);
+        break;
+
+    default:
+        frame::button(body, i18n::T(S_CHECK_UPDATE), 1, onCheck);
+        break;
+    }
 }
 
 void showRestart() {

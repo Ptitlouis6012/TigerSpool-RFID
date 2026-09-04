@@ -27,6 +27,7 @@
 #include "backend_bambu.h"
 #include "backend_snapmaker.h"
 #include "webcfg.h"
+#include "net/ota.h"
 #include "tigertag_cloud.h"
 #include "ui/lvgl_port.h"
 #include "ui/screen_home.h"
@@ -430,6 +431,9 @@ static bool wifiConnect() {
     return true;
 }
 static void onWifiUp() {
+    // Confirm the running image so the bootloader stops treating it as a
+    // candidate, and say in the log whether there is a slot to update into.
+    ota::begin();
     if (!webStarted) { webcfg::begin(); webStarted = true; }
 }
 
@@ -874,9 +878,22 @@ void loop() {
     }
 
     case ST_SET_UPDATE: {
-        screen_settings::showUpdate(TIGERSPOOL_FW_VERSION, "stable");
+        screen_settings::showUpdate(TIGERSPOOL_FW_VERSION, "stable",
+                                    (int)ota::state(), ota::latestVersion(),
+                                    ota::percent());
         lvgl_port::loop();
-        BACK_TO_SETTINGS();
+
+        // The new image is written and verified; the bootloader will start it.
+        // The pause is so the screen that says so is actually read.
+        if (ota::state() == ota::DONE) {
+            if (millis() - stateSince > 1500) { delay(200); ESP.restart(); }
+            break;
+        }
+
+        // No leaving mid-write: Back would return to Settings while the
+        // download task keeps writing the spare slot, and the next screen would
+        // give no sign that anything was happening.
+        if (ota::state() != ota::DOWNLOADING) BACK_TO_SETTINGS();
         break;
     }
 

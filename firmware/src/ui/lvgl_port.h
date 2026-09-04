@@ -26,6 +26,11 @@ bool capturing();
 // touch: on a dark screen it wakes and is consumed rather than acted on.
 void injectTap(int x, int y);
 
+// Drag from one point to another, reported as a moving press. Scrolls a list
+// the way a finger does - without it, anything below the fold cannot be reached
+// from a desk.
+void injectSwipe(int x1, int y1, int x2, int y2);
+
 void setBacklight(uint8_t percent);   // 0 = off, used by screen sleep
 uint8_t backlight();
 

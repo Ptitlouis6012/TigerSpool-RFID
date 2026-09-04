@@ -45,7 +45,8 @@ void showAccount(const char* email, int printers, bool linked);
 void showScreen(uint8_t brightness, int sleepSeconds);
 int  takeBrightness();       // new percentage, or -1
 int  takeSleep();            // new timeout in seconds, or -1
-void showUpdate(const char* version, const char* channel);
+void showUpdate(const char* version, const char* channel,
+                int otaState, const char* latest, int percent);
 void showRestart();
 void showFactory(int holdPercent);   // -1 = not holding
 bool factoryHolding();               // true while the finger is down

@@ -93,12 +93,26 @@ bool     s_asleep    = false;
 // remote tap send filament to a slot while nobody can see the screen.
 volatile int32_t s_tapX = -1, s_tapY = -1;
 volatile int     s_tapReads = 0;
+// A swipe is the same mechanism walked between two points: LVGL decides a drag
+// happened from the movement between reads, so a list scrolls exactly as it
+// would under a finger. Without it half the settings menu is unreachable from a
+// desk, which is half the point of being able to drive the screen at all.
+volatile int32_t s_swipeToX = -1, s_swipeToY = -1;
+volatile int     s_swipeSteps = 0;
 
 void touchCb(lv_indev_drv_t*, lv_indev_data_t* data) {
     int32_t x, y;
     bool down = lcd.getTouch(&x, &y);
 
-    if (!down && s_tapReads > 0) {
+    if (!down && s_swipeSteps > 0) {
+        // Walk from the start point towards the end, one step per read.
+        int total = 12;
+        int i = total - s_swipeSteps;
+        x = s_tapX + (s_swipeToX - s_tapX) * i / total;
+        y = s_tapY + (s_swipeToY - s_tapY) * i / total;
+        down = true;
+        s_swipeSteps--;
+    } else if (!down && s_tapReads > 0) {
         x = s_tapX; y = s_tapY; down = true;
         s_tapReads--;
     }
@@ -126,7 +140,15 @@ namespace lvgl_port {
 
 void injectTap(int x, int y) {
     s_tapX = x; s_tapY = y;
+    s_swipeSteps = 0;
     s_tapReads = 3;          // held for a few reads so LVGL sees a real press
+}
+
+void injectSwipe(int x1, int y1, int x2, int y2) {
+    s_tapX = x1; s_tapY = y1;
+    s_swipeToX = x2; s_swipeToY = y2;
+    s_tapReads = 0;
+    s_swipeSteps = 12;
 }
 
 void begin() {

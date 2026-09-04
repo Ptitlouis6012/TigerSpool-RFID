@@ -87,6 +87,14 @@ static const Row STR[S_COUNT] = {
 /* S_FACTORY_NOTE   */ {{ "Your printers stay in your account.", "Vos imprimantes restent dans votre compte.", "Ihre Drucker bleiben im Konto.", "Tus impresoras siguen en tu cuenta.", "Le stampanti restano nel tuo account.", "Drukarki pozostaja na koncie.", "Suas impressoras ficam na sua conta.", "As suas impressoras ficam na sua conta." }},
 /* S_HOLD_ERASE     */ {{ "Hold to erase", "Maintenir pour effacer", "Zum Loschen halten", "Manten para borrar", "Tieni per cancellare", "Przytrzymaj, aby usunac", "Segure para apagar", "Mantenha para apagar" }},
 /* S_KEEP_HOLDING   */ {{ "Keep holding...", "Continuez...", "Weiter halten...", "Sigue pulsando...", "Continua a tenere...", "Trzymaj dalej...", "Continue segurando...", "Continue a premir..." }},
+/* S_CHECK_UPDATE   */ {{ "Check for updates", "Rechercher une mise a jour", "Nach Updates suchen", "Buscar actualizaciones", "Cerca aggiornamenti", "Sprawdz aktualizacje", "Procurar atualizacoes", "Procurar atualizacoes" }},
+/* S_CHECKING       */ {{ "Checking...", "Recherche...", "Suche...", "Buscando...", "Ricerca...", "Sprawdzanie...", "Procurando...", "A procurar..." }},
+/* S_UP_TO_DATE     */ {{ "Up to date", "A jour", "Aktuell", "Actualizado", "Aggiornato", "Aktualne", "Atualizado", "Atualizado" }},
+/* S_AVAILABLE      */ {{ "Version available", "Version disponible", "Version verfugbar", "Version disponible", "Versione disponibile", "Dostepna wersja", "Versao disponivel", "Versao disponivel" }},
+/* S_INSTALL        */ {{ "Install", "Installer", "Installieren", "Instalar", "Installa", "Zainstaluj", "Instalar", "Instalar" }},
+/* S_DOWNLOADING    */ {{ "Downloading", "Telechargement", "Wird geladen", "Descargando", "Download", "Pobieranie", "Baixando", "A transferir" }},
+/* S_DONT_UNPLUG    */ {{ "Do not unplug the box.", "Ne debranchez pas le boitier.", "Gerat nicht trennen.", "No desconectes la caja.", "Non scollegare la scatola.", "Nie odlaczaj urzadzenia.", "Nao desconecte a caixa.", "Nao desligue a caixa." }},
+/* S_RESTARTING     */ {{ "Installed. Restarting...", "Installe. Redemarrage...", "Installiert. Neustart...", "Instalado. Reiniciando...", "Installato. Riavvio...", "Zainstalowano. Restart...", "Instalado. Reiniciando...", "Instalado. A reiniciar..." }},
 };
 
 // A mismatch here is silent at runtime and reads as garbled text on screen, so
