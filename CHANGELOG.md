@@ -7,6 +7,25 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-09-04
+
+### Fixed
+
+- **The boot screen was gone before it could be read.** The device comes up
+  faster than the eye, so LVGL began repainting over the logo within a fraction
+  of a second — which looks exactly like an image that does not fit the screen.
+  It is now held for one second, and the second is not wasted: the deadline is
+  set where the image is drawn and only waited out at the end of startup, so
+  LVGL, the language table, the storage read and the reader handshake all happen
+  inside it. A board slower than a second to boot waits for nothing.
+
+### Added
+
+- `?preview=splash` draws the boot screen on demand, so it can be checked from a
+  desk. It cannot otherwise be captured: it is shown before the web server
+  exists, which is the whole point of drawing it that early.
+
+
 ## [1.3.0] - 2026-09-04
 
 ### Added
