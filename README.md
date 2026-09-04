@@ -37,6 +37,15 @@
   <a href="#build-it-yourself">Build one</a>
 </p>
 
+<p align="center">
+  <img src="assets/Hero-TigerSystem-ecosystem.png" alt="The TigerTag system: a TigerPOD reader, Tiger Studio Manager on a desktop, and the TigerTag app on a phone" width="720">
+</p>
+
+<p align="center">
+  <sub>The TigerTag system. A TigerSpool is the device that takes a spool's
+  identity and puts it into a printer's slot.</sub>
+</p>
+
 ---
 
 **TigerSpool RFID** is open-source firmware for a small box that sits next to
@@ -172,14 +181,14 @@ every brand is in **[docs/PRINTER-COMPATIBILITY.md](docs/PRINTER-COMPATIBILITY.m
 which grades each on three levels — ✅ automatic, ⚙️ one setup step,
 🧪 experimental. Read it before buying parts for a specific printer.
 
-| Brand | Firmware backend | Transport |
+| Brand | Firmware support | Transport |
 |---|---|---|
-| **Creality** | ✅ written | WebSocket |
-| **FlashForge** | ✅ written | HTTP |
-| **Bambu Lab** | ✅ written | MQTT over TLS |
-| **Snapmaker** | ✅ written | Moonraker over WebSocket |
-| **Elegoo** | ✗ not written | protocol documented in Tiger Studio |
-| **Anycubic** | ✗ not written | protocol documented in Tiger Studio |
+| **Creality** | ✅ implemented, proven on hardware | WebSocket |
+| **FlashForge** | ✅ implemented, proven on hardware | HTTP |
+| **Bambu Lab** | ✅ implemented, proven on hardware | MQTT over TLS |
+| **Snapmaker** | ✅ implemented, proven on hardware | Moonraker over WebSocket |
+| **Elegoo** | ✗ not implemented | protocol documented in Tiger Studio |
+| **Anycubic** | ✗ not implemented | protocol documented in Tiger Studio |
 
 Slot names match the ones the printer and Tiger Studio use — `Ext.` plus
 `1A`–`1D` on Creality and FlashForge, `A1`–`A4` then `B1`–`B4` on Bambu,
@@ -225,16 +234,6 @@ Written down rather than discovered.
 TigerTag is an open NFC identification standard for 3D-printing materials. A
 spool carries its own identity, and every device in the system reads the same
 one.
-
-<p align="center">
-  <img src="assets/Hero-TigerSystem-ecosystem.png" alt="A TigerPOD reader, Tiger Studio Manager on a desktop, and the TigerTag app on a phone" width="720">
-</p>
-
-<p align="center">
-  <sub>A TigerPOD reader, Tiger Studio Manager and the phone app. A TigerSpool is
-  the fourth device in that picture — the one that puts a spool into a printer's
-  slot.</sub>
-</p>
 
 - **[Tiger Studio Manager](https://github.com/TigerTag-Project/TigerTag-Studio-Manager)** — desktop printer and filament manager. **Start here**: it is where an account is created and printers are declared.
 - **[TigerTag-RFID-Guide](https://github.com/TigerTag-Project/TigerTag-RFID-Guide)** — the protocol specification and public registry
