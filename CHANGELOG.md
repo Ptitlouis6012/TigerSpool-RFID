@@ -7,6 +7,42 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-09-04
+
+### Fixed
+
+- **The sign-in QR led to the Wi-Fi picker.** It carried the device's root URL,
+  and that page opens with the network selector and puts the account form some
+  forty lines below it — so a phone scanning it to sign in landed on a Wi-Fi list.
+  The first control under the finger was also a save-and-restart for the network
+  settings, on a device that had just joined a network. The QR now points at
+  `/login`, a page with one job. Reported by a user.
+
+### Added
+
+- **A web installer**, at
+  [tigertag-project.github.io/TigerSpool-RFID](https://tigertag-project.github.io/TigerSpool-RFID/) —
+  plug a board in, press Install. Built on the same design system as the
+  TigerScale installer, with the parts list, their links and the two things that
+  otherwise cost an evening: Erase wipes the saved Wi-Fi and account, and a board
+  offering no serial port is usually a charge-only cable.
+- The installer speaks **nine languages**, one more than the device: Chinese
+  renders in a browser and would reach the panel as empty boxes.
+
+### Changed
+
+- **The README starts where people actually get stuck.** A TigerSpool reads its
+  printers from a TigerTag account, so an empty printer list is an account with
+  no printers in it — not a fault. Installing Tiger Studio Manager, creating the
+  account and adding the printers is now the section above the quick start.
+- **The bill of materials is three things**, with links: the board, the PN532 and
+  a USB cable that carries data.
+- **Four wires, not six.** `config.h` declares the UART and nothing else, so the
+  reset line the wiring guide described as "optional, recommended" was recommended
+  by nothing — no code reads or writes it. Both the guide and the pinout say it is
+  not connected, and the four wires come with the PN532.
+
+
 ## [1.1.0] - 2026-09-04
 
 **First official release.** A TigerTag NFC chip on a spool, read by the box, and
