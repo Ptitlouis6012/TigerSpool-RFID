@@ -54,8 +54,7 @@ from a desk.
 
 ## Not there yet
 
-- No over-the-air update. The two partitions exist; the update code does not.
-- No firmware signing. The published checksums prove a download is not corrupted and nothing about who produced it.
+- No firmware signing, and no certificate verification. Over-the-air update works — check, download, verify the checksum, restart — but the checksum proves the bytes arrived intact, not who produced them, because it comes over the same connection. This is the release blocker.
 - TLS certificates are not verified, inherited from the prototype and a release blocker.
 - No Elegoo or Anycubic backend. Both protocols are documented; the firmware is not written.
 - On-device strings carry no diacritics: the compiled font is ASCII plus degree and bullet. Restoring them needs a generated Latin subset font, and Polish needs Latin Extended-A beyond that.

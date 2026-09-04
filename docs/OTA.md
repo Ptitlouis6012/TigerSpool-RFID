@@ -228,12 +228,24 @@ Every tagged release, from the [release workflow](../.github/workflows/release.y
 
 ---
 
+## How it is built
+
+**On the device**, `firmware/src/net/ota.{h,cpp}`: fetch the manifest, compare
+versions field by field, stream the image into the spare slot while hashing it,
+refuse it unless the checksum matches, then restart. Nothing touches the running
+slot, so a failure at any point costs a download and nothing else.
+
+**At release time**, `scripts/make-manifest.py` builds `version.json` from the
+release's own artefacts, and `.github/workflows/pages.yml` — the only workflow
+permitted to deploy — publishes it and then verifies what is actually being
+served with `scripts/verify-published-site.py`.
+
+The rules below are what those files implement, and why.
+
 ## Decisions settled before the first release
 
-None of this is built — the installer does not exist and `pages.yml` is a
-placeholder that fails on purpose. The decisions are recorded now because after
-the first public release they stop being decisions: devices in the field read
-the shape they left with, and an old unit coming back online after months
+They stop being decisions after the first public release: devices in the field
+read the shape they left with, and an old unit coming back online after months
 expects it unchanged.
 
 ### The manifest is generated, never committed
@@ -300,6 +312,18 @@ Run it hourly on a schedule so a lost deployment repairs itself, and make it
 runnable by hand any time there is doubt about what devices can see. **Verify
 the published result, not the workflow's green check** — a deployment can report
 success and serve the previous build.
+
+### Signing is the remaining blocker
+
+Everything above is built. The image is still **not signed**, and certificate
+verification is still off. The SHA-256 proves the bytes arrived intact; it does
+not prove who produced them, because it is fetched over the same connection as
+the image. Anyone who can intercept that connection can serve a firmware and a
+matching hash.
+
+That is acceptable on a bench and not acceptable in the field, and it is the one
+thing between this and a public release. It is also the third of the three gaps
+found in the sibling project's OTA and deliberately not copied here.
 
 ### Release notes cannot be forgotten
 

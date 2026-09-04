@@ -120,3 +120,15 @@ jobs:
           body_path: release-notes.md
           draft: false
           prerelease: ${{ startsWith(steps.stage.outputs.version, '0.') }}
+
+  # The manifest is published only after the release exists, and by exactly one
+  # workflow. Devices read it to learn a new version is available, so a manifest
+  # that names assets the release has not published yet would send every unit to
+  # a 404.
+  publish-manifest:
+    needs: release
+    uses: ./.github/workflows/pages.yml
+    permissions:
+      contents: read
+      pages: write
+      id-token: write

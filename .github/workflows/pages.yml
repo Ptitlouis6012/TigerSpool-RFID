@@ -1,11 +1,22 @@
-# Deploy the web installer to GitHub Pages.
+# Publish the OTA manifest.
 #
-# PLACEHOLDER — installer/ has a README and no page yet. See installer/README.md.
+# EXACTLY ONE WORKFLOW MAY DEPLOY THIS SITE, and this is it.
 #
-# When enabled, this deploys installer/ together with the firmware binaries built
-# by release.yml. Binaries are NEVER committed to the repository: they exist only
-# in the deployed Pages artifact and in the GitHub release, so the installer and
-# the OTA channel cannot serve different builds.
+# The incident that rule comes from: in the sibling project two workflows
+# deployed for the same commit. GitHub reported both successful, marked the
+# older deployment inactive, and went on serving it. The manifest it served
+# advertised the previous version, so every device in the field reported "up to
+# date" against a release that had already shipped. Nothing was red anywhere.
+# The only way to see it was to fetch the site and compare it to the release.
+#
+# So: one workflow, one concurrency group, and no second path to deployment.
+# Adding one is a bug even if it appears to work.
+#
+# The manifest is GENERATED here and never committed - a committed copy and a
+# generated one drift, and the drift is invisible until a fleet acts on it. It
+# is built around the latest RELEASE rather than around whatever is currently
+# live, so this produces the same correct output whether it runs before or after
+# a release is published.
 #
 # Prerequisite, once: Settings -> Pages -> Source = "GitHub Actions".
 
@@ -22,31 +33,56 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
-  placeholder:
+  deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
     steps:
-      - name: Not yet implemented
-        run: |
-          echo "installer/ has no page yet. See installer/README.md."
-          exit 1
+      - uses: actions/checkout@v5
 
-  # deploy:
-  #   runs-on: ubuntu-latest
-  #   environment:
-  #     name: github-pages
-  #     url: ${{ steps.deploy.outputs.page_url }}
-  #   steps:
-  #     - uses: actions/checkout@v5
-  #     - uses: actions/download-artifact@v4
-  #       with:
-  #         name: firmware
-  #         path: installer/firmware
-  #     - uses: actions/configure-pages@v5
-  #     - uses: actions/upload-pages-artifact@v3
-  #       with:
-  #         path: installer
-  #     - id: deploy
-  #       uses: actions/deploy-pages@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # The release assets themselves, never a rebuild. The hash in the manifest
+      # has to be of the exact bytes the device downloads: a rebuilt image
+      # differs in build paths and timestamps, and a device that verifies before
+      # switching boot partitions will reject it - correctly, and confusingly.
+      - name: Download the latest release's artefacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG=$(gh release view --json tagName -q .tagName)
+          echo "latest release: $TAG"
+          mkdir -p dist
+          gh release download "$TAG" --dir dist
+          echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
+          ls -l dist
+
+      - name: Generate the manifest
+        run: |
+          python3 scripts/make-manifest.py \
+            --version "$VERSION" \
+            --repo "${{ github.repository }}" \
+            --dist dist \
+            --out pages/version.json
+          cat pages/version.json
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: pages
+      - id: deploy
+        uses: actions/deploy-pages@v4
+
+      # Verify the published result, not this workflow's green check: a
+      # deployment can report success and serve the previous build.
+      - name: The published manifest must match the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/verify-published-site.py --url "${{ steps.deploy.outputs.page_url }}"
