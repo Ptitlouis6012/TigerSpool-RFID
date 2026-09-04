@@ -5,173 +5,425 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Install TigerSpool RFID</title>
 <meta name="description" content="Flash TigerSpool RFID onto an ESP32-S3 from your browser. No toolchain, no command line.">
+<link rel="icon" href="tiger-icon.svg" type="image/svg+xml">
 
 <!--
   The web installer.
 
-  ESP Web Tools speaks WebSerial, which only Chrome, Edge and Opera on a desktop
-  implement. Safari and Firefox do not, and no mobile browser does. The page says
-  so up front rather than letting someone plug a board in and watch nothing
-  happen — that failure is silent and reads as broken hardware.
+  Same design system as the TigerScale installer, deliberately: someone who has
+  set up one device in this ecosystem should recognise the second on sight. The
+  tokens, the top bar, the numbered panels and the theme switch are the sibling
+  project's; the content is this device's.
 
   Everything it installs is generated at release time and served from beside this
-  file: manifest.json for ESP Web Tools, version.json for the device's own OTA
+  file — manifest.json for ESP Web Tools, version.json for the device's own OTA
   check, and the four images. Nothing here is committed as a binary.
 -->
 
 <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
 
 <style>
+  /* Palette from the TigerTag design tokens — the brand is orange, the ember red
+     is an accent, and the dark ground is a cool near-black.
+
+     Dark is the default on purpose: it is the brand's own ground and it is what
+     the page shows before any preference is known. Light is opt-in through the
+     switch, and only then is the choice remembered. */
   :root {
-    color-scheme: dark;
-    --bg: #0B0D10;
-    --surface: #14171C;
-    --line: #232830;
-    --text: #FFFFFF;
-    --dim: #8B95A1;
-    --accent: #F2C744;
-    --ok: #3FA85E;
+    --brand:#ff7a18; --brand-hover:#e96900; --ember:#e6352b;
+    --success:#1aaf6c; --warn:#d29922;
+
+    --bg:#0a0b0f; --bg-alt:#12141b; --panel:#12141b; --panel-hi:#1a1d27;
+    --line:#262a36; --fg:#f4f5f8; --muted:#9aa0b0; --faint:#838b9b;
+    --link:#ff7a18; --glow:rgba(255,122,24,.20);
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 40px rgba(0,0,0,.45);
+    --ring:rgba(255,122,24,.30); --scheme:dark;
   }
-  * { box-sizing: border-box; }
+  :root[data-theme="light"] {
+    --bg:#ffffff; --bg-alt:#f1f3f9; --panel:#ffffff; --panel-hi:#f7f8fc;
+    --line:#e3e6ef; --fg:#1c2030; --muted:#6b7287; --faint:#8b91a5;
+    /* #ff7a18 on white is 2.6:1 — below AA. Links get a darkened orange instead. */
+    --link:#c25400;
+    --glow:rgba(255,122,24,.14);
+    --shadow:0 1px 2px rgba(28,32,48,.06), 0 8px 28px rgba(28,32,48,.07);
+    --ring:rgba(255,122,24,.22);
+    --scheme:light;
+  }
+
+  * { box-sizing:border-box; }
+  html { color-scheme:var(--scheme); }
   body {
-    margin: 0;
-    padding: 48px 20px 80px;
-    background: var(--bg);
-    color: var(--text);
-    font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    margin:0; padding:0 1.15rem 4rem; background:var(--bg); color:var(--fg);
+    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    transition:background-color .18s ease, color .18s ease;
   }
-  main { max-width: 680px; margin: 0 auto; }
-  h1 { font-size: 2rem; margin: 0 0 .3rem; letter-spacing: -.02em; }
-  h2 { font-size: 1.05rem; margin: 2.6rem 0 .7rem; }
-  .lede { color: var(--dim); margin: 0 0 2.2rem; font-size: 1.05rem; }
-  a { color: var(--accent); }
+  a { color:var(--link); text-underline-offset:3px; }
+  a:hover { color:var(--brand-hover); }
+  .wrap { max-width:820px; margin:0 auto; }
 
-  .cta {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 26px;
-    text-align: center;
+  /* --- top bar ------------------------------------------------------------ */
+  .top {
+    display:flex; align-items:center; justify-content:space-between; gap:1rem;
+    padding:1.1rem 0 .4rem;
   }
-  .version { color: var(--dim); font-size: .9rem; margin-top: 14px; }
-  .version strong { color: var(--text); }
+  .top img { height:30px; width:auto; display:block; border-radius:7px; }
 
-  esp-web-install-button { --esp-tools-button-color: #101318; }
-
-  .unsupported {
-    display: none;
-    border: 1px solid #5A4520;
-    background: #241C0C;
-    border-radius: 12px;
-    padding: 16px 18px;
-    margin-bottom: 22px;
-    color: #F0D9A0;
+  .switch { display:inline-flex; align-items:center; cursor:pointer; }
+  .switch input { position:absolute; opacity:0; width:0; height:0; }
+  .track {
+    position:relative; width:62px; height:32px; border-radius:999px;
+    background:var(--bg-alt); border:1px solid var(--line);
+    transition:background-color .2s ease, border-color .2s ease;
   }
-  body.no-serial .unsupported { display: block; }
-  body.no-serial .cta { opacity: .45; pointer-events: none; }
+  /* The icon rides inside the knob rather than sitting at the ends of the track:
+     at the ends the knob covers whichever one is active, which is precisely the
+     one the visitor needs to see. */
+  .knob {
+    position:absolute; top:2px; left:2px; width:26px; height:26px; border-radius:999px;
+    background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.28);
+    display:grid; place-items:center;
+    transition:transform .22s cubic-bezier(.4,0,.2,1), background-color .2s ease;
+  }
+  .knob .ico { width:14px; height:14px; color:var(--warn); }
+  .knob .ico.moon { display:none; }
+  .switch input:focus-visible + .track { box-shadow:0 0 0 3px var(--ring); }
+  .switch[data-on="dark"] .track { background:var(--panel-hi); border-color:var(--brand); }
+  .switch[data-on="dark"] .knob { transform:translateX(30px); background:var(--brand); }
+  .switch[data-on="dark"] .knob .ico.sun  { display:none; }
+  .switch[data-on="dark"] .knob .ico.moon { display:block; color:#fff; }
 
-  ol, ul { padding-left: 1.25rem; }
-  li { margin: .45rem 0; }
+  /* --- hero --------------------------------------------------------------- */
+  header.hero {
+    position:relative; text-align:center; padding:2.6rem 0 2.2rem; overflow:hidden;
+  }
+  header.hero::before {
+    content:""; position:absolute; left:50%; top:-120px; transform:translateX(-50%);
+    width:680px; height:460px; pointer-events:none;
+    background:radial-gradient(closest-side, var(--glow), transparent 72%);
+  }
+  header.hero > * { position:relative; }
+  h1 {
+    font-size:clamp(2rem, 5.2vw, 2.9rem); line-height:1.1; margin:0 0 .6rem;
+    letter-spacing:-.03em; font-weight:700;
+  }
+  h1 .accent {
+    background:linear-gradient(96deg, var(--brand), var(--ember));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .tagline { color:var(--muted); margin:0 auto; max-width:34rem; font-size:1.03rem; }
+  .verpill {
+    display:inline-flex; align-items:center; gap:.5rem; margin-top:1.25rem;
+    padding:.34rem .8rem .34rem .6rem; border-radius:999px;
+    border:1px solid var(--line); background:var(--panel);
+    font-size:.82rem; color:var(--muted); box-shadow:var(--shadow);
+  }
+  /* An author `display` beats the UA stylesheet's [hidden] rule, so the pill
+     would show empty until version.json resolves — or for ever if it fails. */
+  .verpill[hidden] { display:none; }
+  .verpill .dot {
+    width:7px; height:7px; border-radius:50%; background:var(--success);
+    box-shadow:0 0 0 3px color-mix(in srgb, var(--success) 22%, transparent);
+  }
+  .verpill b { color:var(--fg); font-weight:600; }
+
+  /* --- sections ----------------------------------------------------------- */
+  .step { display:flex; align-items:center; gap:.7rem; margin:2.2rem 0 .9rem; }
+  .step:first-child { margin-top:0; }
+  .step .n {
+    flex:0 0 auto; width:25px; height:25px; border-radius:999px;
+    display:grid; place-items:center; font-size:.8rem; font-weight:700;
+    background:var(--brand); color:#fff;
+  }
+  .step h2 { font-size:1.12rem; margin:0; letter-spacing:-.01em; font-weight:650; }
+  .panel {
+    background:var(--panel); border:1px solid var(--line); border-radius:20px;
+    padding:1.4rem; box-shadow:var(--shadow);
+  }
+  .lede { margin:0 0 1.1rem; color:var(--muted); font-size:.94rem; }
+
+  /* --- checklist ---------------------------------------------------------- */
+  ul.need { margin:0; padding:0; list-style:none; }
+  ul.need li {
+    position:relative; padding:0 0 .7rem 1.85rem; color:var(--muted); font-size:.94rem;
+  }
+  ul.need li:last-child { padding-bottom:0; }
+  ul.need li::before {
+    content:""; position:absolute; left:0; top:.42rem; width:9px; height:5px;
+    border-left:2px solid var(--success); border-bottom:2px solid var(--success);
+    transform:rotate(-45deg);
+  }
+  ul.need b { color:var(--fg); font-weight:600; }
+
+  /* --- install button ----------------------------------------------------- */
+  .cta { text-align:center; margin:.3rem 0 .4rem; }
+  /* The --esp-tools-button-* variables only style the component's OWN default
+     button. The moment a <button slot="activate"> is passed, that button is ours
+     and arrives completely unstyled — which is how the one thing on the page you
+     are meant to press ends up looking like plain text. */
+  esp-web-install-button button[slot="activate"] {
+    display:inline-flex; align-items:center; justify-content:center; gap:.6rem;
+    padding:1.15rem 2.8rem; font-family:inherit; font-size:1.18rem; font-weight:700;
+    letter-spacing:-.01em; color:#fff; cursor:pointer;
+    border:none; border-radius:999px;
+    background:linear-gradient(96deg, var(--brand), var(--ember));
+    box-shadow:0 6px 22px rgba(255,122,24,.34), 0 1px 2px rgba(0,0,0,.3);
+    transition:transform .14s ease, box-shadow .18s ease, filter .18s ease;
+  }
+  esp-web-install-button button[slot="activate"]:hover {
+    transform:translateY(-2px); filter:brightness(1.06);
+    box-shadow:0 10px 30px rgba(255,122,24,.44), 0 1px 2px rgba(0,0,0,.3);
+  }
+  esp-web-install-button button[slot="activate"]:active { transform:translateY(0); }
+  esp-web-install-button button[slot="activate"]:focus-visible {
+    outline:3px solid var(--ring); outline-offset:3px;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    esp-web-install-button button[slot="activate"] { animation:ctaPulse 2.8s ease-in-out infinite; }
+    @keyframes ctaPulse {
+      0%, 100% { box-shadow:0 6px 22px rgba(255,122,24,.34), 0 0 0 0 rgba(255,122,24,.42); }
+      55%      { box-shadow:0 6px 22px rgba(255,122,24,.34), 0 0 0 14px rgba(255,122,24,0); }
+    }
+  }
+  .cta small { display:block; margin-top:1rem; color:var(--faint); font-size:.82rem; }
+
+  /* --- callout ------------------------------------------------------------ */
   .note {
-    border-left: 3px solid var(--line);
-    padding: 2px 0 2px 16px;
-    color: var(--dim);
-    margin: 1.2rem 0;
+    display:flex; gap:.9rem; margin:1.5rem 0 0;
+    border:1px solid color-mix(in srgb, var(--warn) 38%, var(--line));
+    background:color-mix(in srgb, var(--warn) 7%, var(--panel));
+    border-radius:14px; padding:1rem 1.1rem; color:var(--muted); font-size:.93rem;
   }
-  .note strong { color: var(--text); }
-  footer {
-    margin-top: 3.5rem; padding-top: 1.4rem;
-    border-top: 1px solid var(--line);
-    color: var(--dim); font-size: .9rem;
-  }
+  .note svg { flex:0 0 auto; width:18px; height:18px; margin-top:.18rem; color:var(--warn); }
+  .note b { color:var(--fg); }
+  .note p { margin:.35rem 0 0; }
   code {
-    background: var(--surface); border: 1px solid var(--line);
-    border-radius: 5px; padding: 1px 6px; font-size: .9em;
+    background:var(--bg-alt); border:1px solid var(--line); border-radius:6px;
+    padding:.1rem .38rem; font-size:.88em;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   }
+
+  /* --- after -------------------------------------------------------------- */
+  ol.after { margin:0; padding:0; list-style:none; counter-reset:s; }
+  ol.after li {
+    counter-increment:s; position:relative; padding:0 0 1.05rem 2.1rem;
+    color:var(--muted); font-size:.95rem;
+  }
+  ol.after li:last-child { padding-bottom:0; }
+  ol.after li::before {
+    content:counter(s); position:absolute; left:0; top:.05rem;
+    width:21px; height:21px; border-radius:999px; display:grid; place-items:center;
+    font-size:.72rem; font-weight:700; color:var(--muted);
+    background:var(--bg-alt); border:1px solid var(--line);
+  }
+  ol.after b { color:var(--fg); font-weight:600; }
+
+  footer {
+    text-align:center; margin-top:3rem; padding-top:1.6rem;
+    border-top:1px solid var(--line); color:var(--faint); font-size:.88rem;
+  }
+  footer nav a { margin:0 .55rem; }
+  footer p { margin:.5rem 0 0; }
+
+  .unsupported { display:none; margin-top:1.2rem; }
+  .no-webserial .unsupported { display:block; }
+  .no-webserial .cta { display:none; }
+  @media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
 </style>
 </head>
 <body>
-<main>
+<div class="wrap">
 
-  <h1>Install TigerSpool RFID</h1>
-  <p class="lede">
-    Plug the board into this computer, click Install, and wait about a minute.
+<div class="top">
+  <a href="https://tigersystem.io" aria-label="TigerTag">
+    <img src="tiger-icon.svg" alt="TigerTag" width="30" height="30">
+  </a>
+  <div class="tools">
+    <label class="switch" id="switch" data-on="dark">
+      <input type="checkbox" id="theme" role="switch" aria-label="Day and night mode">
+      <span class="track">
+        <span class="knob">
+          <svg class="ico sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.4v2.2M12 19.4v2.2M4.2 12H2M22 12h-2.2M5.6 5.6 7.2 7.2M16.8 16.8l1.6 1.6M18.4 5.6l-1.6 1.6M7.2 16.8l-1.6 1.6"/>
+          </svg>
+          <svg class="ico moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.5 14.3A8.5 8.5 0 0 1 9.7 3.5a8.5 8.5 0 1 0 10.8 10.8z"/>
+          </svg>
+        </span>
+      </span>
+    </label>
+  </div>
+</div>
+
+<header class="hero">
+  <h1>Install <span class="accent">TigerSpool RFID</span></h1>
+  <p class="tagline">
+    Plug the board into this computer, press Install, and wait about a minute.
     No toolchain, no command line.
   </p>
-
-  <div class="unsupported">
-    <strong>This browser cannot flash a board.</strong>
-    Installing needs WebSerial, which only Chrome, Edge and Opera implement, on a
-    desktop or laptop. Safari, Firefox and every mobile browser are out. Open this
-    page in one of those three, or
-    <a href="https://github.com/TigerTag-Project/TigerSpool-RFID#build-it-yourself">build
-    and flash it yourself</a>.
+  <div class="verpill" id="verpill" hidden>
+    <span class="dot"></span><span>Firmware <b id="ver"></b></span>
   </div>
+</header>
 
+<div class="step"><span class="n">1</span><h2>What you need</h2></div>
+<div class="panel">
+  <p class="lede">Two boards, four wires and a cable that carries data.</p>
+  <ul class="need">
+    <li>A <b>Waveshare ESP32-S3 2inch Capacitive Touch Display</b> board.</li>
+    <li>A <b>PN532 NFC module</b>, V3, DIP switches both <code>0</code> / OFF, wired
+      to <b>GPIO44</b> and <b>GPIO43</b> — never GPIO6/7. Four wires, and they come
+      with the module.
+      <a href="https://github.com/TigerTag-Project/TigerSpool-RFID/blob/main/docs/WIRING.md">Wiring diagram</a>.</li>
+    <li>A <b>USB-C to USB-A cable that carries data</b>, not a charge-only one.</li>
+    <li><b>Chrome, Edge or Opera</b> on a desktop or laptop.</li>
+    <li>A <b>TigerTag account</b>, created in
+      <a href="https://github.com/TigerTag-Project/TigerTag-Studio-Manager">Tiger Studio Manager</a>
+      — see step 4.</li>
+  </ul>
+</div>
+
+<div class="step"><span class="n">2</span><h2>Install</h2></div>
+<div class="panel" style="padding:2.1rem 1.4rem">
   <div class="cta">
     <esp-web-install-button manifest="manifest.json">
       <button slot="activate">Install TigerSpool</button>
       <span slot="unsupported"></span>
       <span slot="not-allowed"></span>
     </esp-web-install-button>
-    <div class="version" id="version">Reading the published version…</div>
+    <small>Writes the bootloader, the partition table, the boot selector and the
+      firmware — the same four images published with the release.</small>
   </div>
 
-  <h2>What it writes</h2>
-  <p>
-    The bootloader, the partition table, the boot selector and the firmware — the
-    same four images published with the release, at the same offsets
-    <code>scripts/flash.sh</code> uses over USB.
-  </p>
+  <div class="unsupported">
+    <div class="note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M12 8v5M12 16.5v.01"/><circle cx="12" cy="12" r="9.2"/>
+      </svg>
+      <div>
+        <b>This browser cannot flash a board.</b>
+        <p>Installing needs WebSerial, which only Chrome, Edge and Opera implement,
+          on a desktop or laptop. Safari, Firefox and every mobile browser are out.
+          Open this page in one of those three, or
+          <a href="https://github.com/TigerTag-Project/TigerSpool-RFID#build-it-yourself">build
+          and flash it yourself</a>.</p>
+      </div>
+    </div>
+  </div>
 
   <div class="note">
-    <strong>Choose Erase only on a board you are setting up for the first time.</strong>
-    Erasing wipes the NVS partition, which is where a TigerSpool keeps its Wi-Fi
-    credentials, its TigerTag session and its imported printers. An ordinary
-    install leaves all of that alone — that is what the two OTA slots are for.
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="M12 8v5M12 16.5v.01"/><circle cx="12" cy="12" r="9.2"/>
+    </svg>
+    <div>
+      <b>Choose Erase only on a board you are setting up for the first time.</b>
+      <p>Erasing wipes the NVS partition, which is where a TigerSpool keeps its
+        Wi-Fi credentials, its TigerTag session and its imported printers. An
+        ordinary install leaves all of that alone — that is what the two OTA slots
+        are for.</p>
+    </div>
   </div>
 
-  <h2>After it reboots</h2>
-  <ol>
-    <li>Pick your language.</li>
-    <li>Scan the Wi-Fi QR code with your phone and join the network the box asks for.</li>
-    <li>Sign in to your TigerTag account, by e-mail or with Google.</li>
+  <div class="note">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="M12 8v5M12 16.5v.01"/><circle cx="12" cy="12" r="9.2"/>
+    </svg>
+    <div>
+      <b>No serial port offered?</b>
+      <p>The usual cause is a charge-only USB cable. The board lights up, the
+        screen works, and no computer ever sees it. Try a cable you know transfers
+        files.</p>
+    </div>
+  </div>
+</div>
+
+<div class="step"><span class="n">3</span><h2>Set it up on the box</h2></div>
+<div class="panel">
+  <ol class="after">
+    <li><b>Pick your language.</b> Eight of them, before anything else.</li>
+    <li><b>Join Wi-Fi.</b> The box shows a QR code. Scan it with your phone and a
+      page opens listing the networks it can see — pick yours and type the password
+      on the phone. Nothing is typed on the small screen, and the box does not
+      reboot.</li>
+    <li><b>Sign in</b> to your TigerTag account, by e-mail or with Google through a
+      second QR code.</li>
+    <li><b>Your printers arrive</b> from your account.</li>
   </ol>
-  <p>
-    Your printers arrive from your account. If the list comes up empty, they have
-    not been added in
-    <a href="https://github.com/TigerTag-Project/TigerTag-Studio-Manager">Tiger&nbsp;Studio&nbsp;Manager</a>
-    yet — that is where a printer is declared, and the box only reads what is there.
+  <p class="lede" style="margin:1.3rem 0 0">
+    Then hold a tagged spool against the box, tap the slot you want, and confirm.
+    From then on it updates itself over the air — this page is only for the first
+    install.
   </p>
+</div>
 
-  <p>From then on the box updates itself over the air. This page is for the first install.</p>
+<div class="step"><span class="n">4</span><h2>If the printer list is empty</h2></div>
+<div class="panel">
+  <p class="lede">
+    That is not a fault, and there is nothing to fix on the device. It is showing
+    exactly what your account contains.
+  </p>
+  <p style="margin:0 0 1rem;color:var(--muted);font-size:.95rem">
+    A TigerSpool has no keyboard and no way to be told a printer's address — that
+    is deliberate. Printers are declared once, in
+    <a href="https://github.com/TigerTag-Project/TigerTag-Studio-Manager"><b>Tiger Studio Manager</b></a>,
+    together with their access codes, and every TigerSpool you own reads the same
+    list. Add the printer there and it appears on the box at the next sync.
+  </p>
+  <ul class="need">
+    <li>Install <b>Tiger Studio Manager</b> and create your TigerTag account.</li>
+    <li>Add your printers to it.</li>
+    <li><b>Then</b> sign in on the box.</li>
+  </ul>
+</div>
 
-  <footer>
-    <a href="https://github.com/TigerTag-Project/TigerSpool-RFID">Source, documentation and releases</a>
-    &nbsp;·&nbsp;
+<footer>
+  <nav>
+    <a href="https://github.com/TigerTag-Project/TigerSpool-RFID">Source</a>
+    <a href="https://github.com/TigerTag-Project/TigerSpool-RFID/blob/main/docs/WIRING.md">Wiring</a>
+    <a href="https://github.com/TigerTag-Project/TigerSpool-RFID/blob/main/hardware/BOM.md">Parts</a>
+    <a href="https://github.com/TigerTag-Project/TigerSpool-RFID/releases">Releases</a>
     <a href="version.json">version.json</a>
-    &nbsp;·&nbsp;
-    MIT licensed
-  </footer>
+  </nav>
+  <p>MIT licensed &middot; <a href="https://tigersystem.io">tigersystem.io</a></p>
+</footer>
 
-</main>
+</div>
 
 <script>
-  if (!('serial' in navigator)) document.body.classList.add('no-serial');
+  /* ---------- theme -------------------------------------------------------- */
+  /* Dark is the default and is NOT remembered until the visitor chooses. Storing
+     a value on first paint would mean a later change to the default never reaches
+     anyone who has merely visited. */
+  const sw = document.getElementById('switch');
+  const cb = document.getElementById('theme');
+  const stored = (() => { try { return localStorage.getItem('theme'); } catch { return null; } })();
+  apply(stored === 'light' ? 'light' : 'dark');
 
-  // Read the version from the same file the device reads, so this page and the
-  // OTA channel can never advertise different builds.
+  function apply(mode) {
+    document.documentElement.setAttribute('data-theme', mode);
+    sw.dataset.on = mode;
+    cb.checked = mode === 'light';
+  }
+  cb.addEventListener('change', () => {
+    const mode = cb.checked ? 'light' : 'dark';
+    apply(mode);
+    try { localStorage.setItem('theme', mode); } catch {}
+  });
+
+  /* ---------- WebSerial ---------------------------------------------------- */
+  if (!('serial' in navigator)) document.body.classList.add('no-webserial');
+
+  /* ---------- published version -------------------------------------------- */
+  /* Read from the same file the device reads, so this page and the OTA channel
+     can never advertise different builds. */
   fetch('version.json', { cache: 'no-store' })
     .then(r => r.json())
     .then(v => {
-      document.getElementById('version').innerHTML =
-        'Installs version <strong>' + v.version + '</strong>' +
-        (v.notes_url ? ' · <a href="' + v.notes_url + '">release notes</a>' : '');
+      document.getElementById('ver').textContent = v.version;
+      document.getElementById('verpill').hidden = false;
     })
-    .catch(() => {
-      document.getElementById('version').textContent =
-        'Could not read the published version. The Install button still works.';
-    });
+    .catch(() => { /* the pill stays hidden; the Install button still works */ });
 </script>
 </body>
 </html>
