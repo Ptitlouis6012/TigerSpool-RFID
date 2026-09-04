@@ -299,7 +299,11 @@ void showScreen(uint8_t brightness, int sleepSeconds) {
     if (sleepSeconds) snprintf(sl, sizeof(sl), "%d s", sleepSeconds);
     else              snprintf(sl, sizeof(sl), i18n::T(S_NEVER));
     kv(body, i18n::T(S_SLEEP_AFTER), sl, theme::TEXT);
-    static const char* const tl[] = { "30s", "1m", "5m", i18n::T(S_OFF) };
+    // Not static: a static array holding i18n::T() is filled once, with
+    // whatever language was current the first time this screen was opened, and
+    // then keeps it forever. The same word as the value above, too - the row
+    // said "Never" while the chip under it said "Off", for one state.
+    const char* const tl[] = { "30s", "1m", "5m", i18n::T(S_NEVER) };
     static const int tv[] = { 30, 60, 300, 0 };
     segmented(body, tl, tv, 4, sleepSeconds, onSleep);
 

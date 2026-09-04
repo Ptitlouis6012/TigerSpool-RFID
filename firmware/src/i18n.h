@@ -87,7 +87,6 @@ enum StrId : uint8_t {
     S_BRIGHTNESS,
     S_SLEEP_AFTER,
     S_NEVER,
-    S_OFF,
     S_INSTALLED,
     S_CHANNEL,
     S_OTA_OFF,

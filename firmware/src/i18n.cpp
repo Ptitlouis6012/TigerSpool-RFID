@@ -78,7 +78,6 @@ static const Row STR[S_COUNT] = {
 /* S_BRIGHTNESS     */ {{ "Brightness", "Luminosite", "Helligkeit", "Brillo", "Luminosita", "Jasnosc", "Brilho", "Brilho" }},
 /* S_SLEEP_AFTER    */ {{ "Sleep after", "Veille apres", "Ruhe nach", "Reposo tras", "Standby dopo", "Uspij po", "Suspender apos", "Suspender apos" }},
 /* S_NEVER          */ {{ "Never", "Jamais", "Nie", "Nunca", "Mai", "Nigdy", "Nunca", "Nunca" }},
-/* S_OFF            */ {{ "Off", "Eteint", "Aus", "Apagado", "Spento", "Wyl.", "Desligado", "Desligado" }},
 /* S_INSTALLED      */ {{ "Installed", "Installee", "Installiert", "Instalada", "Installata", "Zainstalowana", "Instalada", "Instalada" }},
 /* S_CHANNEL        */ {{ "Channel", "Canal", "Kanal", "Canal", "Canale", "Kanal", "Canal", "Canal" }},
 /* S_OTA_OFF        */ {{ "Over-the-air updates are not enabled on this build.", "Les mises a jour par le reseau ne sont pas actives.", "Updates uber Funk sind in diesem Build nicht aktiv.", "Las actualizaciones por red no estan activas.", "Gli aggiornamenti via rete non sono attivi.", "Aktualizacje przez siec nie sa wlaczone.", "As atualizacoes pela rede nao estao ativas.", "As atualizacoes pela rede nao estao ativas." }},
