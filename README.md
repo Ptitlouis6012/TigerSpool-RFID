@@ -1,83 +1,149 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)"  srcset="assets/logo-tigertag-head-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="assets/logo-tigertag-head.svg">
+    <img src="assets/logo-tigertag-head.svg" alt="TigerTag" width="260">
+  </picture>
+</p>
+
 <h1 align="center">TigerSpool RFID</h1>
 
 <p align="center">
-  <strong>Any printer. No setup. Just scan.</strong><br>
-  Tap a filament spool on the box, tap a slot on the screen — the filament is loaded into your printer.
+  <strong>Tap a spool on the box. The filament lands in the right printer slot.</strong><br>
+  A 2.0" touchscreen, a PN532 reader, and no typing.
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT">
   <img src="https://img.shields.io/badge/Platform-ESP32--S3-blue.svg" alt="Platform: ESP32-S3">
   <img src="https://img.shields.io/badge/Build-PlatformIO-orange.svg" alt="Build: PlatformIO">
-  <img src="https://img.shields.io/badge/Status-Work%20in%20progress-red.svg" alt="Status: work in progress">
-  <a href="https://discord.gg/3Qv5TSqnJH"><img src="https://img.shields.io/badge/Discord-Join-5865F2.svg" alt="Discord"></a>
+  <img src="https://img.shields.io/badge/UI-LVGL%208.4-6c3.svg" alt="UI: LVGL 8.4">
+  <img src="https://img.shields.io/badge/Languages-8-informational.svg" alt="8 languages">
 </p>
 
-> [!WARNING]
-> **This repository is documentation and structure only. There is no firmware in it yet.**
->
-> The design is settled and a working prototype exists on the bench, but its code
-> has not been migrated here. Nothing in this repository builds, flashes or runs
-> today. Follow [CHANGELOG.md](CHANGELOG.md) or
-> [watch the repository](https://github.com/TigerTag-Project/TigerSpool-RFID/subscription) to know when it does.
+<p align="center">
+  <a href="https://tigertag-project.github.io/TigerSpool-RFID/">
+    <img src="assets/install-button.svg" alt="Install TigerSpool from your browser" width="420">
+  </a>
+</p>
+
+<p align="center">
+  <a href="#what-it-is">What it is</a>
+  &nbsp;&middot;&nbsp;
+  <a href="#before-you-start">Before you start</a>
+  &nbsp;&middot;&nbsp;
+  <a href="#quick-start">Quick start</a>
+  &nbsp;&middot;&nbsp;
+  <a href="#build-it-yourself">Build one</a>
+</p>
 
 ---
 
-## You already added your printers once. Why do it again?
+**TigerSpool RFID** is open-source firmware for a small box that sits next to
+your 3D printer. Hold a spool carrying a TigerTag NFC chip against it, pick a
+slot on the touchscreen, and the box writes the filament into that slot on the
+printer — material, brand, colour and temperatures. No app, no keyboard, no
+retyping what the tag already knows.
 
-Every other spool scanner asks you to flash a board by hand, edit a YAML file,
-find your printer's IP address, and dig an access code out of a settings menu —
-per printer, on a device with no keyboard.
+MIT licensed. Built with PlatformIO for the ESP32-S3.
 
-TigerSpool doesn't. You add your printers **once**, in
-[Tiger Studio](https://github.com/TigerTag-Project/TigerTag-Studio-Manager) on
-your computer, where you have a keyboard and a real screen. Then you sign
-TigerSpool into your TigerTag account by scanning a QR code with your phone, and
-**your printers appear on it by themselves** — names, addresses, access codes and
-all. Add a printer to your account next month and TigerSpool picks it up on its
-own.
-
-That is the whole difference. Everything else in this project follows from it.
+---
 
 ## What it is
 
-A small box that sits next to your 3D printers.
+Your printer already has a slot list. Your filament already carries its own
+identity. TigerSpool is the thirty centimetres between them.
 
-<!-- TODO(images): product photo — docs/images/hero.jpg -->
+- **Tap, pick, done.** Hold the spool to the box, tap a slot, confirm. The
+  assignment reaches the printer over its own protocol.
+- **Your printers come from your account.** They are configured once, in Tiger
+  Studio Manager, and every TigerSpool you own reads the same list.
+- **It speaks eight languages** and asks which one before anything else.
+- **It updates itself.** Over the air, verified, from this repository's releases.
 
-1. Hold a filament spool carrying a [TigerTag](https://tigersystem.io) NFC chip
-   against the box.
-2. Tap the slot you want it in on the touchscreen.
-3. The material, the brand, the exact colour and the temperatures land in your
-   printer.
+## Before you start
 
-No typing a colour into a printer menu that offers you twelve of them. No
-guessing whether slot 3 is the grey PETG or the grey ABS. The spool says what it
-is, and the box tells the printer.
+**This is the part that catches people out, so it is first.**
 
-## Printer support
+A TigerSpool has no keyboard and no way to type a printer's address, and that is
+deliberate — it reads your printers from your TigerTag account instead. Which
+means two things have to exist before the box is useful:
 
-**"Any printer" is the goal, not a claim about today.** The honest, current state
-of every brand is in **[docs/PRINTER-COMPATIBILITY.md](docs/PRINTER-COMPATIBILITY.md)**,
-which grades each one on three levels — ✅ automatic, ⚙️ one setup step,
-🧪 experimental. Read it before buying parts for a specific printer.
+### 1. A TigerTag account, created in Tiger Studio Manager
 
-Four brands have a protocol implementation proven on real hardware in the
-firmware prototype: **Creality**, **FlashForge**, **Bambu Lab** and
-**Snapmaker**. **Elegoo** and **Anycubic** are targeted for v1: their protocols
-are fully documented and already working in
-[Tiger Studio](https://github.com/TigerTag-Project/TigerTag-Studio-Manager), but
-**no firmware backend has been written for them yet**. The compatibility matrix
-is the source of truth; this paragraph is a summary of it.
+**[Tiger Studio Manager](https://github.com/TigerTag-Project/TigerTag-Studio-Manager)**
+is the desktop application for the ecosystem. Install it and create an account
+there. That account is what the TigerSpool signs in to — by e-mail, or with
+Google through a QR code, so you never type a password on a 2" screen.
+
+Without an account, the box gets through Wi-Fi setup and then has nothing to
+sign in to.
+
+### 2. Your printers, added in Tiger Studio Manager
+
+Adding a printer means Tiger Studio finds it on your network, or you enter its
+address and access code, and stores it against your account.
+
+**If you have not done this, the printer list on the box will be empty.** That is
+not a fault and there is nothing to fix on the device — it is showing you exactly
+what your account contains. Add the printer in Tiger Studio, and it appears on
+the box at the next sync.
+
+The same is true for the details: the access code, the IP address, the brand and
+model all come from there. TigerSpool reads that list; it does not build it.
+
+> **In short:** Tiger Studio Manager → create an account → add your printers →
+> *then* set up the box.
+
+## Quick start
+
+### Step 1 — install from your browser
+
+**Plug the board into your computer → click Install → wait a minute.** Use the
+button at the top of this page. It writes the bootloader, the partition table,
+the boot selector and the firmware.
+
+Chrome, Edge or Opera, on a desktop or laptop. Safari and Firefox do not
+implement WebSerial and no mobile browser does — the page says so rather than
+failing quietly.
+
+### Step 2 — set it up on the box
+
+1. **Pick your language.** Eight of them, before anything else.
+2. **Join Wi-Fi.** The box shows a QR code. Scan it with your phone, and a page
+   opens listing the networks it can see. Pick yours, type the password on your
+   phone, and the box joins — no reboot, nothing typed on the small screen.
+3. **Sign in.** E-mail and password, or Google through a second QR code.
+4. **Your printers arrive.** From your account, as configured in Tiger Studio.
+
+Then hold a tagged spool against the box, tap the slot you want, and confirm.
+
+From then on it updates itself over the air.
+
+### Build it yourself
+
+```bash
+git clone https://github.com/TigerTag-Project/TigerSpool-RFID.git
+cd TigerSpool-RFID
+
+bash scripts/flash.sh --monitor
+```
+
+That builds the firmware, flashes it over USB and opens the serial console.
+Requires [PlatformIO Core](https://docs.platformio.org/en/latest/core/installation/).
+
+An ordinary flash **keeps your Wi-Fi credentials, your account session and your
+printers** — nothing it writes touches the NVS partition. `--erase` wipes the
+chip and is how you get a genuine first-boot again.
 
 ## Hardware
 
-One board, one reader, six wires. The electronics are identical for every printer
-brand — only the 3D-printed shell changes.
+One board, one reader, six wires. The electronics are identical for every
+printer brand — only the 3D-printed shell changes.
 
 | Part | Notes |
 |---|---|
-| Waveshare ESP32-S3-Touch-LCD-2 | 2.0" 240×320 touchscreen, 16 MB flash, 8 MB PSRAM |
+| Waveshare ESP32-S3-Touch-LCD-2 | 2.0" 240×320 touchscreen, 16 MB flash, 8 MB octal PSRAM |
 | PN532 NFC module | Wired in **HSU (UART)** mode — not I²C, not SPI |
 | Six jumper wires | 3V3, GND, and four signal lines |
 | A 3D-printed case | [models/](models/) — one per printer brand, plus a desktop stand |
@@ -85,104 +151,92 @@ brand — only the 3D-printed shell changes.
 Full parts list: **[hardware/BOM.md](hardware/BOM.md)** ·
 Wiring: **[docs/WIRING.md](docs/WIRING.md)** and **[hardware/pinout.md](hardware/pinout.md)**
 
-> The PN532 wiring is not negotiable and not obvious — the reader goes on
-> **GPIO43/44**, and GPIO6/7 will silently corrupt every read. Follow
-> [docs/WIRING.md](docs/WIRING.md) exactly.
+> **The reader goes on GPIO43/44.** Not GPIO6/7 — that pair is an I²C bus with
+> pull-ups on this board. A PN532 wired there powers up, answers, and returns
+> random UIDs with failing reads. It looks like a bad tag or a bad antenna. It is
+> neither, and it costs a day. Follow [docs/WIRING.md](docs/WIRING.md) exactly.
 
-## How you'll set one up
+## Printer support
 
-Written out screen by screen in **[docs/ONBOARDING.md](docs/ONBOARDING.md)**. The
-short version:
+**"Any printer" is the goal, not a claim about today.** The current state of
+every brand is in **[docs/PRINTER-COMPATIBILITY.md](docs/PRINTER-COMPATIBILITY.md)**,
+which grades each on three levels — ✅ automatic, ⚙️ one setup step,
+🧪 experimental. Read it before buying parts for a specific printer.
 
-| | |
-|---|---|
-| **1. Install** | Plug the board into a computer, open the web installer in Chrome or Edge, click Install. No toolchain, no command line. |
-| **2. Wi-Fi** | The screen shows a QR code. Your phone joins the box's network in one tap, a page opens by itself, you pick your Wi-Fi and type its password **on your phone's keyboard**. |
-| **3. Account** | The screen shows a second QR code. Scan it, approve on your phone, done. Your printers arrive. |
-| **4. Scan** | Spool against the box, slot on the screen, sent. |
+| Brand | Firmware backend | Transport |
+|---|---|---|
+| **Creality** | ✅ written | WebSocket |
+| **FlashForge** | ✅ written | HTTP |
+| **Bambu Lab** | ✅ written | MQTT over TLS |
+| **Snapmaker** | ✅ written | Moonraker over WebSocket |
+| **Elegoo** | ✗ not written | protocol documented in Tiger Studio |
+| **Anycubic** | ✗ not written | protocol documented in Tiger Studio |
 
-Nothing is ever typed on the 2.0" screen. There is no keyboard on this device and
-there will never be one.
+Slot names match the ones the printer and Tiger Studio use — `Ext.` plus
+`1A`–`1D` on Creality and FlashForge, `A1`–`A4` then `B1`–`B4` on Bambu,
+`E1`–`E4` on Snapmaker. The table and its two traps are in the compatibility
+document.
 
 ## Documentation
 
-| Document | What's in it |
+| | |
 |---|---|
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Layers, state machine, printer backend abstraction, transport/protocol split |
-| [docs/ONBOARDING.md](docs/ONBOARDING.md) | The user's journey, screen by screen |
-| [docs/WIFI-PROVISIONING.md](docs/WIFI-PROVISIONING.md) | Built-in captive portal and the Wi-Fi QR code |
-| [docs/ACCOUNT-PAIRING.md](docs/ACCOUNT-PAIRING.md) | Signing in with no keyboard — QR pairing and email/password |
-| [docs/OTA.md](docs/OTA.md) | Over-the-air updates, partition layout, rollback, release channels |
-| [docs/WIRING.md](docs/WIRING.md) | ESP32-S3 ↔ PN532 HSU, complete pinout, what breaks and why |
-| [docs/PRINTER-COMPATIBILITY.md](docs/PRINTER-COMPATIBILITY.md) | Honest three-level support matrix, per brand |
-| [docs/MIGRATION.md](docs/MIGRATION.md) | How the bench prototype becomes this firmware |
-| [hardware/BOM.md](hardware/BOM.md) | Parts and where to buy them |
-| [models/README.md](models/README.md) | 3D-printable cases, and the rule that governs them |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | How to help |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Layering, the state machine, why a backend knows nothing about the screen |
+| [ONBOARDING.md](docs/ONBOARDING.md) | The first-boot journey, screen by screen |
+| [WIFI-PROVISIONING.md](docs/WIFI-PROVISIONING.md) | The QR code and the captive portal |
+| [ACCOUNT-PAIRING.md](docs/ACCOUNT-PAIRING.md) | E-mail and Google sign-in, and why RFC 8628 was rejected |
+| [ACCOUNT-DATA.md](docs/ACCOUNT-DATA.md) | The shape a printer arrives in |
+| [OTA.md](docs/OTA.md) | Partitions, the manifest, and what is settled before the first release |
+| [PRINTER-COMPATIBILITY.md](docs/PRINTER-COMPATIBILITY.md) | Per-brand status and slot naming |
+| [WIRING.md](docs/WIRING.md) | The six wires |
 
-## Where TigerSpool sits in the ecosystem
+Contributors and agents start at **[AGENTS.md](AGENTS.md)** and
+**[CODEMAP.md](CODEMAP.md)**.
 
-```
-    ┌──────────────────────┐        you add your printers here, once,
-    │     Tiger Studio     │        on a computer with a keyboard
-    │  (desktop, MIT)      │
-    └──────────┬───────────┘
-               │  writes users/{uid}/printers/*
-               ▼
-    ┌──────────────────────┐
-    │   TigerTag account   │        the shared source of truth
-    └──────────┬───────────┘
-               │  TigerSpool reads it after QR pairing
-               ▼
-    ┌──────────────────────┐        ┌───────────────────────────┐
-    │   TigerSpool RFID    │───────▶│  your printers on the LAN │
-    │  (this repository)   │        │  Creality · FlashForge ·  │
-    └──────────▲───────────┘        │  Bambu Lab · Snapmaker    │
-               │                    └───────────────────────────┘
-        NFC    │
-    ┌──────────┴───────────┐
-    │  a TigerTag'd spool  │        material, brand, colour, temperatures
-    └──────────────────────┘
-```
+## Known limitations
 
-Related projects: **[TigerTag-RFID-Guide](https://github.com/TigerTag-Project/TigerTag-RFID-Guide)**
-(the tag protocol) · **[Tiger Studio](https://github.com/TigerTag-Project/TigerTag-Studio-Manager)**
-(desktop printer manager) · **[TigerScale V3](https://github.com/TigerTag-Project/Tiger-Scale-V3)**
-(the connected filament scale) · **[TigerSystem-Docs](https://github.com/TigerTag-Project/TigerSystem-Docs)**
-(ecosystem source of truth).
+Written down rather than discovered.
+
+- **The firmware is not signed.** Its update connection is verified against the
+  root certificate store, so the box knows who it is talking to — but not who
+  produced the image. The reasoning and the condition for changing that are in
+  [docs/OTA.md](docs/OTA.md).
+- **No Elegoo or Anycubic backend.** Both protocols are documented and working in
+  Tiger Studio; the firmware side is not written.
+- **On-screen text carries no accents.** The compiled font is ASCII plus degree
+  and bullet, so "Francais" is spelled without its cedilla on purpose. Restoring
+  them needs a generated Latin subset font, and Polish needs Latin Extended-A on
+  top of that.
+- **A printer is identified by its position in your account's list.** Reordering
+  it in Tiger Studio can move a per-printer setting to the wrong machine. Tracked
+  in [docs/reviews/](docs/reviews/).
+
+## Part of the TigerTag ecosystem
+
+TigerTag is an open NFC identification standard for 3D-printing materials. A
+spool carries its own identity, and every device in the system reads the same
+one.
+
+- **[Tiger Studio Manager](https://github.com/TigerTag-Project/TigerTag-Studio-Manager)** — desktop printer and filament manager. **Start here**: it is where an account is created and printers are declared.
+- **[TigerTag-RFID-Guide](https://github.com/TigerTag-Project/TigerTag-RFID-Guide)** — the protocol specification and public registry
+- **[TigerSystem-Docs](https://github.com/TigerTag-Project/TigerSystem-Docs)** — ecosystem source of truth
+- **[Tiger-Scale-V3](https://github.com/TigerTag-Project/Tiger-Scale-V3)** — the connected filament scale
+- **[TigerPOD](https://github.com/TigerTag-Project/TigerPOD)** — open desktop NFC reader/writer
+- **SDKs** — [Python](https://github.com/TigerTag-Project/TigerTag-SDK-Python) · [JavaScript](https://github.com/TigerTag-Project/TigerTag-SDK-JS)
 
 ## Contributing
 
-The firmware isn't here yet, so the most useful contributions right now are
-**not code**:
+Issues and pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) has the
+conventions; the short version is that `bash scripts/verify.sh` passes before
+anything is reported as done, and everything committed is in English.
 
-- **Own an Elegoo or an Anycubic we haven't captured?** Both protocols are
-  documented, from live captures of specific machines. Confirming they hold
-  across each brand's range is worth much more than another capture of the same
-  printer. See [docs/PRINTER-COMPATIBILITY.md](docs/PRINTER-COMPATIBILITY.md).
-- **Read the architecture** and tell us where it's wrong —
-  [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-- **Design a case** for a printer that doesn't have one — [models/](models/).
-
-[CONTRIBUTING.md](CONTRIBUTING.md) has the details. Talk to us on
-[Discord](https://discord.gg/3Qv5TSqnJH).
-
-## Credits
-
-The bench prototype that this project is built on — the state machine, the four
-printer protocols, and every hard-won hardware fact in
-[docs/WIRING.md](docs/WIRING.md) — was written together with
-**[RP3D-S](https://github.com/RP3D-S)**. See [AUTHORS.md](AUTHORS.md).
+Security reports: [SECURITY.md](SECURITY.md).
 
 ## License
 
-MIT — see [LICENSE](LICENSE). The code is free.
+[MIT](LICENSE) — build it, sell it, fork it.
 
-The **TigerTag** and **TigerSpool** names have conditions attached: see
-[TRADEMARK.md](TRADEMARK.md). Short version — build and sell them freely, run the
-official firmware, keep the name. Third-party dependencies keep their own
-licenses: [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
-
-<p align="center">
-  Built by the <a href="https://tigertag.io">TigerTag</a> community.
-</p>
+Third-party components keep their own licenses; see
+[THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md). "TigerTag" and "TigerSpool"
+are project names, not a license to imply endorsement — the terms for using them
+on a product you sell are in [TRADEMARK.md](TRADEMARK.md).

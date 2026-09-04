@@ -64,6 +64,8 @@ def main() -> int:
     ap.add_argument("--out", required=True)
     ap.add_argument("--released", default=None,
                     help="ISO 8601 timestamp; defaults to now, in UTC")
+    ap.add_argument("--web-installer", default=None, metavar="DIR",
+                    help="also write ESP Web Tools' manifest.json into DIR")
     a = ap.parse_args()
 
     dist = pathlib.Path(a.dist)
@@ -105,6 +107,35 @@ def main() -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(manifest, indent=2) + "\n")
     print(f"OK -> {out}  (version {a.version}, {len(manifest['assets'])} assets)")
+
+    # ESP Web Tools reads a different shape from the device, and there is no
+    # point arguing with it: it is a published contract. Both are generated from
+    # the same offsets and the same files, in the same run, so the page and the
+    # device cannot end up installing different builds - which is the whole
+    # reason this is one script.
+    if a.web_installer:
+        web = pathlib.Path(a.web_installer)
+        web.mkdir(parents=True, exist_ok=True)
+        parts = []
+        for item, offset in sorted(OFFSETS.items(), key=lambda kv: kv[1]):
+            src = firmware if item == "firmware.bin" else dist / item
+            if not src.exists():
+                print(f"error: {src} is missing - the installer would write an "
+                      "incomplete board", file=sys.stderr)
+                return 1
+            # Served from beside the manifest: a cross-origin fetch of a release
+            # asset is at the mercy of whatever CORS headers that host sends.
+            (web / item).write_bytes(src.read_bytes())
+            parts.append({"path": item, "offset": offset})
+
+        (web / "manifest.json").write_text(json.dumps({
+            "name": "TigerSpool RFID",
+            "version": a.version,
+            "new_install_prompt_erase": True,
+            "builds": [{"chipFamily": "ESP32-S3", "parts": parts}],
+        }, indent=2) + "\n")
+        print(f"OK -> {web / 'manifest.json'}  ({len(parts)} parts, images copied)")
+
     return 0
 
 

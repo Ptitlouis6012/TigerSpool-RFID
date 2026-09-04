@@ -1,7 +1,9 @@
 # Web installer
 
-> **Status: not implemented.** The design is here; the page and the manifest are
-> not written yet.
+> **Status: live** at
+> <https://tigertag-project.github.io/TigerSpool-RFID/>. `index.html` is the
+> page; `manifest.json`, `version.json` and the four images are generated at
+> release time by `scripts/make-manifest.py` and never committed.
 
 Flash a TigerSpool from a browser. Plug the board into a computer, open the page,
 click **Install**. No PlatformIO, no Arduino IDE, no command line, no drivers to

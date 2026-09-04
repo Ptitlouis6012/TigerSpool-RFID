@@ -64,14 +64,22 @@ jobs:
           echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
           ls -l dist
 
-      - name: Generate the manifest
+      # The installer page and the two manifests, generated in one run from one
+      # set of files, so the page and the device cannot advertise different
+      # builds. The images are copied in beside them: ESP Web Tools fetches them
+      # relative to its manifest, and a cross-origin fetch of a release asset is
+      # at the mercy of whatever CORS headers that host happens to send.
+      - name: Build the site
         run: |
+          mkdir -p pages
+          cp -R installer/. pages/
           python3 scripts/make-manifest.py \
             --version "$VERSION" \
             --repo "${{ github.repository }}" \
             --dist dist \
-            --out pages/version.json
-          cat pages/version.json
+            --out pages/version.json \
+            --web-installer pages
+          ls -l pages
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

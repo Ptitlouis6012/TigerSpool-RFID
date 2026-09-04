@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Install TigerSpool RFID</title>
+<meta name="description" content="Flash TigerSpool RFID onto an ESP32-S3 from your browser. No toolchain, no command line.">
+
+<!--
+  The web installer.
+
+  ESP Web Tools speaks WebSerial, which only Chrome, Edge and Opera on a desktop
+  implement. Safari and Firefox do not, and no mobile browser does. The page says
+  so up front rather than letting someone plug a board in and watch nothing
+  happen — that failure is silent and reads as broken hardware.
+
+  Everything it installs is generated at release time and served from beside this
+  file: manifest.json for ESP Web Tools, version.json for the device's own OTA
+  check, and the four images. Nothing here is committed as a binary.
+-->
+
+<script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0B0D10;
+    --surface: #14171C;
+    --line: #232830;
+    --text: #FFFFFF;
+    --dim: #8B95A1;
+    --accent: #F2C744;
+    --ok: #3FA85E;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 48px 20px 80px;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 680px; margin: 0 auto; }
+  h1 { font-size: 2rem; margin: 0 0 .3rem; letter-spacing: -.02em; }
+  h2 { font-size: 1.05rem; margin: 2.6rem 0 .7rem; }
+  .lede { color: var(--dim); margin: 0 0 2.2rem; font-size: 1.05rem; }
+  a { color: var(--accent); }
+
+  .cta {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 26px;
+    text-align: center;
+  }
+  .version { color: var(--dim); font-size: .9rem; margin-top: 14px; }
+  .version strong { color: var(--text); }
+
+  esp-web-install-button { --esp-tools-button-color: #101318; }
+
+  .unsupported {
+    display: none;
+    border: 1px solid #5A4520;
+    background: #241C0C;
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 22px;
+    color: #F0D9A0;
+  }
+  body.no-serial .unsupported { display: block; }
+  body.no-serial .cta { opacity: .45; pointer-events: none; }
+
+  ol, ul { padding-left: 1.25rem; }
+  li { margin: .45rem 0; }
+  .note {
+    border-left: 3px solid var(--line);
+    padding: 2px 0 2px 16px;
+    color: var(--dim);
+    margin: 1.2rem 0;
+  }
+  .note strong { color: var(--text); }
+  footer {
+    margin-top: 3.5rem; padding-top: 1.4rem;
+    border-top: 1px solid var(--line);
+    color: var(--dim); font-size: .9rem;
+  }
+  code {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 5px; padding: 1px 6px; font-size: .9em;
+  }
+</style>
+</head>
+<body>
+<main>
+
+  <h1>Install TigerSpool RFID</h1>
+  <p class="lede">
+    Plug the board into this computer, click Install, and wait about a minute.
+    No toolchain, no command line.
+  </p>
+
+  <div class="unsupported">
+    <strong>This browser cannot flash a board.</strong>
+    Installing needs WebSerial, which only Chrome, Edge and Opera implement, on a
+    desktop or laptop. Safari, Firefox and every mobile browser are out. Open this
+    page in one of those three, or
+    <a href="https://github.com/TigerTag-Project/TigerSpool-RFID#build-it-yourself">build
+    and flash it yourself</a>.
+  </div>
+
+  <div class="cta">
+    <esp-web-install-button manifest="manifest.json">
+      <button slot="activate">Install TigerSpool</button>
+      <span slot="unsupported"></span>
+      <span slot="not-allowed"></span>
+    </esp-web-install-button>
+    <div class="version" id="version">Reading the published version…</div>
+  </div>
+
+  <h2>What it writes</h2>
+  <p>
+    The bootloader, the partition table, the boot selector and the firmware — the
+    same four images published with the release, at the same offsets
+    <code>scripts/flash.sh</code> uses over USB.
+  </p>
+
+  <div class="note">
+    <strong>Choose Erase only on a board you are setting up for the first time.</strong>
+    Erasing wipes the NVS partition, which is where a TigerSpool keeps its Wi-Fi
+    credentials, its TigerTag session and its imported printers. An ordinary
+    install leaves all of that alone — that is what the two OTA slots are for.
+  </div>
+
+  <h2>After it reboots</h2>
+  <ol>
+    <li>Pick your language.</li>
+    <li>Scan the Wi-Fi QR code with your phone and join the network the box asks for.</li>
+    <li>Sign in to your TigerTag account, by e-mail or with Google.</li>
+  </ol>
+  <p>
+    Your printers arrive from your account. If the list comes up empty, they have
+    not been added in
+    <a href="https://github.com/TigerTag-Project/TigerTag-Studio-Manager">Tiger&nbsp;Studio&nbsp;Manager</a>
+    yet — that is where a printer is declared, and the box only reads what is there.
+  </p>
+
+  <p>From then on the box updates itself over the air. This page is for the first install.</p>
+
+  <footer>
+    <a href="https://github.com/TigerTag-Project/TigerSpool-RFID">Source, documentation and releases</a>
+    &nbsp;·&nbsp;
+    <a href="version.json">version.json</a>
+    &nbsp;·&nbsp;
+    MIT licensed
+  </footer>
+
+</main>
+
+<script>
+  if (!('serial' in navigator)) document.body.classList.add('no-serial');
+
+  // Read the version from the same file the device reads, so this page and the
+  // OTA channel can never advertise different builds.
+  fetch('version.json', { cache: 'no-store' })
+    .then(r => r.json())
+    .then(v => {
+      document.getElementById('version').innerHTML =
+        'Installs version <strong>' + v.version + '</strong>' +
+        (v.notes_url ? ' · <a href="' + v.notes_url + '">release notes</a>' : '');
+    })
+    .catch(() => {
+      document.getElementById('version').textContent =
+        'Could not read the published version. The Install button still works.';
+    });
+</script>
+</body>
+</html>
