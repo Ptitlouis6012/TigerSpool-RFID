@@ -1,0 +1,61 @@
+# TigerSpool RFID
+
+> ESP32-S3 firmware for a small touchscreen box that reads a TigerTag NFC chip on
+> a filament spool and writes what it says — material, brand, colour, temperatures
+> — into a 3D printer's slot. Printers are imported from the user's TigerTag
+> account; nothing is typed on the device. Open source, MIT.
+
+The box is a Waveshare ESP32-S3-Touch-LCD-2 (2.0" 240×320, 16 MB flash, 8 MB
+octal PSRAM) with a PN532 reader on UART1. The interface is LVGL 8 over
+LovyanGFX. One printer backend per brand — Bambu Lab over MQTT, Creality and
+Snapmaker over WebSocket, FlashForge over HTTP — behind a single interface.
+
+If you are an agent about to change something here, read `AGENTS.md` and
+`CODEMAP.md` before touching a file, and run `bash scripts/verify.sh` before
+reporting the work done. The Landmines table in `CODEMAP.md` is the highest-value
+thing in this repository: nineteen behaviours that look like bugs and are not, or
+look fine and are not, each of which cost somebody a debugging session.
+
+## Working here
+
+- [AGENTS.md](AGENTS.md): repository layout, conventions, and a table of decisions that are settled and must not be re-litigated.
+- [CLAUDE.md](CLAUDE.md): non-negotiables with the consequence of ignoring each, hardware facts that bite, the four-command workflow, and a symptom-to-fix table for every guard.
+- [CODEMAP.md](CODEMAP.md): what each source file owns, what it must not be asked to do, and the Landmines table.
+- [WORKLOG.md](WORKLOG.md): everything done since the last commit, in Keep a Changelog headings. Release notes are written from it, never from memory.
+- [docs/ADOPTING-THIS-STANDARD.md](docs/ADOPTING-THIS-STANDARD.md): which parts of this way of working transferred from a sibling project, which were dropped and why, and the guards no standard predicted. Read first if you are bringing another repository up to this line.
+- [docs/REVIEW-BRIEF.md](docs/REVIEW-BRIEF.md): the standing brief for a code review — read-only, six axes, and the output format.
+
+## How it works
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): the layering, the design rules for the state machine, and why a printer backend knows nothing about the screen.
+- [docs/ONBOARDING.md](docs/ONBOARDING.md): the first-boot journey — language, Wi-Fi by QR, then linking a TigerTag account.
+- [docs/WIFI-PROVISIONING.md](docs/WIFI-PROVISIONING.md): the captive portal, and why there is no separate provisioning firmware.
+- [docs/ACCOUNT-PAIRING.md](docs/ACCOUNT-PAIRING.md): email/password and the code-and-QR Google flow, and why RFC 8628 device flow was evaluated and rejected.
+- [docs/ACCOUNT-DATA.md](docs/ACCOUNT-DATA.md): the Firestore shape a printer arrives in.
+- [docs/OTA.md](docs/OTA.md): the partition layout, and the release decisions that stop being decisions after the first public release.
+- [docs/PRINTER-COMPATIBILITY.md](docs/PRINTER-COMPATIBILITY.md): which printers work, what "supported" means, and the slot-naming table per brand.
+- [docs/WIRING.md](docs/WIRING.md) and [hardware/pinout.md](hardware/pinout.md): the six wires. **The reader is on GPIO43/44, never GPIO6/7** — that pair is an I²C bus with pull-ups on this board, and a reader wired there answers and returns random UIDs.
+
+## Verification
+
+Eleven guards behind one command, `bash scripts/verify.sh`. Each names the file
+and the line, each fails loudly rather than passing when its input set is empty,
+and CI runs the same file rather than its own copy. They check file format,
+generated files against their generators, translation tables against their enums,
+every drawn string against the compiled font's real character range, that
+committed text is English, that documented device names and reader wiring match
+what the code builds, that drawn text comes from the translation table, and that
+the version has release notes.
+
+The device can be inspected without standing in front of it:
+`http://<device>.local/screen.bmp` returns the current framebuffer and
+`/api/tap?x=&y=` injects a touch, so a screen can be opened, driven and read back
+from a desk.
+
+## Not there yet
+
+- No over-the-air update. The two partitions exist; the update code does not.
+- No firmware signing. The published checksums prove a download is not corrupted and nothing about who produced it.
+- TLS certificates are not verified, inherited from the prototype and a release blocker.
+- No Elegoo or Anycubic backend. Both protocols are documented; the firmware is not written.
+- On-device strings carry no diacritics: the compiled font is ASCII plus degree and bullet. Restoring them needs a generated Latin subset font, and Polish needs Latin Extended-A beyond that.

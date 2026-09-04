@@ -87,6 +87,11 @@ message, and reset it to this header.
   when it was adopted here and why, the five guards it never predicted, and what
   remains unproven. The record that keeps the standard from becoming ceremony.
 
+- `llms.txt` — the map an agent or crawler reads first: what the product is, the
+  four contract files in reading order, where each subject is documented, what
+  the guards cover, and what is honestly not built yet. Its links are checked by
+  the same guard that checks the Markdown.
+
 ### Fixed
 
 - The reference-data generator could not run at all, wrote a Portuguese banner,

@@ -13,6 +13,11 @@ them was to push. They are here so the bench and CI run the same code.
     of vendored libraries whose own READMEs point at images they never shipped,
     and a check that fails on somebody else's documentation is one people learn
     to ignore.
+
+    llms.txt is checked alongside the Markdown. It is the map an agent reads
+    first, so a link in it that goes nowhere sends the reader off in the wrong
+    direction before they have opened anything - the worst place in the
+    repository for a broken link.
 """
 
 import pathlib
@@ -35,7 +40,8 @@ def main() -> int:
         problems.append("_internal/ is tracked by git. It is maintainer working "
                         "material and must stay ignored: git rm -r --cached _internal")
 
-    docs = [d for d in tracked("*.md") if not d.startswith("_internal/")]
+    docs = [d for d in tracked("*.md") + tracked("llms.txt")
+            if not d.startswith("_internal/")]
     if not docs:
         print("error: found no documentation to check", file=sys.stderr)
         return 2
