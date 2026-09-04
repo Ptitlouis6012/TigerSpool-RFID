@@ -15,26 +15,19 @@ octal PSRAM, 2.0" 240×320 IPS with a CST816S capacitive touch panel.
 
 **Reader:** PN532 module (the common red V3 breakout), in **HSU** mode.
 
-### PN532 → ESP32-S3
+### Wiring Diagram
 
-Four wires. They come with the module, so there is nothing to buy.
+> [!NOTE]
+> Four wires. They come with the PN532 module, so there is nothing to buy.
 
-```
-   PN532 V3                                 Waveshare ESP32-S3-Touch-LCD-2
-   DIP switches: both 0 / OFF
-
-     VCC  ─────────────────────────────────  3V3       never 5 V
-     GND  ─────────────────────────────────  GND
-     TXD  ─────────────────────────────────  GPIO44    UART1 RX   transmit -> receive
-     RXD  ─────────────────────────────────  GPIO43    UART1 TX   receive  <- transmit
-
-     RSTO    not connected
-     IRQ     not connected
-```
-
-The lines do not cross on the board — they cross in the *names*. The reader's
-transmit pin lands on the ESP32's receive pin, which is why `TXD` sits opposite
-`GPIO44` and not `GPIO43`.
+<p align="center">
+  <a href="https://app.cirkitdesigner.com/project/7a6c0887-8e44-4303-81b3-be51aab4b40a">
+    <img src="../assets/wiring-diagram.jpg" alt="Wiring diagram: PN532 to ESP32-S3-Touch-LCD-2 — VCC to 3V3, GND to GND, TXD to GPIO44, RXD to GPIO43" width="600">
+  </a>
+</p>
+<p align="center">
+  <sub><a href="https://app.cirkitdesigner.com/project/7a6c0887-8e44-4303-81b3-be51aab4b40a">Interactive schematic in Cirkit Designer</a></sub>
+</p>
 
 | PN532 pin | ESP32-S3 | Direction | Notes |
 |---|---|---|---|
