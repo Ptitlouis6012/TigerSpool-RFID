@@ -7,10 +7,64 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-Repository bootstrap. **No firmware yet** — this release is documentation,
-structure and decisions only.
+## [1.1.0] - 2026-09-04
 
-### Added
+**First official release.** A TigerTag NFC chip on a spool, read by the box, and
+the filament it names written into a printer's slot — material, brand, colour
+and temperatures — without typing anything on the device.
+
+### The device
+
+- **First boot end to end**: language in eight locales, Wi-Fi over a QR code and
+  a captive portal that joins without rebooting, then linking a TigerTag account
+  by email or by Google.
+- **Every screen is LVGL**, over a display port that keeps its DMA draw buffers
+  in internal RAM and the LVGL heap in PSRAM.
+- **Settings**: printers, Wi-Fi, account, screen, language, update, restart and
+  factory reset. The factory reset is a two-second hold and clears all four NVS
+  namespaces, so it cannot quietly undo itself.
+- **A printer picker**, because an account can hold ten printers while the
+  machine next to the box is one of them. Hiding is not deleting.
+- **The screen sleeps** — dim, dark, wake on touch. The waking touch is
+  consumed, so reaching for a sleeping device cannot send filament to a slot.
+- **Per-device names**, `tigerspool-xxxx.local` and `TigerSpool-Setup-XXXX`, so
+  two of these can share a network.
+- **Slot names match the printers'**: `Ext.` plus `1A`–`1D` on Creality and
+  FlashForge, `A1`–`A4` then `B1`–`B4` on Bambu, `E1`–`E4` on Snapmaker.
+
+### Over-the-air update
+
+- Fetch the published manifest, compare versions, stream the image into the
+  spare OTA slot while hashing it, refuse it unless the checksum matches, and
+  restart into it. Nothing touches the running slot, so a failure costs a
+  download and nothing else.
+- The manifest is generated at release time from the release's own artefacts,
+  never committed and never rebuilt, and published by exactly one workflow —
+  which then verifies what is actually being served.
+- **The image is not signed.** The connection is verified; who produced the
+  firmware is not proven. See [docs/OTA.md](docs/OTA.md).
+
+### Security
+
+- **Certificates are verified on every call that leaves the network** — the
+  account sign-in, the token refresh, the pairing, the Firestore import, the
+  manifest and the firmware. All of them previously ran without checking who
+  answered.
+- The Bambu backend is the one deliberate exception: a printer on the local
+  network presenting a self-signed certificate, trusted through the access code.
+
+### The working contract
+
+- `AGENTS.md`, `CLAUDE.md`, `CODEMAP.md` and `WORKLOG.md`, plus eleven guards
+  behind one command, `scripts/verify.sh`, which CI runs rather than its own
+  copy. They cover file format, generated files against their generators,
+  translation tables against their enums, every drawn string against the
+  compiled font, that committed text is English and comes from the translation
+  table, that documented device names and reader wiring match the code, and that
+  a release has notes.
+- `/screen.bmp` and `/api/tap` make the panel readable and drivable from a desk.
+
+### Documentation
 
 - Product definition and positioning ([README.md](README.md)).
 - Target firmware architecture: layers, state machine, printer backend
