@@ -96,13 +96,6 @@ lv_obj_t* frame(const char* title, bool withBack = false) {
     lv_obj_t* header = lv_obj_create(s_screen);
     lv_obj_remove_style_all(header);
     lv_obj_add_style(header, theme::headerStyle(), 0);
-    {   // What the SHARED style alone produced, before anything local touches it.
-        lv_color_t c = lv_obj_get_style_bg_color(header, LV_PART_MAIN);
-        lv_opa_t   o = lv_obj_get_style_bg_opa(header, LV_PART_MAIN);
-        Serial.printf("[ui] header from shared style: 0x%04X (r%u g%u b%u) opa=%u "
-                      "- expected 0x%04X\n", c.full, c.ch.red, c.ch.green, c.ch.blue, o,
-                      lv_color_hex(theme::HEADER).full);
-    }
     lv_obj_set_size(header, theme::SCREEN_W, theme::HEADER_H);
     lv_obj_align(header, LV_ALIGN_TOP_MID, 0, 0);
     lv_obj_clear_flag(header, LV_OBJ_FLAG_SCROLLABLE);

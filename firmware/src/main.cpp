@@ -812,6 +812,12 @@ void loop() {
                 state = ST_SET_SCREEN; stateSince = millis(); break;
             case screen_settings::E_UPDATE:
                 screen_settings::invalidate();
+                // Opening the page is the question. Asking the user to then
+                // press "check" was making them state an intent they had
+                // already stated by arriving. checkAsync() declines by itself
+                // when it is busy or offline, so the button stays for the
+                // offline case and for a retry.
+                ota::checkAsync();
                 state = ST_SET_UPDATE; stateSince = millis(); break;
             case screen_settings::E_RESTART:
                 screen_settings::invalidate();

@@ -79,7 +79,6 @@ static const Row STR[S_COUNT] = {
 /* S_SLEEP_AFTER    */ {{ "Sleep after", "Veille apres", "Ruhe nach", "Reposo tras", "Standby dopo", "Uspij po", "Suspender apos", "Suspender apos" }},
 /* S_NEVER          */ {{ "Never", "Jamais", "Nie", "Nunca", "Mai", "Nigdy", "Nunca", "Nunca" }},
 /* S_INSTALLED      */ {{ "Installed", "Installee", "Installiert", "Instalada", "Installata", "Zainstalowana", "Instalada", "Instalada" }},
-/* S_CHANNEL        */ {{ "Channel", "Canal", "Kanal", "Canal", "Canale", "Kanal", "Canal", "Canal" }},
 /* S_OTA_OFF        */ {{ "Over-the-air updates are not enabled on this build.", "Les mises a jour par le reseau ne sont pas actives.", "Updates uber Funk sind in diesem Build nicht aktiv.", "Las actualizaciones por red no estan activas.", "Gli aggiornamenti via rete non sono attivi.", "Aktualizacje przez siec nie sa wlaczone.", "As atualizacoes pela rede nao estao ativas.", "As atualizacoes pela rede nao estao ativas." }},
 /* S_RESTART_Q      */ {{ "Restart the box?", "Redemarrer le boitier ?", "Box neu starten?", "Reiniciar la caja?", "Riavviare la scatola?", "Uruchomic ponownie?", "Reiniciar a caixa?", "Reiniciar a caixa?" }},
 /* S_RESTART_NOTE   */ {{ "Takes about ten seconds. Nothing is lost.", "Environ dix secondes. Rien n'est perdu.", "Etwa zehn Sekunden. Nichts geht verloren.", "Unos diez segundos. No se pierde nada.", "Circa dieci secondi. Non si perde nulla.", "Okolo dziesieciu sekund. Nic nie ginie.", "Cerca de dez segundos. Nada e perdido.", "Cerca de dez segundos. Nada se perde." }},

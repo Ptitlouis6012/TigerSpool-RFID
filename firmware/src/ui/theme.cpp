@@ -37,10 +37,17 @@ void init() {
     lv_style_set_pad_all(&s_screen, 0);
     lv_style_set_text_color(&s_screen, lv_color_hex(TEXT));
 
+    // The header is not a filled bar. It is the same ground as the rest of the
+    // screen, separated by a single rule - so the title reads as part of the
+    // page instead of a strip bolted above it, and a 240 px wide screen keeps
+    // every pixel of its vertical space visually.
     lv_style_init(&s_header);
     lv_style_set_bg_color(&s_header, lv_color_hex(HEADER));
     lv_style_set_bg_opa(&s_header, LV_OPA_COVER);
-    lv_style_set_border_width(&s_header, 0);
+    lv_style_set_border_color(&s_header, lv_color_hex(LINE));
+    lv_style_set_border_width(&s_header, 1);
+    lv_style_set_border_side(&s_header, LV_BORDER_SIDE_BOTTOM);
+    lv_style_set_border_opa(&s_header, LV_OPA_COVER);
     lv_style_set_radius(&s_header, 0);
     lv_style_set_pad_all(&s_header, 0);
 

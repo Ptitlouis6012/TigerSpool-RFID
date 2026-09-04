@@ -7,6 +7,36 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-09-05
+
+### Changed
+
+- **The update screen answers the question you came with.** Opening it now runs
+  the check itself, instead of showing a "Check for update" button and waiting
+  for you to state an intent you stated by arriving. The button remains for the
+  two cases that still need it: no Wi-Fi, and retrying after a failure.
+- **The progress ring replaces the progress bar.** While an image is being
+  written the whole screen becomes a 152 px ring with the percentage inside it,
+  no header and no way to leave — the download runs on its own task, and
+  leaving would only hide it. Below it, a warning against pulling the plug: a
+  half-written slot boots the old image, which is recoverable and looks like a
+  brick for a minute.
+- **The header is no longer a bar.** It is the same ground as the rest of the
+  screen with a single rule under it, on every screen. The title reads as part
+  of the page rather than a strip bolted above it.
+- **The installed version is a row, and the state is a badge.** "Installed
+  1.5.0" now uses the same row shape as the rest of settings, and the answer —
+  up to date, an update waiting, or a failure — is a glyph in a coloured ring,
+  legible before a word is read.
+- The update channel row is gone. It offered one channel.
+
+### Fixed
+
+- `scripts/flash.sh` failed with `PORT_ARG[@]: unbound variable` unless
+  `--port` was passed. Expanding an empty array under `set -u` is an error in
+  bash 3.2, which is what `/bin/bash` on macOS still is.
+
+
 ## [1.4.0] - 2026-09-04
 
 ### Fixed

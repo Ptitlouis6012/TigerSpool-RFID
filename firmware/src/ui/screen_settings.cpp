@@ -318,6 +318,29 @@ void showScreen(uint8_t brightness, int sleepSeconds) {
 // downloading and finishing, so its signature carries the state as well as the
 // version. Everything else on this screen is static; this one is a progress
 // report and has to be allowed to change.
+// A glyph in a ring, in one colour. It is what the eye lands on first on this
+// screen: the state is legible from arm's length before a word is read.
+static void badge(lv_obj_t* parent, const char* glyph, uint32_t colour) {
+    lv_obj_t* ring = lv_obj_create(parent);
+    lv_obj_remove_style_all(ring);
+    lv_obj_set_size(ring, 76, 76);
+    lv_obj_set_style_radius(ring, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_border_color(ring, lv_color_hex(colour), 0);
+    lv_obj_set_style_border_width(ring, 3, 0);
+    lv_obj_set_style_border_opa(ring, LV_OPA_COVER, 0);
+    lv_obj_clear_flag(ring, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t* g = lv_label_create(ring);
+    lv_label_set_text(g, glyph);
+    lv_obj_set_style_text_font(g, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_color(g, lv_color_hex(colour), 0);
+    lv_obj_center(g);
+
+    lv_obj_t* gap = lv_obj_create(parent);
+    lv_obj_remove_style_all(gap);
+    lv_obj_set_size(gap, 1, 14);
+}
+
 void showUpdate(const char* version, const char* channel,
                 int otaState, const char* latest, int percent) {
     uint32_t sig = 0xC0000000u ^ hashOf(version) ^ hashOf(channel)
@@ -326,18 +349,75 @@ void showUpdate(const char* version, const char* channel,
     if (sig == s_viewSig) return;
     s_viewSig = sig;
 
-    lv_obj_t* body = frame::build(i18n::T(S_UPDATE), onBack);
+    // While the image is being written there is nothing to go back to: the
+    // download runs on its own task and leaving would hide it. So the whole
+    // screen becomes the progress ring, without a header.
+    const bool busy = (otaState == ota::DOWNLOADING || otaState == ota::DONE);
+
+    lv_obj_t* body = busy ? frame::build(nullptr, nullptr)
+                          : frame::build(i18n::T(S_UPDATE), onBack);
     lv_obj_set_flex_align(body, LV_FLEX_ALIGN_CENTER,
                           LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
-    frame::caption(i18n::T(S_INSTALLED), theme::TEXT_DIM);
-    frame::bigLabel(version, theme::TEXT);
+    if (busy) {
+        // A ring rather than a bar: it is round, it is centred, and at this
+        // size a bar reads as a sliver. Same shape as the scale's, in this
+        // product's colours.
+        lv_obj_t* ring = lv_arc_create(body);
+        lv_obj_set_size(ring, 152, 152);
+        lv_arc_set_rotation(ring, 270);          // start at twelve o'clock
+        lv_arc_set_bg_angles(ring, 0, 360);
+        lv_arc_set_range(ring, 0, 100);
+        lv_arc_set_value(ring, otaState == ota::DONE ? 100 : percent);
+        // An arc is a control by default. This one reports, so the drag handle
+        // goes and it stops taking touches away from what is underneath.
+        lv_obj_remove_style(ring, nullptr, LV_PART_KNOB);
+        lv_obj_clear_flag(ring, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_set_style_arc_width(ring, 10, LV_PART_MAIN);
+        lv_obj_set_style_arc_width(ring, 10, LV_PART_INDICATOR);
+        lv_obj_set_style_arc_color(ring, lv_color_hex(theme::SURFACE), LV_PART_MAIN);
+        lv_obj_set_style_arc_color(ring,
+            lv_color_hex(otaState == ota::DONE ? theme::OK : theme::ACCENT),
+            LV_PART_INDICATOR);
+        lv_obj_set_style_arc_rounded(ring, true, LV_PART_INDICATOR);
+
+        // The number sits inside the ring, not under it: the eye is already
+        // there, and the ring is empty in the middle by construction.
+        lv_obj_t* pct = lv_label_create(ring);
+        char buf[8];
+        snprintf(buf, sizeof(buf), "%d%%", otaState == ota::DONE ? 100 : percent);
+        lv_label_set_text(pct, buf);
+        lv_obj_set_style_text_font(pct, &lv_font_montserrat_24, 0);
+        lv_obj_set_style_text_color(pct, lv_color_hex(theme::TEXT), 0);
+        lv_obj_center(pct);
+
+        lv_obj_t* gap = lv_obj_create(body);
+        lv_obj_remove_style_all(gap);
+        lv_obj_set_size(gap, 1, 18);
+
+        if (otaState == ota::DONE) {
+            frame::caption(i18n::T(S_RESTARTING), theme::OK);
+        } else {
+            frame::caption(i18n::T(S_DOWNLOADING), theme::TEXT);
+            // The one screen where this warning earns its place: pulling the
+            // plug mid-write leaves a half-written slot and the device boots
+            // the old one - recoverable, and it looks like a brick for a
+            // minute.
+            frame::caption(i18n::T(S_DONT_UNPLUG), theme::TEXT_DIM);
+        }
+        return;
+    }
+
+    // The version is a fact about the device, so it reads as one of its rows -
+    // the same shape settings uses everywhere else - rather than as a headline.
+    // The headline belongs to the answer the user came for: is it up to date.
+    lv_obj_set_flex_align(body, LV_FLEX_ALIGN_START,
+                          LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    frame::row(body, i18n::T(S_INSTALLED), version, false, nullptr, nullptr);
 
     lv_obj_t* spacer = lv_obj_create(body);
     lv_obj_remove_style_all(spacer);
-    lv_obj_set_size(spacer, 1, 16);
-
-    kv(body, i18n::T(S_CHANNEL), channel, theme::TEXT);
+    lv_obj_set_size(spacer, 1, 26);
 
     switch (otaState) {
     case ota::CHECKING:
@@ -345,31 +425,19 @@ void showUpdate(const char* version, const char* channel,
         break;
 
     case ota::UP_TO_DATE:
+        badge(body, LV_SYMBOL_OK, theme::OK);
         frame::caption(i18n::T(S_UP_TO_DATE), theme::OK);
         break;
 
     case ota::AVAILABLE:
+        badge(body, LV_SYMBOL_DOWNLOAD, theme::ACCENT);
         frame::caption(i18n::T(S_AVAILABLE), theme::TEXT_DIM);
         frame::bigLabel(latest, theme::ACCENT);
         frame::button(body, i18n::T(S_INSTALL), 1, onInstall);
         break;
 
-    case ota::DOWNLOADING: {
-        char pct[24];
-        snprintf(pct, sizeof(pct), "%s  %d%%", i18n::T(S_DOWNLOADING), percent);
-        frame::caption(pct, theme::TEXT);
-        // The one screen where the warning earns its place: pulling the plug
-        // mid-write leaves a half-written slot, and the device boots the old
-        // one - recoverable, but it looks like a brick for a minute.
-        frame::caption(i18n::T(S_DONT_UNPLUG), theme::TEXT_DIM);
-        break;
-    }
-
-    case ota::DONE:
-        frame::caption(i18n::T(S_RESTARTING), theme::OK);
-        break;
-
     case ota::FAILED:
+        badge(body, LV_SYMBOL_WARNING, theme::DANGER);
         frame::caption(ota::message(), theme::DANGER);
         frame::button(body, i18n::T(S_CHECK_UPDATE), 2, onCheck);
         break;

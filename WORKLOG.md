@@ -17,3 +17,24 @@ message, and reset it to this header.
 ---
 
 ## Unreleased
+
+## 2026-09-05 - the update screen, and the header everywhere
+
+### Changed
+
+- The update page checks on entry. The button stays for offline and for retry.
+- A 152 px progress ring, percentage inside, no header and no exit while the
+  image is being written.
+- The header is the ground plus a rule, not a filled bar. One style, so every
+  screen changed together.
+- Installed version as a settings row; the state as a glyph in a coloured ring.
+- Removed the channel row and the now-dead `S_CHANNEL` key.
+
+### Fixed
+
+- `scripts/flash.sh` was broken without `--port`: empty array under `set -u`.
+
+Verified on hardware: home, settings, update (checking / up to date), Wi-Fi
+setup and Wi-Fi settings, driven over `/api/tap` and read back from
+`/screen.bmp`.
+

@@ -88,7 +88,6 @@ enum StrId : uint8_t {
     S_SLEEP_AFTER,
     S_NEVER,
     S_INSTALLED,
-    S_CHANNEL,
     S_OTA_OFF,
     S_RESTART_Q,
     S_RESTART_NOTE,

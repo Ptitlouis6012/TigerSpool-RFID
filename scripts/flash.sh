@@ -60,18 +60,21 @@ command -v pio >/dev/null 2>&1 || {
 cd firmware
 PORT_ARG=()
 [ -n "$PORT" ] && PORT_ARG=(--upload-port "$PORT")
+# Expanding an empty array under `set -u` is an error in bash 3.2, which is
+# what /bin/bash on macOS still is. This guard is the portable spelling; the
+# script worked only when a port was passed without it.
 
 if [ "$ERASE" = 1 ]; then
   echo "== erasing the whole chip - NVS included, so Wi-Fi and the account go too"
-  pio run -e "$ENV" -t erase "${PORT_ARG[@]}"
+  pio run -e "$ENV" -t erase ${PORT_ARG[@]+"${PORT_ARG[@]}"}
 fi
 
 echo "== building and flashing $ENV"
-pio run -e "$ENV" -t upload "${PORT_ARG[@]}"
+pio run -e "$ENV" -t upload ${PORT_ARG[@]+"${PORT_ARG[@]}"}
 
 if [ "$FS" = 1 ]; then
   echo "== uploading the LittleFS image"
-  pio run -e "$ENV" -t uploadfs "${PORT_ARG[@]}"
+  pio run -e "$ENV" -t uploadfs ${PORT_ARG[@]+"${PORT_ARG[@]}"}
 fi
 
 if [ "$MONITOR" = 1 ]; then
