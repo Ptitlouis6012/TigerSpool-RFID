@@ -7,6 +7,25 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-09-04
+
+### Added
+
+- **A boot screen.** Pushed to the panel from flash immediately after the display
+  is initialised and before LVGL exists, so everything that follows — LVGL
+  starting, the language table, the NVS read, the reader handshake — happens with
+  the logo already up instead of behind a black screen. No timer holds it: it
+  stays until the first real screen replaces it, so the device is never slower
+  than it needs to be in order to look considered. 150 KB of flash, taking the
+  app partition from 36.5% to 40.3%.
+
+### Changed
+
+- The installer's shopping list carries only what is actually bought. The jumper
+  wires come in the PN532's box and the case comes off your own printer; both are
+  in the bill of materials instead.
+
+
 ## [1.2.0] - 2026-09-04
 
 ### Fixed
