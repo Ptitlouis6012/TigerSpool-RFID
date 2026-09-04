@@ -37,6 +37,10 @@
   <a href="#build-it-yourself">Build one</a>
 </p>
 
+<p align="center">
+  <img src="assets/Hero-TigerSystem-ecosystem.png" alt="A TigerSpool box beside Tiger Studio Manager on a desktop and the TigerTag app on a phone" width="720">
+</p>
+
 ---
 
 **TigerSpool RFID** is open-source firmware for a small box that sits next to
@@ -78,6 +82,15 @@ Google through a QR code, so you never type a password on a 2" screen.
 
 Without an account, the box gets through Wi-Fi setup and then has nothing to
 sign in to.
+
+<p align="center">
+  <img src="assets/tiger-studio-manager.png" alt="Tiger Studio Manager showing a filament library and a printer's slots" width="680">
+</p>
+
+<p align="center">
+  <sub>Tiger Studio Manager. Your filaments and your printers live here — the box
+  reads this list, it does not build it.</sub>
+</p>
 
 ### 2. Your printers, added in Tiger Studio Manager
 
@@ -215,7 +228,7 @@ Written down rather than discovered.
 
 TigerTag is an open NFC identification standard for 3D-printing materials. A
 spool carries its own identity, and every device in the system reads the same
-one.
+one — the box above, the scale, your phone, and Tiger Studio on the desktop.
 
 - **[Tiger Studio Manager](https://github.com/TigerTag-Project/TigerTag-Studio-Manager)** — desktop printer and filament manager. **Start here**: it is where an account is created and printers are declared.
 - **[TigerTag-RFID-Guide](https://github.com/TigerTag-Project/TigerTag-RFID-Guide)** — the protocol specification and public registry
