@@ -21,6 +21,7 @@
 -->
 
 <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+<script src="i18n.js"></script>
 
 <style>
   /* Palette from the TigerTag design tokens — the brand is orange, the ember red
@@ -60,7 +61,14 @@
   }
   a { color:var(--link); text-underline-offset:3px; }
   a:hover { color:var(--brand-hover); }
-  .wrap { max-width:820px; margin:0 auto; }
+  .wrap { max-width:1120px; margin:0 auto; }
+
+  /* --- two-column layout -------------------------------------------------- */
+  .cols { display:grid; grid-template-columns:1fr; gap:1.6rem; align-items:start; }
+  @media (min-width:1000px) {
+    .cols { grid-template-columns:minmax(0,1fr) 320px; gap:2.2rem; }
+    aside.cart { position:sticky; top:1.2rem; }
+  }
 
   /* --- top bar ------------------------------------------------------------ */
   .top {
@@ -68,6 +76,46 @@
     padding:1.1rem 0 .4rem;
   }
   .top img { height:30px; width:auto; display:block; border-radius:7px; }
+
+  .tools { display:flex; align-items:center; gap:.7rem; }
+
+  /* Language menu. A native <select> cannot be styled below its border on any
+     desktop browser — the popup is drawn by the OS — so the list is ours. */
+  .langbox { position:relative; }
+  .langbtn {
+    display:inline-flex; align-items:center; gap:.5rem;
+    background:var(--panel); color:var(--fg); border:1px solid var(--line);
+    border-radius:999px; padding:.4rem .85rem; font-size:.86rem; font-family:inherit;
+    cursor:pointer; line-height:1.2;
+    transition:border-color .15s ease, background-color .15s ease;
+  }
+  .langbtn:hover { border-color:var(--brand); }
+  .langbtn .globe { width:15px; height:15px; color:var(--muted); flex:0 0 auto; }
+  .langbtn .caret {
+    width:0; height:0; flex:0 0 auto; margin-left:.1rem;
+    border-left:4px solid transparent; border-right:4px solid transparent;
+    border-top:5px solid var(--muted); transition:transform .18s ease;
+  }
+  .langbox[data-open="1"] .langbtn { border-color:var(--brand); }
+  .langbox[data-open="1"] .caret { transform:rotate(180deg); }
+  .langmenu {
+    position:absolute; top:calc(100% + .5rem); right:0; z-index:40;
+    min-width:190px; padding:.35rem; margin:0; list-style:none;
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    box-shadow:var(--shadow);
+    opacity:0; transform:translateY(-4px); pointer-events:none;
+    transition:opacity .15s ease, transform .15s ease;
+  }
+  .langbox[data-open="1"] .langmenu { opacity:1; transform:none; pointer-events:auto; }
+  .langmenu li {
+    display:flex; align-items:center; justify-content:space-between; gap:.75rem;
+    padding:.5rem .7rem; border-radius:9px; cursor:pointer; font-size:.88rem;
+    color:var(--fg);
+  }
+  .langmenu li:hover, .langmenu li:focus-visible { background:var(--panel-hi); outline:none; }
+  .langmenu li[aria-selected="true"] { color:var(--brand); font-weight:600; }
+  .langmenu li .tick { width:14px; height:14px; opacity:0; flex:0 0 auto; }
+  .langmenu li[aria-selected="true"] .tick { opacity:1; }
 
   .switch { display:inline-flex; align-items:center; cursor:pointer; }
   .switch input { position:absolute; opacity:0; width:0; height:0; }
@@ -218,6 +266,34 @@
   }
   ol.after b { color:var(--fg); font-weight:600; }
 
+  /* --- parts list --------------------------------------------------------- */
+  .cart h2 {
+    font-size:1rem; margin:0 0 .25rem; font-weight:650; letter-spacing:-.01em;
+    display:flex; align-items:center; gap:.5rem;
+  }
+  .cart h2 svg { width:17px; height:17px; color:var(--brand); }
+  .cart .lede { font-size:.8rem; margin-bottom:.9rem; line-height:1.5; }
+  ul.parts { margin:0; padding:0; list-style:none; }
+  ul.parts li {
+    display:flex; gap:.6rem; align-items:baseline;
+    padding:.6rem 0; border-top:1px solid var(--line); font-size:.87rem;
+  }
+  ul.parts li:first-child { border-top:none; padding-top:0; }
+  ul.parts .q {
+    flex:0 0 auto; min-width:1.6rem; font-variant-numeric:tabular-nums;
+    color:var(--faint); font-size:.8rem; font-weight:600;
+  }
+  ul.parts .nm { flex:1 1 auto; }
+  ul.parts .nm em { display:block; font-style:normal; color:var(--faint); font-size:.76rem; }
+  ul.parts a.buy {
+    flex:0 0 auto; font-size:.76rem; font-weight:600; text-decoration:none;
+    border:1px solid var(--line); border-radius:999px; padding:.16rem .6rem;
+    color:var(--link); transition:border-color .15s ease, background-color .15s ease;
+  }
+  ul.parts a.buy:hover { border-color:var(--brand); background:var(--panel-hi); }
+  .cart .foot { margin:.9rem 0 0; font-size:.78rem; color:var(--faint); line-height:1.55; }
+  .cart .foot p { margin:.35rem 0 0; }
+
   footer {
     text-align:center; margin-top:3rem; padding-top:1.6rem;
     border-top:1px solid var(--line); color:var(--faint); font-size:.88rem;
@@ -239,8 +315,20 @@
     <img src="tiger-icon.svg" alt="TigerTag" width="30" height="30">
   </a>
   <div class="tools">
+    <div class="langbox" id="langbox" data-open="0">
+      <button class="langbtn" id="langbtn" type="button" aria-haspopup="listbox"
+              aria-expanded="false" data-i18n-aria="lang_label">
+        <svg class="globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="9.2"/><path d="M2.8 12h18.4"/>
+          <path d="M12 2.8a14 14 0 0 1 0 18.4a14 14 0 0 1 0-18.4z"/>
+        </svg>
+        <span id="langnow"></span>
+        <span class="caret"></span>
+      </button>
+      <ul class="langmenu" id="langmenu" role="listbox"></ul>
+    </div>
     <label class="switch" id="switch" data-on="dark">
-      <input type="checkbox" id="theme" role="switch" aria-label="Day and night mode">
+      <input type="checkbox" id="theme" role="switch" aria-label="Day and night mode" data-i18n-aria="theme_label">
       <span class="track">
         <span class="knob">
           <svg class="ico sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
@@ -257,43 +345,37 @@
 </div>
 
 <header class="hero">
-  <h1>Install <span class="accent">TigerSpool RFID</span></h1>
-  <p class="tagline">
-    Plug the board into this computer, press Install, and wait about a minute.
-    No toolchain, no command line.
-  </p>
+  <h1><span data-i18n="h1_install">Install</span> <span class="accent">TigerSpool RFID</span></h1>
+  <p class="tagline" data-i18n="tagline"></p>
   <div class="verpill" id="verpill" hidden>
-    <span class="dot"></span><span>Firmware <b id="ver"></b></span>
+    <span class="dot"></span><span><span data-i18n="fw">Firmware</span> <b id="ver"></b></span>
   </div>
 </header>
 
-<div class="step"><span class="n">1</span><h2>What you need</h2></div>
+<div class="cols">
+<div>
+
+<div class="step"><span class="n">1</span><h2 data-i18n="s1_title"></h2></div>
 <div class="panel">
-  <p class="lede">Two boards, four wires and a cable that carries data.</p>
+  <p class="lede" data-i18n="s1_lede"></p>
   <ul class="need">
-    <li>A <b>Waveshare ESP32-S3 2inch Capacitive Touch Display</b> board.</li>
-    <li>A <b>PN532 NFC module</b>, V3, DIP switches both <code>0</code> / OFF, wired
-      to <b>GPIO44</b> and <b>GPIO43</b> — never GPIO6/7. Four wires, and they come
-      with the module.
-      <a href="https://github.com/TigerTag-Project/TigerSpool-RFID/blob/main/docs/WIRING.md">Wiring diagram</a>.</li>
-    <li>A <b>USB-C to USB-A cable that carries data</b>, not a charge-only one.</li>
-    <li><b>Chrome, Edge or Opera</b> on a desktop or laptop.</li>
-    <li>A <b>TigerTag account</b>, created in
-      <a href="https://github.com/TigerTag-Project/TigerTag-Studio-Manager">Tiger Studio Manager</a>
-      — see step 4.</li>
+    <li data-i18n-html="n_board_html"></li>
+    <li data-i18n-html="n_pn532_html"></li>
+    <li data-i18n-html="n_cable_html"></li>
+    <li data-i18n-html="n_browser_html"></li>
+    <li data-i18n-html="n_account_html"></li>
   </ul>
 </div>
 
-<div class="step"><span class="n">2</span><h2>Install</h2></div>
+<div class="step"><span class="n">2</span><h2 data-i18n="s2_title"></h2></div>
 <div class="panel" style="padding:2.1rem 1.4rem">
   <div class="cta">
     <esp-web-install-button manifest="manifest.json">
-      <button slot="activate">Install TigerSpool</button>
+      <button slot="activate" data-i18n="cta_btn">Install TigerSpool</button>
       <span slot="unsupported"></span>
       <span slot="not-allowed"></span>
     </esp-web-install-button>
-    <small>Writes the bootloader, the partition table, the boot selector and the
-      firmware — the same four images published with the release.</small>
+    <small data-i18n="cta_note"></small>
   </div>
 
   <div class="unsupported">
@@ -302,12 +384,8 @@
         <path d="M12 8v5M12 16.5v.01"/><circle cx="12" cy="12" r="9.2"/>
       </svg>
       <div>
-        <b>This browser cannot flash a board.</b>
-        <p>Installing needs WebSerial, which only Chrome, Edge and Opera implement,
-          on a desktop or laptop. Safari, Firefox and every mobile browser are out.
-          Open this page in one of those three, or
-          <a href="https://github.com/TigerTag-Project/TigerSpool-RFID#build-it-yourself">build
-          and flash it yourself</a>.</p>
+        <b data-i18n="unsup_t"></b>
+        <p data-i18n-html="unsup_b_html"></p>
       </div>
     </div>
   </div>
@@ -317,11 +395,8 @@
       <path d="M12 8v5M12 16.5v.01"/><circle cx="12" cy="12" r="9.2"/>
     </svg>
     <div>
-      <b>Choose Erase only on a board you are setting up for the first time.</b>
-      <p>Erasing wipes the NVS partition, which is where a TigerSpool keeps its
-        Wi-Fi credentials, its TigerTag session and its imported printers. An
-        ordinary install leaves all of that alone — that is what the two OTA slots
-        are for.</p>
+      <b data-i18n="erase_t"></b>
+      <p data-i18n="erase_b"></p>
     </div>
   </div>
 
@@ -330,67 +405,174 @@
       <path d="M12 8v5M12 16.5v.01"/><circle cx="12" cy="12" r="9.2"/>
     </svg>
     <div>
-      <b>No serial port offered?</b>
-      <p>The usual cause is a charge-only USB cable. The board lights up, the
-        screen works, and no computer ever sees it. Try a cable you know transfers
-        files.</p>
+      <b data-i18n="serial_t"></b>
+      <p data-i18n="serial_b"></p>
     </div>
   </div>
 </div>
 
-<div class="step"><span class="n">3</span><h2>Set it up on the box</h2></div>
+<div class="step"><span class="n">3</span><h2 data-i18n="s3_title"></h2></div>
 <div class="panel">
   <ol class="after">
-    <li><b>Pick your language.</b> Eight of them, before anything else.</li>
-    <li><b>Join Wi-Fi.</b> The box shows a QR code. Scan it with your phone and a
-      page opens listing the networks it can see — pick yours and type the password
-      on the phone. Nothing is typed on the small screen, and the box does not
-      reboot.</li>
-    <li><b>Sign in</b> to your TigerTag account, by e-mail or with Google through a
-      second QR code.</li>
-    <li><b>Your printers arrive</b> from your account.</li>
+    <li data-i18n-html="a1_html"></li>
+    <li data-i18n-html="a2_html"></li>
+    <li data-i18n-html="a3_html"></li>
+    <li data-i18n-html="a4_html"></li>
   </ol>
-  <p class="lede" style="margin:1.3rem 0 0">
-    Then hold a tagged spool against the box, tap the slot you want, and confirm.
-    From then on it updates itself over the air — this page is only for the first
-    install.
-  </p>
+  <p class="lede" style="margin:1.3rem 0 0" data-i18n="s3_foot"></p>
 </div>
 
-<div class="step"><span class="n">4</span><h2>If the printer list is empty</h2></div>
+<div class="step"><span class="n">4</span><h2 data-i18n="s4_title"></h2></div>
 <div class="panel">
-  <p class="lede">
-    That is not a fault, and there is nothing to fix on the device. It is showing
-    exactly what your account contains.
-  </p>
-  <p style="margin:0 0 1rem;color:var(--muted);font-size:.95rem">
-    A TigerSpool has no keyboard and no way to be told a printer's address — that
-    is deliberate. Printers are declared once, in
-    <a href="https://github.com/TigerTag-Project/TigerTag-Studio-Manager"><b>Tiger Studio Manager</b></a>,
-    together with their access codes, and every TigerSpool you own reads the same
-    list. Add the printer there and it appears on the box at the next sync.
-  </p>
+  <p class="lede" data-i18n="s4_lede"></p>
+  <p style="margin:0 0 1rem;color:var(--muted);font-size:.95rem" data-i18n-html="s4_body_html"></p>
   <ul class="need">
-    <li>Install <b>Tiger Studio Manager</b> and create your TigerTag account.</li>
-    <li>Add your printers to it.</li>
-    <li><b>Then</b> sign in on the box.</li>
+    <li data-i18n-html="s4_1_html"></li>
+    <li data-i18n="s4_2"></li>
+    <li data-i18n-html="s4_3_html"></li>
   </ul>
+</div>
+
+</div>
+
+<aside class="cart">
+  <div class="panel">
+    <h2>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2.6 3h2.6l2.2 11.2a1.8 1.8 0 0 0 1.8 1.4h8.4a1.8 1.8 0 0 0 1.8-1.4L21 6.6H6"/>
+        <circle cx="9.6" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/>
+      </svg>
+      <span data-i18n="cart_title"></span>
+    </h2>
+    <p class="lede" data-i18n="cart_lede"></p>
+
+    <ul class="parts">
+      <li><span class="q">1&times;</span>
+        <span class="nm"><span data-i18n="p_board"></span><em data-i18n="p_board_n"></em></span>
+        <a class="buy" href="https://link.amazon/B0c5hr3uf" target="_blank" rel="noopener sponsored" data-i18n="buy">Amazon</a></li>
+      <li><span class="q">1&times;</span>
+        <span class="nm"><span data-i18n="p_pn532"></span><em data-i18n="p_pn532_n"></em></span>
+        <a class="buy" href="https://link.amazon/B0dyEfwKa" target="_blank" rel="noopener sponsored" data-i18n="buy">Amazon</a></li>
+      <li><span class="q">1&times;</span>
+        <span class="nm"><span data-i18n-html="p_cable_html"></span><em data-i18n="p_cable_n"></em></span>
+        <a class="buy" href="https://link.amazon/B00Xg3WT4" target="_blank" rel="noopener sponsored" data-i18n="buy">Amazon</a></li>
+      <li><span class="q">&mdash;</span>
+        <span class="nm"><span data-i18n="p_wires"></span><em data-i18n="p_wires_n"></em></span></li>
+      <li><span class="q">&mdash;</span>
+        <span class="nm"><span data-i18n="p_case"></span><em data-i18n="p_case_n"></em></span>
+        <a class="buy" href="https://github.com/TigerTag-Project/TigerSpool-RFID/tree/main/models" target="_blank" rel="noopener" data-i18n="models">Models</a></li>
+    </ul>
+
+    <div class="note" style="margin-top:1rem;font-size:.8rem;padding:.75rem .85rem">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:15px;height:15px">
+        <path d="M12 8.4v5"/><path d="M12 16.4h.01"/><circle cx="12" cy="12" r="9.2"/>
+      </svg>
+      <div data-i18n-html="cart_warn_html"></div>
+    </div>
+
+    <div class="foot">
+      <p data-i18n-html="cart_total_html"></p>
+      <p data-i18n="cart_aff"></p>
+      <p><a href="https://github.com/TigerTag-Project/TigerSpool-RFID/blob/main/hardware/BOM.md" data-i18n="cart_bom"></a></p>
+      <p><a href="https://github.com/TigerTag-Project/TigerSpool-RFID/blob/main/docs/WIRING.md" data-i18n="cart_wiring"></a></p>
+    </div>
+  </div>
+</aside>
+
 </div>
 
 <footer>
   <nav>
-    <a href="https://github.com/TigerTag-Project/TigerSpool-RFID">Source</a>
-    <a href="https://github.com/TigerTag-Project/TigerSpool-RFID/blob/main/docs/WIRING.md">Wiring</a>
-    <a href="https://github.com/TigerTag-Project/TigerSpool-RFID/blob/main/hardware/BOM.md">Parts</a>
-    <a href="https://github.com/TigerTag-Project/TigerSpool-RFID/releases">Releases</a>
-    <a href="version.json">version.json</a>
+    <a href="https://github.com/TigerTag-Project/TigerSpool-RFID" data-i18n="f_source"></a>
+    <a href="https://github.com/TigerTag-Project/TigerSpool-RFID/blob/main/docs/WIRING.md" data-i18n="f_wiring"></a>
+    <a href="https://github.com/TigerTag-Project/TigerSpool-RFID/blob/main/hardware/BOM.md" data-i18n="f_parts"></a>
+    <a href="https://github.com/TigerTag-Project/TigerSpool-RFID/releases" data-i18n="f_releases"></a>
+    <a href="version.json" data-i18n="f_manifest"></a>
   </nav>
-  <p>MIT licensed &middot; <a href="https://tigersystem.io">tigersystem.io</a></p>
+  <p><span data-i18n="f_license"></span> &middot; <a href="https://tigersystem.io">tigersystem.io</a></p>
 </footer>
 
 </div>
 
 <script>
+  /* ---------- language ----------------------------------------------------- */
+  const LANGS = Object.keys(window.I18N);
+
+  /* Map what the browser reports onto what we ship. European and Brazilian
+     Portuguese are separate dictionaries, so `pt-PT` must not collapse onto
+     `pt` — they differ in exactly the words this page uses. */
+  function pickLang() {
+    try {
+      const saved = localStorage.getItem('tigerspool-lang');
+      if (saved && LANGS.includes(saved)) return saved;
+    } catch (e) {}
+    for (const raw of (navigator.languages || [navigator.language || 'en'])) {
+      const tag = raw.toLowerCase();
+      if (LANGS.includes(tag)) return tag;
+      const base = tag.split('-')[0];
+      if (base === 'pt') return tag.startsWith('pt-pt') ? 'pt-pt' : 'pt';
+      if (LANGS.includes(base)) return base;
+    }
+    return 'en';
+  }
+
+  function applyLang(code) {
+    const t = window.I18N[code] || window.I18N.en;
+    document.documentElement.lang = code;
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const v = t[el.dataset.i18n];
+      if (v != null) el.textContent = v;
+    });
+    /* Only keys the dictionary itself marks as markup are inserted as HTML. */
+    document.querySelectorAll('[data-i18n-html]').forEach(el => {
+      const v = t[el.dataset.i18nHtml];
+      if (v != null) el.innerHTML = v;
+    });
+    document.querySelectorAll('[data-i18n-aria]').forEach(el => {
+      const v = t[el.dataset.i18nAria];
+      if (v != null) el.setAttribute('aria-label', v);
+    });
+    try { localStorage.setItem('tigerspool-lang', code); } catch (e) {}
+  }
+
+  const box = document.getElementById('langbox');
+  const lbtn = document.getElementById('langbtn');
+  const menu = document.getElementById('langmenu');
+  const now = document.getElementById('langnow');
+  const TICK = '<svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+             + 'stroke-width="3" stroke-linecap="round" stroke-linejoin="round">'
+             + '<path d="M4.5 12.5 9.5 17.5 19.5 6.5"/></svg>';
+  menu.innerHTML = LANGS.map(c =>
+    `<li role="option" tabindex="0" data-code="${c}" aria-selected="false">`
+    + `<span>${window.I18N[c].lang_name}</span>${TICK}</li>`).join('');
+
+  function setOpen(open) {
+    box.dataset.open = open ? '1' : '0';
+    lbtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  function choose(code) {
+    applyLang(code);
+    now.textContent = window.I18N[code].lang_name;
+    menu.querySelectorAll('li').forEach(li =>
+      li.setAttribute('aria-selected', li.dataset.code === code ? 'true' : 'false'));
+    setOpen(false);
+  }
+  lbtn.addEventListener('click', () => setOpen(box.dataset.open !== '1'));
+  menu.addEventListener('click', e => {
+    const li = e.target.closest('li');
+    if (li) choose(li.dataset.code);
+  });
+  menu.addEventListener('keydown', e => {
+    const li = e.target.closest('li');
+    if (!li) return;
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(li.dataset.code); }
+  });
+  document.addEventListener('click', e => { if (!box.contains(e.target)) setOpen(false); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { setOpen(false); lbtn.focus(); }
+  });
+  choose(pickLang());
+
   /* ---------- theme -------------------------------------------------------- */
   /* Dark is the default and is NOT remembered until the visitor chooses. Storing
      a value on first paint would mean a later change to the default never reaches
