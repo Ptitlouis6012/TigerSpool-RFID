@@ -20,13 +20,12 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   icons follow: three strokes at most, one dominant form owning two thirds of
   the box, nothing thinner than 2 px, and recognisable when filled in solid.
 
-### Known
-
-- The scale's brightness icon is FontAwesome U+F185, a glyph rather than a
-  drawing, so this drawn sun is the closest a drawing gets. It is replaced by
-  the real glyph when the Latin face is generated — that face has to carry the
-  accents anyway, and `lv_font_conv` takes both in one call, so the sun costs no
-  extra face and no extra link in the fallback chain.
+- **The Display row now carries the real sun**, the same Font Awesome glyph the
+  TigerScale draws, rather than an approximation of it. Drawing it was never
+  going to work: LVGL primitives are axis-aligned rectangles, and that sun has
+  eight pointed rays. `scripts/make-icon-font.sh` fetches Font Awesome 6.5.2 at
+  a pinned tag and extracts the one codepoint — 4 KB of source, no change to
+  the flash figure. The font file is cached locally and never committed.
 
 
 ## [1.5.0] - 2026-09-05

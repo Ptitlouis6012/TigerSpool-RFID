@@ -46,11 +46,12 @@ void disc(lv_obj_t* p, int x, int y, int d, uint32_t c) {
     bar(p, x, y, d, d, LV_RADIUS_CIRCLE, c);
 }
 
-lv_obj_t* symbol(lv_obj_t* parent, const char* glyph, uint32_t colour) {
+lv_obj_t* symbol(lv_obj_t* parent, const char* glyph, uint32_t colour,
+                 const lv_font_t* face = &lv_font_montserrat_16) {
     lv_obj_t* box = piece(parent, 0, 0, BOX, BOX);
     lv_obj_t* g = lv_label_create(box);
     lv_label_set_text(g, glyph);
-    lv_obj_set_style_text_font(g, &lv_font_montserrat_16, 0);
+    lv_obj_set_style_text_font(g, face, 0);
     lv_obj_set_style_text_color(g, lv_color_hex(colour), 0);
     lv_obj_center(g);
     return box;
@@ -64,6 +65,9 @@ lv_obj_t* build(lv_obj_t* parent, Id id, uint32_t c) {
     case UPDATE:  return symbol(parent, LV_SYMBOL_DOWNLOAD, c);
     case RESTART: return symbol(parent, LV_SYMBOL_REFRESH, c);
     case ERASE:   return symbol(parent, LV_SYMBOL_TRASH, c);
+    // Text, so it tints through text_color like any other glyph - unlike the
+    // drawn icons below, which tint through border_color or bg_color.
+    case SCREEN:  return symbol(parent, TT_SYMBOL_SUN, c, &font_icons_16);
     case NONE:    return nullptr;
     default:      break;
     }
@@ -103,22 +107,6 @@ lv_obj_t* build(lv_obj_t* parent, Id id, uint32_t c) {
         bar(box, 6, 0, 10, 4, 1, c);
         outline(box, 1, 5, 20, 11, 2, c);
         bar(box, 5, 15, 12, 7, 1, c);
-        break;
-
-    case SCREEN:
-        // A sun: brightness and sleep on one row. Solid rather than an outline
-        // - a ring of 10 with a 2 px border is mostly border at this size, and
-        // reads as a smudge. The rays are 3 px because nothing thinner than
-        // that survives LVGL's antialiasing in a 22 px box.
-        //
-        // The TigerScale's sun is FontAwesome U+F185, not a drawing. This is
-        // the closest a drawing gets; it is replaced by the real glyph when the
-        // Latin face is generated, which has to carry the accents anyway.
-        disc(box, 5, 5, 12, c);
-        bar(box, 10, 0, 2, 4, 1, c);
-        bar(box, 10, 18, 2, 4, 1, c);
-        bar(box, 0, 10, 4, 2, 1, c);
-        bar(box, 18, 10, 4, 2, 1, c);
         break;
 
     default:

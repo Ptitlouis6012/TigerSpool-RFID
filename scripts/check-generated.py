@@ -36,6 +36,8 @@ GENERATED = [
     (["scripts/make-rgb565-header.py", "assets/TigerSpoolRFID-BootScreen.png",
       "--name", "SPLASH", "--out", "firmware/include/splash.h"],
      REPO / "firmware" / "include" / "splash.h"),
+    (["scripts/make-icon-font.sh"],
+     REPO / "firmware" / "src" / "ui" / "font_icons_16.c"),
 ]
 
 # A generator exiting with this says "I could not check", which is a different
@@ -71,7 +73,12 @@ def main() -> int:
         with tempfile.TemporaryDirectory() as tmp:
             backup = pathlib.Path(tmp) / committed.name
             shutil.copy2(committed, backup)
-            proc = subprocess.run([sys.executable] + command,
+            # Not every generator is Python. The font converter is a shell
+            # script because the tool it drives is one; hard-coding the
+            # interpreter here would have quietly run it as Python and
+            # reported "failed to run" for the wrong reason.
+            runner = [sys.executable] if command[0].endswith(".py") else ["bash"]
+            proc = subprocess.run(runner + command,
                                   capture_output=True, text=True, cwd=REPO)
             produced = committed.read_bytes()
             shutil.copy2(backup, committed)   # restore before judging
@@ -89,7 +96,8 @@ def main() -> int:
 
             if produced != backup.read_bytes():
                 print(f"error: {rel} does not match {command[0]}", file=sys.stderr)
-                print("       regenerate it: python3 " + " ".join(command),
+                how = "python3" if command[0].endswith(".py") else "bash"
+                print(f"       regenerate it: {how} " + " ".join(command),
                       file=sys.stderr)
                 print("       do not hand-edit it back into agreement.", file=sys.stderr)
                 failures += 1

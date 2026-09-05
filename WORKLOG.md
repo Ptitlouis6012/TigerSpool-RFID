@@ -94,3 +94,17 @@ font fallback chain that would restore accents.
   once; not negligible on a list that can hold twenty. Answers in
   `_internal/TIGERSCALE-UI-ICONS-2.md`.
 
+- The sun is now the real glyph rather than a drawing. `make-icon-font.sh`
+  registered with `check-generated.py`, which had to learn that a generator is
+  not always Python - it ran everything through `sys.executable` and would have
+  reported "failed to run" for the wrong reason. The .ttf is cached under
+  `.cache/fonts/`, keyed on the tag, so the guard re-running on every verify
+  does not mean a download on every verify.
+- Attribution added: Font Awesome fonts are SIL OFL 1.1, the icon artwork
+  CC BY 4.0. lv_font_conv extracts outlines from the .ttf, so the OFL is what
+  governs the compiled result.
+- **When the Latin face is generated, fold this glyph into it and delete the
+  script.** One call, several `--font`, no second face and no extra link in the
+  fallback chain - and watch that the resulting `Opts` line carries two `-r`,
+  which a naive generated-file check reads as one.
+
