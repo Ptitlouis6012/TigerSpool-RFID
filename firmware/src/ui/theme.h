@@ -23,7 +23,7 @@ namespace theme {
 // consumer interfaces use anyway.
 constexpr uint32_t BG        = 0x000000;   // screen ground
 constexpr uint32_t HEADER    = 0x000000;   // the ground - the rule below is the bar
-constexpr uint32_t LINE      = 0x2A313B;   // 1 px separator under the title
+constexpr uint32_t LINE      = 0x2E3646;   // rules and row outlines
 constexpr uint32_t SURFACE   = 0x1B212A;   // rows, cells, buttons
 constexpr uint32_t TEXT      = 0xFFFFFF;
 constexpr uint32_t TEXT_DIM  = 0x7C8590;
@@ -47,7 +47,7 @@ constexpr lv_coord_t BUTTON_H   = 52;   // 6.6 mm - the most consequential taps
 constexpr lv_coord_t ICON_HIT_W = 52;   // gear / chevron hit width
 constexpr lv_coord_t GAP        = 6;
 constexpr lv_coord_t PAD        = 8;
-constexpr lv_coord_t RADIUS     = 7;
+constexpr lv_coord_t RADIUS     = 9;
 constexpr lv_coord_t CELL_H     = 92;   // slot cell, 11.7 mm tall
 
 void init();                 // build the shared styles; call once after lv_init

@@ -22,7 +22,7 @@ namespace {
     const char* PAIR_POLL  = "https://us-central1-tigertag-connect.cloudfunctions.net/pairPoll";
 
     Preferences pr;
-    String   g_email, g_refresh, g_uid, g_idToken;
+    String   g_email, g_refresh, g_uid, g_idToken, g_name;
     uint32_t g_tokenAt = 0, g_lastSync = 0, g_bootAt = 0;
     bool     g_changed = false;
     String   g_lastResult = "";
@@ -105,6 +105,7 @@ namespace {
     void saveSession() {
         pr.begin("tsaccount", false);
         pr.putString("email", g_email);
+        pr.putString("name", g_name);
         pr.putString("refresh", g_refresh);
         pr.putString("uid", g_uid);
         pr.end();
@@ -135,6 +136,30 @@ namespace {
         g_tokenAt = millis();
         return g_idToken.length() > 0;
     }
+    // Fill in the display name for a session that predates it being stored, or
+    // one opened by QR pairing - signInWithCustomToken's answer has no
+    // displayName field. Without this, every device already in the field would
+    // keep showing an address until its owner happened to sign out and in.
+    //
+    // Cheap and idempotent: one POST, only when the name is missing, and a
+    // failure is not an error - displayName() falls back to the address.
+    void fetchProfileName() {
+        if (g_name.length() || g_idToken.isEmpty()) return;
+        JsonDocument d; d["idToken"] = g_idToken;
+        String body; serializeJson(d, body);
+        String resp;
+        int code = httpsPOST(String("https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=") + API_KEY,
+                             body, resp);
+        if (code != 200) return;
+        JsonDocument r;
+        if (deserializeJson(r, resp)) return;
+        String n = String(r["users"][0]["displayName"] | "");
+        if (n.isEmpty()) return;
+        g_name = n;
+        saveSession();
+        Serial.printf("[account] display name '%s'\n", g_name.c_str());
+    }
+
     bool ensureToken() {
         if (g_idToken.length() && millis() - g_tokenAt < 50UL * 60 * 1000) return true;
         return refreshIdToken();
@@ -160,6 +185,7 @@ void ttcloud::begin() {
     g_bootAt = millis();
     pr.begin("tsaccount", true);
     g_email   = pr.getString("email", "");
+    g_name    = pr.getString("name", "");
     g_refresh = pr.getString("refresh", "");
     g_uid     = pr.getString("uid", "");
     pr.end();
@@ -167,10 +193,11 @@ void ttcloud::begin() {
 
 bool   ttcloud::haveSession() { return g_refresh.length() > 0; }
 String ttcloud::email()       { return g_email; }
+String ttcloud::displayName() { return g_name.length() ? g_name : g_email; }
 String ttcloud::lastResult()  { return g_lastResult; }
 
 void ttcloud::forget() {
-    g_email = ""; g_refresh = ""; g_uid = ""; g_idToken = "";
+    g_email = ""; g_refresh = ""; g_uid = ""; g_idToken = ""; g_name = "";
     pr.begin("tsaccount", false); pr.clear(); pr.end();
 }
 
@@ -188,6 +215,10 @@ bool ttcloud::signIn(const String& mail, const String& pass, String& err) {
         return false;
     }
     g_email   = mail;
+    // Present on this endpoint when the account has one set. The pairing path
+    // below has no equivalent field, which is why displayName() falls back
+    // rather than assuming this is always filled.
+    g_name    = String(r["displayName"] | "");
     g_idToken = r["idToken"] | "";
     g_refresh = r["refreshToken"] | "";
     g_uid     = r["localId"] | "";
@@ -305,6 +336,7 @@ bool ttcloud::syncNow(String& summary) {
     g_lastSync = millis();
     g_syncedOk = false;
     if (!ensureToken()) { summary = g_lastResult = "TigerTag: sessao invalida"; return false; }
+    fetchProfileName();
 
     // All six brands are read. Two of them have no backend yet, and they are
     // fetched anyway so the log can say why they do not appear rather than

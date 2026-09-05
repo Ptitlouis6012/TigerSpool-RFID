@@ -94,6 +94,7 @@ static const Row STR[S_COUNT] = {
 /* S_DOWNLOADING    */ {{ "Downloading", "Telechargement", "Wird geladen", "Descargando", "Download", "Pobieranie", "Baixando", "A transferir" }},
 /* S_DONT_UNPLUG    */ {{ "Do not unplug the box.", "Ne debranchez pas le boitier.", "Gerat nicht trennen.", "No desconectes la caja.", "Non scollegare la scatola.", "Nie odlaczaj urzadzenia.", "Nao desconecte a caixa.", "Nao desligue a caixa." }},
 /* S_UPDATE_KEEPS   */ {{ "Wi-Fi, account and printers are kept.", "Wi-Fi, compte et imprimantes sont conserves.", "WLAN, Konto und Drucker bleiben erhalten.", "Wi-Fi, cuenta e impresoras se conservan.", "Wi-Fi, account e stampanti sono conservati.", "Wi-Fi, konto i drukarki zostaja zachowane.", "Wi-Fi, conta e impressoras sao mantidos.", "Wi-Fi, conta e impressoras sao mantidos." }},
+/* S_ORIENTATION   */ {{ "Orientation", "Orientation", "Ausrichtung", "Orientacion", "Orientamento", "Orientacja", "Orientacao", "Orientacao" }},
 /* S_RESTARTING     */ {{ "Installed. Restarting...", "Installe. Redemarrage...", "Installiert. Neustart...", "Instalado. Reiniciando...", "Installato. Riavvio...", "Zainstalowano. Restart...", "Instalado. Reiniciando...", "Instalado. A reiniciar..." }},
 };
 

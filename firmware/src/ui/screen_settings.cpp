@@ -1,4 +1,8 @@
 #include "screen_settings.h"
+
+// U+00B0. One of the three characters outside ASCII the font carries,
+// spelled as bytes so the source itself stays ASCII.
+#define LV_DEG "\xC2\xB0"
 #include "frame.h"
 #include "theme.h"
 #include "i18n.h"
@@ -69,7 +73,7 @@ void showMenu(const MenuState& st) {
         { E_WIFI,     "Wi-Fi",               st.network,
           icons::WIFI,    st.wifiUp   ? theme::OK : theme::DANGER },
         { E_ACCOUNT,  i18n::T(S_TT_ACCOUNT), st.account,
-          icons::USER,    st.signedIn ? 0u : theme::DANGER },
+          icons::USER,    st.signedIn ? theme::OK : theme::DANGER },
         { E_SCREEN,   i18n::T(S_SCREEN),     "",
           icons::SCREEN,  0 },
         { E_LANGUAGE, i18n::T(S_LANGUAGE),   i18n::name(i18n::current()),
@@ -166,6 +170,7 @@ namespace {
 screen_settings::Action s_action = screen_settings::A_NONE;
 int  s_newBright = -1;
 int  s_newSleep  = -1;
+int  s_newRot    = -1;
 bool s_holding   = false;
 uint32_t s_viewSig = 0;
 
@@ -174,6 +179,7 @@ void onAction(lv_event_t* e) {
 }
 void onBright(lv_event_t* e) { s_newBright = (int)(intptr_t)lv_event_get_user_data(e); }
 void onSleep(lv_event_t* e)  { s_newSleep  = (int)(intptr_t)lv_event_get_user_data(e); }
+void onRotate(lv_event_t* e) { s_newRot    = (int)(intptr_t)lv_event_get_user_data(e); }
 void onHoldDown(lv_event_t*) { s_holding = true; }
 void onHoldUp(lv_event_t*)   { s_holding = false; }
 
@@ -236,6 +242,7 @@ namespace screen_settings {
 Action takeAction()   { Action v = s_action; s_action = A_NONE; return v; }
 int  takeBrightness() { int v = s_newBright; s_newBright = -1; return v; }
 int  takeSleep()      { int v = s_newSleep;  s_newSleep  = -1; return v; }
+int  takeRotation()   { int v = s_newRot;    s_newRot    = -1; return v; }
 bool factoryHolding() { return s_holding; }
 
 void showWifi(const char* ssid, const char* ip, const char* mac, bool connected) {
@@ -303,8 +310,9 @@ void showAccount(const char* email, int printers, bool linked) {
     frame::button(body, i18n::T(S_SIGN_OUT), 2, []() { s_action = A_SIGN_OUT; });
 }
 
-void showScreen(uint8_t brightness, int sleepSeconds) {
-    uint32_t sig = 0xB0000000u ^ ((uint32_t)brightness << 16) ^ (uint32_t)sleepSeconds;
+void showScreen(uint8_t brightness, int sleepSeconds, int rotation) {
+    uint32_t sig = 0xB0000000u ^ ((uint32_t)brightness << 16)
+                 ^ (uint32_t)sleepSeconds ^ ((uint32_t)rotation << 12);
     if (sig == s_viewSig) return;
     s_viewSig = sig;
 
@@ -334,6 +342,20 @@ void showScreen(uint8_t brightness, int sleepSeconds) {
     const char* const tl[] = { "30s", "1m", "5m", i18n::T(S_NEVER) };
     static const int tv[] = { 30, 60, 300, 0 };
     segmented(body, tl, tv, 4, sleepSeconds, onSleep);
+
+    lv_obj_t* spacer2 = lv_obj_create(body);
+    lv_obj_remove_style_all(spacer2);
+    lv_obj_set_size(spacer2, 1, 16);
+
+    // Which way up the panel is depends on how the board sits in its shell,
+    // and both mountings are in use. The chips are the two angles rather than
+    // words: "Normal" only means anything to someone who already knows which
+    // way their own device is, and 180 turns it over whichever way that is.
+    kv(body, i18n::T(S_ORIENTATION), rotation == 0 ? "0" LV_DEG : "180" LV_DEG,
+       theme::TEXT);
+    static const char* const rl[] = { "0" LV_DEG, "180" LV_DEG };
+    static const int rv[] = { 0, 2 };
+    segmented(body, rl, rv, 2, rotation, onRotate);
 
     // Nothing else to say. A settings screen that ends with an instruction is
     // a settings screen that did not explain itself above.

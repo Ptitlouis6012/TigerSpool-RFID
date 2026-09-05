@@ -58,9 +58,10 @@ Action takeAction();
 
 void showWifi(const char* ssid, const char* ip, const char* mac, bool connected);
 void showAccount(const char* email, int printers, bool linked);
-void showScreen(uint8_t brightness, int sleepSeconds);
+void showScreen(uint8_t brightness, int sleepSeconds, int rotation);
 int  takeBrightness();       // new percentage, or -1
 int  takeSleep();            // new timeout in seconds, or -1
+int  takeRotation();         // 0 or 2, or -1
 // `channel` is still taken and still hashed into the redraw signature, but it
 // is not drawn: there is one channel, and a row that always reads "stable" is a
 // row nobody reads twice. It stays in the signature so the day a second channel

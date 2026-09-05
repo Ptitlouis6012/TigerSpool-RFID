@@ -114,3 +114,21 @@ font fallback chain that would restore accents.
   stopped looking like a printer. A rule about silhouettes is not a substitute
   for looking at the thing.
 
+## 2026-09-05 - orientation, row style, account name, a clickable live view
+
+- `screenRotation` stored in NVS as `rot`, applied after `lvgl_port::begin()`
+  so the boot logo and everything after it agree. `lvgl_port::setRotation()`
+  keeps the panel in the port; main owns the value.
+- `theme::LINE` is now the scale's `0x2E3646` and rows carry a 1 px border of
+  it; radius 7 -> 9; row chevron 12 -> 24 px, back chevron 20 -> 24. The value
+  cap drops to 74 with an icon, because the icon column and a full-size chevron
+  together cost about 55 px of a 240 px row.
+- `ttcloud::displayName()` - the name when there is one, the address otherwise.
+  `accounts:signInWithPassword` returns `displayName`; the QR pairing path does
+  not, so `fetchProfileName()` fills it from `accounts:lookup` on the next sync
+  when it is missing. That is what makes it appear on a device that was already
+  signed in.
+- `/screen` forwards clicks to `/api/tap`, drags over 12 px as swipes.
+  Coordinates come from the image's bounding rect, so it works on a phone where
+  the image is scaled down.
+

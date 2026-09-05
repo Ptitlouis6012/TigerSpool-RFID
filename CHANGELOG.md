@@ -20,6 +20,24 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   icons follow: three strokes at most, one dominant form owning two thirds of
   the box, nothing thinner than 2 px, and recognisable when filled in solid.
 
+- **Screen orientation is a setting.** Both mountings of the board exist, so
+  which way up the panel is belongs to the user rather than to a build
+  constant. Under Display, alongside brightness and sleep; applied immediately
+  and remembered across reboots. LovyanGFX turns the touch coordinates with the
+  display, so there is nothing to recalibrate.
+- **The Settings rows are outlined rather than filled**, with chevrons at half
+  the row height instead of a twelfth. On a black screen a filled row floats;
+  an outlined one sits on the page, and eight of them read as a list rather
+  than as eight separate objects. Matches the TigerScale.
+- **The Account row shows the account's display name**, not its address — a
+  name is what you call an account, an address is thirty characters that
+  truncate to `benoit@atom…`. Its icon is green once signed in. Devices already
+  in the field pick the name up on their next sync rather than waiting to be
+  signed out and back in.
+- **The live screen page is clickable.** `http://<device>.local/screen` already
+  refreshed the panel image; a click on it is now forwarded as a touch, and a
+  drag as a swipe. Navigating the device from a laptop no longer means
+  hand-writing query strings.
 - The printer icon keeps its original proportions. A heavier body and output
   tray followed the "one dominant form" rule and read worse on the panel.
 - **The Display row now carries the real sun**, the same Font Awesome glyph the

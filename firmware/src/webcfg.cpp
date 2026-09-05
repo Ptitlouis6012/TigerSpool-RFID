@@ -231,7 +231,7 @@ namespace {
         else if (preview == "setwifi")  screen_settings::showWifi("Atelier", "192.168.20.170",
                                                                   WiFi.macAddress().c_str(), true);
         else if (preview == "setacct")  screen_settings::showAccount("benoit@atome3d.com", 6, true);
-        else if (preview == "setscreen") screen_settings::showScreen(80, 60);
+        else if (preview == "setscreen") screen_settings::showScreen(80, 60, 2);
         else if (preview == "setupdate") screen_settings::showUpdate(TIGERSPOOL_FW_VERSION, "stable", 0, "", 0);
         else if (preview == "setrestart") screen_settings::showRestart();
         else if (preview == "setfactory") screen_settings::showFactory(-1);
@@ -305,17 +305,63 @@ namespace {
         server.sendContent("", 0);
     }
 
+    // The live screen page. It refreshes /screen.bmp on a loop, and - the point
+    // of this handler existing at all rather than people opening the .bmp
+    // directly - a click on the image is forwarded to /api/tap.
+    //
+    // That closes the loop for a person the same way it was already closed for
+    // an agent: open the page on a laptop, drive the device by clicking its
+    // picture, watch it react. Nobody has to be at the bench, and nobody has to
+    // hand-write query strings to move one screen forward.
+    //
+    // Coordinates come from the image's bounding rect rather than from the
+    // event offset, so the mapping survives the CSS scaling the image down on a
+    // phone. A press that travels more than a few pixels is sent as a drag,
+    // which is how a list is scrolled - the same distinction the touch panel
+    // itself makes.
     void handleShotPage() {
-        String p = F("<!doctype html><meta charset=utf-8><title>TigerSpool screen</title>"
+        String p = F(
+          "<!doctype html><meta charset=utf-8><meta name=viewport "
+          "content='width=device-width,initial-scale=1'>"
+          "<title>TigerSpool screen</title>"
           "<style>body{margin:0;background:#111;color:#888;font:13px system-ui;"
           "display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px}"
-          "img{width:240px;height:320px;image-rendering:pixelated;border-radius:8px;"
-          "border:1px solid #333}b{color:#ddd}</style>"
-          "<img id=s><div>live &middot; <b id=n>0</b> frames &middot; <span id=e></span></div>"
-          "<script>let n=0;function t(){const i=document.getElementById('s');"
-          "i.onload=()=>{document.getElementById('n').textContent=++n;setTimeout(t,600)};"
-          "i.onerror=e=>{document.getElementById('e').textContent='erreur';setTimeout(t,2000)};"
-          "i.src='/screen.bmp?'+Date.now()}t();</script>");
+          "img{width:240px;height:320px;max-width:92vw;height:auto;aspect-ratio:240/320;"
+          "image-rendering:pixelated;border-radius:8px;border:1px solid #333;"
+          "cursor:crosshair;touch-action:none;-webkit-user-select:none;user-select:none}"
+          "b{color:#ddd}#h{color:#666}</style>"
+          "<img id=s draggable=false>"
+          "<div>live &middot; <b id=n>0</b> frames &middot; <span id=e></span></div>"
+          "<div id=h>click the screen to tap it &middot; drag to swipe</div>"
+          "<script>"
+          "const i=document.getElementById('s'),H=document.getElementById('h');"
+          "let n=0,busy=0,timer=0;"
+          "function shot(){clearTimeout(timer);i.src='/screen.bmp?'+Date.now()}"
+          "i.onload=()=>{document.getElementById('n').textContent=++n;"
+          "timer=setTimeout(shot,600)};"
+          "i.onerror=()=>{document.getElementById('e').textContent='erreur';"
+          "timer=setTimeout(shot,2000)};"
+          // Panel pixels from a point in the page, whatever size the image is
+          // being drawn at.
+          "function pt(ev){const r=i.getBoundingClientRect();"
+          "const x=Math.round((ev.clientX-r.left)/r.width*240);"
+          "const y=Math.round((ev.clientY-r.top)/r.height*320);"
+          "return [Math.max(0,Math.min(239,x)),Math.max(0,Math.min(319,y))]}"
+          "let dn=null;"
+          "i.addEventListener('pointerdown',e=>{e.preventDefault();dn=pt(e)});"
+          "i.addEventListener('pointerup',async e=>{"
+          "if(!dn||busy)return;const up=pt(e),d=dn;dn=null;"
+          "const far=Math.abs(up[0]-d[0])>12||Math.abs(up[1]-d[1])>12;"
+          "const q=far?`x=${d[0]}&y=${d[1]}&x2=${up[0]}&y2=${up[1]}`"
+          ":`x=${d[0]}&y=${d[1]}`;"
+          "busy=1;H.textContent=(far?'swipe ':'tap ')+q;"
+          // The device pumps LVGL until the screen has settled before it
+          // answers, so the next frame fetched after this resolves already
+          // shows the result. No guessing at a delay.
+          "try{await fetch('/api/tap?'+q)}catch(_){H.textContent='tap failed'}"
+          "busy=0;shot()});"
+          "i.addEventListener('pointercancel',()=>{dn=null});"
+          "shot();</script>");
         server.send(200, "text/html", p);
     }
 

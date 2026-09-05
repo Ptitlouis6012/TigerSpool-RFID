@@ -36,6 +36,14 @@ void injectTap(int x, int y);
 void injectSwipe(int x1, int y1, int x2, int y2);
 
 void setBacklight(uint8_t percent);   // 0 = off, used by screen sleep
+
+// 0 or 2 - the panel the right way up, or turned through 180 degrees. Which
+// one is right depends on how the board was mounted in its shell, and both
+// mountings exist, so this is the user's choice rather than a build constant.
+// Applied immediately: LovyanGFX turns the touch coordinates with the display,
+// and both rotations are portrait, so LVGL's resolution does not change and
+// there is nothing to rebuild - only to repaint.
+void setRotation(int rotation);
 uint8_t backlight();
 
 // Screen sleep. Call every loop with the user's settings; it dims, then goes

@@ -375,11 +375,13 @@ static void loadCfg() {
 // that forgets it was dimmed is a device that blinds someone every morning.
 uint8_t screenBrightness = 80;
 int     screenSleepSec   = 60;
+int     screenRotation   = SCR_ROTATION;
 
 static void loadScreenPrefs() {
     nvs.begin("tigerspool", true);
     screenBrightness = (uint8_t)nvs.getInt("bright", 80);
     screenSleepSec   = nvs.getInt("sleep", 60);
+    screenRotation   = nvs.getInt("rot", SCR_ROTATION);
     nvs.end();
     lvgl_port::setBacklight(screenBrightness);
 }
@@ -387,6 +389,7 @@ static void saveScreenPrefs() {
     nvs.begin("tigerspool", false);
     nvs.putInt("bright", screenBrightness);
     nvs.putInt("sleep", screenSleepSec);
+    nvs.putInt("rot", screenRotation);
     nvs.end();
     lvgl_port::setBacklight(screenBrightness);
 }
@@ -522,6 +525,11 @@ void setup() {
     migrateLegacyConfig();     // must run before anything reads the new namespace
     loadCfg();
     loadScreenPrefs();
+    // After lvgl_port::begin(), because turning the panel repaints it. The
+    // boot logo above was drawn at the compiled default, which is the right
+    // way up for the reference shell; a device mounted the other way sees the
+    // logo one way and everything after it the other, for one second.
+    lvgl_port::setRotation(screenRotation);
     ttcloud::begin();
 
     nfcReady = reader::begin();
@@ -796,13 +804,13 @@ void loop() {
         // and the struct carries a pointer into freed memory - which showed up
         // as an empty Wi-Fi value on the menu, not as a crash.
         String ssid  = WiFi.SSID();
-        String email = ttcloud::email();
+        String who   = ttcloud::displayName();
 
         screen_settings::MenuState menu{};
         menu.wifiUp   = WiFi.isConnected();
         menu.signedIn = ttcloud::haveSession();
         menu.network  = menu.wifiUp   ? ssid.c_str()  : i18n::T(S_OFFLINE);
-        menu.account  = menu.signedIn ? email.c_str() : i18n::T(S_ADD_WEB);
+        menu.account  = menu.signedIn ? who.c_str()   : i18n::T(S_ADD_WEB);
         menu.visiblePrinters = visible;
         menu.totalPrinters   = total;
         menu.updateWaiting   = (ota::state() == ota::AVAILABLE);
@@ -917,7 +925,7 @@ void loop() {
     }
 
     case ST_SET_SCREEN: {
-        screen_settings::showScreen(screenBrightness, screenSleepSec);
+        screen_settings::showScreen(screenBrightness, screenSleepSec, screenRotation);
         lvgl_port::loop();
         BACK_TO_SETTINGS();
         int b = screen_settings::takeBrightness();
@@ -925,6 +933,10 @@ void loop() {
         if (b >= 0)  { screenBrightness = (uint8_t)b; saveScreenPrefs();
                        screen_settings::invalidate(); }
         if (sl >= 0) { screenSleepSec = sl; saveScreenPrefs();
+                       screen_settings::invalidate(); }
+        int r = screen_settings::takeRotation();
+        if (r >= 0)  { screenRotation = r; saveScreenPrefs();
+                       lvgl_port::setRotation(r);
                        screen_settings::invalidate(); }
         break;
     }

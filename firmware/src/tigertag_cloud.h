@@ -16,6 +16,12 @@ namespace ttcloud {
     void   begin();                       // load the stored session from NVS
     bool   haveSession();
     String email();
+
+    // What to put on a settings row: the account's display name when it has
+    // one, the address otherwise. A name is what the user calls the account;
+    // an address is 30 characters that get truncated to "benoit@atom...".
+    // Never empty while there is a session.
+    String displayName();
     String lastResult();
 
     // Email and password. Stores the refresh token, never the password.

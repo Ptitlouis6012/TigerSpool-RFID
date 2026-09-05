@@ -51,11 +51,17 @@ void init() {
     lv_style_set_radius(&s_header, 0);
     lv_style_set_pad_all(&s_header, 0);
 
+    // A dark interior inside a lighter outline, rather than a lighter block on
+    // a dark ground. On an OLED-black screen a filled row floats; an outlined
+    // one sits on the page, and eight of them read as a list instead of eight
+    // separate objects.
     lv_style_init(&s_row);
     lv_style_set_bg_color(&s_row, lv_color_hex(SURFACE));
     lv_style_set_bg_opa(&s_row, LV_OPA_COVER);
     lv_style_set_radius(&s_row, RADIUS);
-    lv_style_set_border_width(&s_row, 0);
+    lv_style_set_border_color(&s_row, lv_color_hex(LINE));
+    lv_style_set_border_width(&s_row, 1);
+    lv_style_set_border_opa(&s_row, LV_OPA_COVER);
     lv_style_set_pad_left(&s_row, 10);
     lv_style_set_pad_right(&s_row, 10);
     lv_style_set_text_color(&s_row, lv_color_hex(TEXT));

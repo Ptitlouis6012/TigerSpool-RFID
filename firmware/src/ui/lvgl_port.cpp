@@ -223,6 +223,11 @@ uint32_t loop() { return lv_timer_handler(); }
 void requestCapture(bool on) { s_capture = on; }
 bool capturing()             { return s_capture; }
 
+void setRotation(int rotation) {
+    lcd.setRotation(rotation == 0 ? 0 : 2);
+    lv_obj_invalidate(lv_scr_act());
+}
+
 void setBacklight(uint8_t percent) {
     if (percent > 100) percent = 100;
     s_backlight = percent;

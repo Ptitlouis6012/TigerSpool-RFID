@@ -59,7 +59,7 @@ lv_obj_t* build(const char* title, Callback onBack) {
         lv_obj_add_event_cb(back, backCb, LV_EVENT_CLICKED, nullptr);
         lv_obj_t* g = lv_label_create(back);
         lv_label_set_text(g, LV_SYMBOL_LEFT);
-        lv_obj_set_style_text_font(g, &lv_font_montserrat_20, 0);
+        lv_obj_set_style_text_font(g, &lv_font_montserrat_24, 0);
         lv_obj_center(g);
         titleX = 56;
     }
@@ -185,18 +185,22 @@ lv_obj_t* row(lv_obj_t* parent, const char* label, const char* value,
         lv_obj_t* v = lv_label_create(r);
         lv_label_set_text(v, value);
         lv_label_set_long_mode(v, LV_LABEL_LONG_DOT);
-        // The icon column costs 28 px of a 240 px row, and it comes out of the
-        // value - which truncates by design - not out of the chevron, which
-        // was being pushed off the row entirely.
-        lv_obj_set_style_max_width(v, icon != icons::NONE ? 84 : 108, 0);
+        // The icon column and the full-size chevron together cost about 55 px
+        // of a 240 px row, and both come out of the value - which truncates by
+        // design - rather than out of the chevron, which is the only mark on
+        // the row that says it opens something.
+        lv_obj_set_style_max_width(v, icon != icons::NONE ? 74 : 100, 0);
         lv_obj_set_style_text_color(v, lv_color_hex(theme::TEXT_DIM), 0);
         lv_obj_set_style_text_font(v, &lv_font_montserrat_12, 0);
     }
     if (chevron) {
+        // Half the height of the row, which is what it is on the scale. At 12
+        // px it was a punctuation mark; the chevron is the only thing on the
+        // row that says it opens something, so it has to carry.
         lv_obj_t* c = lv_label_create(r);
         lv_label_set_text(c, LV_SYMBOL_RIGHT);
         lv_obj_set_style_text_color(c, lv_color_hex(theme::TEXT_DIM), 0);
-        lv_obj_set_style_text_font(c, &lv_font_montserrat_12, 0);
+        lv_obj_set_style_text_font(c, &lv_font_montserrat_24, 0);
     }
     return r;
 }
