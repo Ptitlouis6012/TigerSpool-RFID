@@ -78,3 +78,19 @@ font fallback chain that would restore accents.
   MenuState struct meant the temporaries died before the struct was read. It
   never crashed - it just looked like a network problem. Held in named locals.
 
+## 2026-09-05 - the icons, from the scale's actual code
+
+- `CI_USER` rebuilt verbatim: two solid discs, no outline, the shoulders clipped
+  by the box. My reconstruction had used outlines and could not have matched.
+- Printer and sun redrawn against the scale's silhouette rules.
+- Recorded for the font work: the scale's sun is FontAwesome 6.5.2 Free Solid
+  U+F185, fetched at generation time from the pinned tag, never committed. It
+  rides in the generated Latin face rather than a face of its own -
+  `lv_font_conv` takes several `--font` in one call. The FA font files are
+  SIL OFL 1.1 and the icons CC BY 4.0; both get cited. Note that the resulting
+  `Opts` line carries two `-r`, which is a trap for `check-generated.py`.
+- Also from that exchange: a drawn icon costs one lv_obj per stroke in RAM for
+  as long as the screen is loaded. Negligible on a settings row that exists
+  once; not negligible on a list that can hold twenty. Answers in
+  `_internal/TIGERSCALE-UI-ICONS-2.md`.
+

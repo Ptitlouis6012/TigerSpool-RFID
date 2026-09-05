@@ -7,6 +7,28 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-09-05
+
+### Changed
+
+- **The account icon is a person again, drawn the way the TigerScale draws it.**
+  Two solid discs and no outline: the shoulders disc overflows the box and the
+  clipped pixels are the whole mechanism — a circle cut off at the bottom reads
+  as a bust. The previous attempt used outlines and came out as a different
+  shape entirely.
+- The printer and the sun follow the same silhouette rules the scale's own six
+  icons follow: three strokes at most, one dominant form owning two thirds of
+  the box, nothing thinner than 2 px, and recognisable when filled in solid.
+
+### Known
+
+- The scale's brightness icon is FontAwesome U+F185, a glyph rather than a
+  drawing, so this drawn sun is the closest a drawing gets. It is replaced by
+  the real glyph when the Latin face is generated — that face has to carry the
+  accents anyway, and `lv_font_conv` takes both in one call, so the sun costs no
+  extra face and no extra link in the fallback chain.
+
+
 ## [1.5.0] - 2026-09-05
 
 ### Changed

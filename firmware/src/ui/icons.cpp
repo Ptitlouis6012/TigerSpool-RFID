@@ -42,6 +42,10 @@ void bar(lv_obj_t* p, int x, int y, int w, int h, int r, uint32_t c) {
     lv_obj_set_style_bg_opa(o, LV_OPA_COVER, 0);
 }
 
+void disc(lv_obj_t* p, int x, int y, int d, uint32_t c) {
+    bar(p, x, y, d, d, LV_RADIUS_CIRCLE, c);
+}
+
 lv_obj_t* symbol(lv_obj_t* parent, const char* glyph, uint32_t colour) {
     lv_obj_t* box = piece(parent, 0, 0, BOX, BOX);
     lv_obj_t* g = lv_label_create(box);
@@ -68,11 +72,16 @@ lv_obj_t* build(lv_obj_t* parent, Id id, uint32_t c) {
 
     switch (id) {
     case USER:
-        // A head, and shoulders that run off the bottom of the box. LVGL clips
-        // a child to its parent, so the lower half of the pill never draws and
-        // what is left reads as a dome rather than a capsule.
-        ring(box, 7, 1, 8, c);
-        outline(box, 2, 12, 18, 16, 8, c);
+        // Two solid discs and no outline at all. The shoulders disc runs from
+        // y=13 to y=30 inside a box that stops at 22, and the eight clipped
+        // pixels are the whole mechanism: a circle cut off at the bottom reads
+        // as a pair of shoulders. Let it overflow and you get a snowman.
+        //
+        // The head follows the box; the shoulders must keep overflowing by
+        // about a third of their diameter, or the cut rises and the bust
+        // becomes a half-circle.
+        disc(box, 7, 1, 8, c);
+        disc(box, 2, 13, 17, c);
         break;
 
     case GLOBE:
@@ -87,15 +96,25 @@ lv_obj_t* build(lv_obj_t* parent, Id id, uint32_t c) {
         break;
 
     case PRINTER:
-        // The sheet going in, the body, the sheet coming out.
-        bar(box, 6, 0, 10, 5, 1, c);
-        outline(box, 2, 6, 18, 10, 2, c);
-        bar(box, 6, 17, 10, 5, 1, c);
+        // Three strokes, one dominant. The body owns two thirds of the box and
+        // the sheet coming out of it is the information; the paper tray on top
+        // is the stroke to sacrifice first, so it is the thinnest. Passes the
+        // silhouette test - filled in solid it still reads as a printer.
+        bar(box, 6, 0, 10, 4, 1, c);
+        outline(box, 1, 5, 20, 11, 2, c);
+        bar(box, 5, 15, 12, 7, 1, c);
         break;
 
     case SCREEN:
-        // A sun: brightness and sleep on one row.
-        ring(box, 6, 6, 10, c);
+        // A sun: brightness and sleep on one row. Solid rather than an outline
+        // - a ring of 10 with a 2 px border is mostly border at this size, and
+        // reads as a smudge. The rays are 3 px because nothing thinner than
+        // that survives LVGL's antialiasing in a 22 px box.
+        //
+        // The TigerScale's sun is FontAwesome U+F185, not a drawing. This is
+        // the closest a drawing gets; it is replaced by the real glyph when the
+        // Latin face is generated, which has to carry the accents anyway.
+        disc(box, 5, 5, 12, c);
         bar(box, 10, 0, 2, 4, 1, c);
         bar(box, 10, 18, 2, 4, 1, c);
         bar(box, 0, 10, 4, 2, 1, c);
