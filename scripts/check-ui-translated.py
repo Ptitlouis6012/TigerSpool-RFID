@@ -64,6 +64,23 @@ ALLOWED = {
 WORD = re.compile(r"[A-Za-z]{2,}")
 
 
+def unescape(literal: str) -> str:
+    """Decode C escape sequences before looking for words.
+
+    The literal arrives as it is written in the source, so "\\xC2\\xB0" - a
+    degree sign spelled in bytes to keep the source ASCII - reaches the word
+    test as the characters x, C, 2, x, B, 0. "xC" is two letters, so it looked
+    like a word, and the guard reported a symbol as untranslated text.
+
+    Same shape as the two false positives this checker family has already had:
+    reading the source form of something instead of what it means.
+    """
+    try:
+        return literal.encode("latin-1", "backslashreplace").decode("unicode_escape")
+    except (UnicodeDecodeError, UnicodeEncodeError):
+        return literal
+
+
 def serial_spans(text: str):
     """Character ranges covered by Serial.* calls, brackets balanced.
 
@@ -107,7 +124,7 @@ def main() -> int:
                 continue
             if literal in ALLOWED or PROTOCOL.match(literal):
                 continue
-            if not WORD.search(FORMAT.sub(" ", literal)):
+            if not WORD.search(FORMAT.sub(" ", unescape(literal))):
                 continue
             line = lines[lineno - 1] if lineno <= len(lines) else ""
             if INCLUDE.search(line):
