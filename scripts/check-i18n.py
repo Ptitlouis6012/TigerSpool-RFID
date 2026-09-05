@@ -101,7 +101,16 @@ def main() -> int:
     m = re.search(r"WT\[W_N\]\[(\d+)\]", w)
     if m and wkeys:
         checked += 1
-        wrows = re.findall(r"/\*\s*(W_\w+)\s*\*/\s*\{(.*?)\}\s*,?\s*(?=/\*|\};)", w, re.S)
+        # The lookahead has to step over line comments between rows. Without
+        # that, a row followed by a `//` note simply stopped matching, the
+        # table came up one row short, and the checker blamed the FIRST row
+        # after the comment for a drift that did not exist - which is the
+        # worst kind of failure for a guard whose whole job is to say where
+        # two lists came apart. A table nobody may annotate is a table nobody
+        # annotates.
+        wrows = re.findall(
+            r"/\*\s*(W_\w+)\s*\*/\s*\{(.*?)\}\s*,?\s*(?:(?://[^\n]*\n)\s*)*(?=/\*|\};)",
+            w, re.S)
         check_table(problems, "WT", "firmware/src/webcfg.cpp", wrows, wkeys,
                     int(m.group(1)), "the legacy page's four languages")
 
