@@ -100,6 +100,19 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The captive portal did not open on recent Android phones.** Scan the Wi-Fi
+  QR code on a Galaxy S24, join the setup network, and the sign-in sheet never
+  appeared — the portal was reachable the whole time, the phone had simply
+  stopped looking. A background Wi-Fi scan was launched from the last line of
+  the access point's startup, and a scan needs the station interface, which
+  makes the radio hop channels. Android probes for a captive portal within
+  about a second of associating, so that probe landed while the access point
+  was away. It times out, the network is filed under "connected, no internet",
+  and Android does not ask again. The scan now starts when the portal page has
+  been served — which is itself proof the probe already succeeded — and the
+  network list is still ready before anyone reaches the picker. iOS was
+  unaffected because it retries its probe; Android's is effectively one-shot.
+
 - The Settings menu showed an empty Wi-Fi network. `WiFi.SSID()` returns a
   String by value, and the temporary was dying before the menu read it. It
   never crashed; it just looked like a network problem.

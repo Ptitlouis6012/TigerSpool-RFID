@@ -374,6 +374,8 @@ namespace {
     // ------------------------------------------------------------------
     const char* LANG_CODES[] = { "en", "fr", "de", "es", "it", "pl", "pt", "ptpt" };
 
+    void startBackgroundScan();          // defined below, called from here
+
     void handlePortal() {
         buildNames();
         String page = FPSTR(PORTAL_HTML);
@@ -382,6 +384,8 @@ namespace {
         int l = (int)i18n::current();
         page.replace("%LANG%", LANG_CODES[(l >= 0 && l < (int)LANG_N) ? l : 0]);
         server.send(200, "text/html", page);
+        // Only now, once the page is out: see startBackgroundScan.
+        if (apMode) startBackgroundScan();
     }
 
     // Networks, strongest first and deduplicated. The signal is reported in dBm
@@ -391,7 +395,25 @@ namespace {
     // usually already waiting by the time a phone has joined, opened the page
     // and asked. Scanning on request made every user watch a spinner for two
     // seconds that the device could have spent before they arrived.
+    // Started from handlePortal, NOT from beginAP. A scan needs the station
+    // interface, and the radio then hops channels - which is fine while nobody
+    // is associated and fatal in the two seconds after somebody is.
+    //
+    // The incident: scan the Wi-Fi QR code on a recent Android phone and the
+    // captive-portal sheet never appears. The phone probes for a portal within
+    // about a second of associating; this scan used to be launched from the
+    // last line of beginAP(), so that probe landed while the access point was
+    // off hopping channels. The probe times out, Android files the network
+    // under "connected, no internet", and it does not ask again. The portal is
+    // there and reachable the whole time - the phone simply stopped looking.
+    //
+    // Starting it when the portal page is served is late enough to be safe and
+    // early enough to be useful: the page being served is itself proof that
+    // the probe already succeeded, and the picker is two taps further on.
+    // Mode is returned to AP-only by handleApiScan, which the page always
+    // calls to fill that picker.
     void startBackgroundScan() {
+        if (WiFi.scanComplete() == WIFI_SCAN_RUNNING) return;
         WiFi.mode(WIFI_AP_STA);
         WiFi.scanDelete();
         WiFi.scanNetworks(true, true);      // async
@@ -918,7 +940,9 @@ void webcfg::beginAP() {
     routes(true);
     server.begin();
     Serial.printf("[webcfg] AP '%s' (channel 1)  http://192.168.4.1/\n", AP_SSID);
-    startBackgroundScan();      // results ready before the first phone arrives
+    // Deliberately NOT scanning here. doScan() above already ran, synchronously
+    // and before the server opened, and the radio is back on AP-only. The next
+    // scan waits until the portal page has been served.
 }
 
 void webcfg::loop() {

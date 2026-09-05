@@ -135,3 +135,15 @@ font fallback chain that would restore accents.
 - Wi-Fi strength on the home header, left of the gear. Four levels by colour;
   the level, not the dBm, goes into the redraw signature.
 
+### Fixed
+
+- Captive portal not opening on Android (reported on a Galaxy S24, iPhone on
+  the same firmware was fine). `startBackgroundScan()` moved out of the last
+  line of `beginAP()` and into `handlePortal()`. The AP was channel-hopping
+  during the exact second Android probes for a portal. Two comments in this
+  file already said scanning destabilises the AP; the call site contradicted
+  them and nothing connected the two.
+- **Not reproduced here** - no S24 on the bench, and the mechanism is a timing
+  window that needs a real Android probe. Diagnosed from the code path and the
+  iPhone/Android asymmetry. Needs the reporter to confirm.
+
