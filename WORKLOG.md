@@ -246,4 +246,16 @@ font fallback chain that would restore accents.
   iOS suspends background tabs. Measured at two minutes on a real iPhone for an
   approval that had already happened.- `frame::build(nullptr, ...)` created the title label anyway, so LVGL's
   placeholder "Text" showed in the header during the OTA download.
+- `Signal` row on the Wi-Fi settings screen, from `WiFi.RSSI()`. Added to
+  answer "why is the icon orange" and worth keeping: the bench unit reads
+  -78 dBm while a scan sees the same SSID's beacon at -55, which is the
+  difference between the beacon of the nearest access point and the live
+  association - a multi-AP network, or the printed case.
+- `check-ui-translated.py` now judges what is left after format specifiers word
+  by word instead of whole, so `"%d dBm"` passes on dBm being a unit while
+  `"Signal %d dBm"` still fails on Signal. Verified both ways.
+- v1.16.0 is a dead tag: the pre-commit hook rejected the commit, the tag was
+  pushed anyway, and its release workflow refused it in 11 s on the tag/macro
+  mismatch. Nothing was published under it and it is left alone - the rule is
+  not to re-point a pushed tag. Released as 1.17.0.
 

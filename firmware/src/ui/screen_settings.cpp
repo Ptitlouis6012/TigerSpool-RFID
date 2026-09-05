@@ -245,8 +245,10 @@ int  takeSleep()      { int v = s_newSleep;  s_newSleep  = -1; return v; }
 int  takeRotation()   { int v = s_newRot;    s_newRot    = -1; return v; }
 bool factoryHolding() { return s_holding; }
 
-void showWifi(const char* ssid, const char* ip, const char* mac, bool connected) {
-    uint32_t sig = hashOf(ssid) ^ hashOf(ip) ^ (uint32_t)connected;
+void showWifi(const char* ssid, const char* ip, const char* mac, bool connected,
+              int rssi) {
+    uint32_t sig = hashOf(ssid) ^ hashOf(ip) ^ (uint32_t)connected
+                 ^ ((uint32_t)(rssi + 200) << 8);
     if (sig == s_viewSig) return;
     s_viewSig = sig;
 
@@ -264,6 +266,12 @@ void showWifi(const char* ssid, const char* ip, const char* mac, bool connected)
 
     // The address and the MAC, because a DHCP reservation needs the second one
     // and there is nowhere else on the device to read it. See docs/ONBOARDING.md.
+    // The number behind the colour of the home screen's Wi-Fi glyph. Printed
+    // because "the icon is orange" is not something anyone can act on, and
+    // dBm is - it says move the box or move the router.
+    char sig_[16];
+    snprintf(sig_, sizeof(sig_), "%d dBm", rssi);
+    kv(body, i18n::T(S_SIGNAL), connected ? sig_ : "-", theme::TEXT);
     kv(body, "IP", ip, theme::TEXT);
     kv(body, "MAC", mac, theme::TEXT);
 

@@ -59,6 +59,9 @@ PROTOCOL = re.compile(r"^WIFI:|^https?:|^[%\s\d./:;=-]*$")
 ALLOWED = {
     "Wi-Fi", "MAC", "IP", "OK", "TigerSpool", "TigerTag", "Google",
     "DHCP", "mDNS", "AP", "SSID", "NFC", "USB", "LAN", "QR", "PN532",
+    # A unit symbol, not a word: it is dBm in every language this device
+    # speaks, and translating it would be inventing something.
+    "dBm",
 }
 
 WORD = re.compile(r"[A-Za-z]{2,}")
@@ -124,7 +127,13 @@ def main() -> int:
                 continue
             if literal in ALLOWED or PROTOCOL.match(literal):
                 continue
-            if not WORD.search(FORMAT.sub(" ", unescape(literal))):
+            # Format specifiers are placeholders, not text. What is left after
+            # removing them is judged word by word rather than whole, so
+            # "%d dBm" passes on the strength of dBm being a unit while
+            # "Signal %d dBm" still fails on "Signal" - which is the point.
+            residue = FORMAT.sub(" ", unescape(literal))
+            words = WORD.findall(residue)
+            if not words or all(w in ALLOWED for w in words):
                 continue
             line = lines[lineno - 1] if lineno <= len(lines) else ""
             if INCLUDE.search(line):

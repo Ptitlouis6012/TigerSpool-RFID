@@ -980,7 +980,8 @@ void loop() {
             WiFi.isConnected() ? WiFi.SSID().c_str() : "",
             WiFi.isConnected() ? WiFi.localIP().toString().c_str() : "-",
             WiFi.macAddress().c_str(),
-            WiFi.isConnected());
+            WiFi.isConnected(),
+            WiFi.isConnected() ? WiFi.RSSI() : 0);
         lvgl_port::loop();
         BACK_TO_SETTINGS();
         if (screen_settings::takeAction() == screen_settings::A_CHANGE_WIFI) {

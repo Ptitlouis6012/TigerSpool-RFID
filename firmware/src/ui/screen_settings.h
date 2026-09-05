@@ -57,7 +57,8 @@ enum Action { A_NONE = 0, A_CHANGE_WIFI, A_SIGN_OUT, A_RESTART, A_FACTORY, A_CHE
               A_INSTALL_NOW, A_LATER };
 Action takeAction();
 
-void showWifi(const char* ssid, const char* ip, const char* mac, bool connected);
+void showWifi(const char* ssid, const char* ip, const char* mac, bool connected,
+              int rssi);   // dBm, 0 when not connected
 void showAccount(const char* email, int printers, bool linked);
 void showScreen(uint8_t brightness, int sleepSeconds, int rotation);
 int  takeBrightness();       // new percentage, or -1

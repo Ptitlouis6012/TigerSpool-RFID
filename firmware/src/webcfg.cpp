@@ -275,7 +275,7 @@ namespace {
         else if (preview == "email")   screen_setup::showEmailPairing("http://192.168.20.170");
         else if (preview == "settings") screen_settings::showMenu({"Atelier", "benoit@atome3d.com", 3, 6, true, true, true, "1.6.0"});
         else if (preview == "setwifi")  screen_settings::showWifi("Atelier", "192.168.20.170",
-                                                                  WiFi.macAddress().c_str(), true);
+                                                                  WiFi.macAddress().c_str(), true, -55);
         else if (preview == "setacct")  screen_settings::showAccount("benoit@atome3d.com", 6, true);
         else if (preview == "setscreen") screen_settings::showScreen(80, 60, 2);
         else if (preview == "setupdate") screen_settings::showUpdate(TIGERSPOOL_FW_VERSION, "stable", 0, "", 0);

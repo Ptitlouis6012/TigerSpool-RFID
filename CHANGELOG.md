@@ -7,6 +7,16 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.17.0] - 2026-09-05
+
+### Added
+
+- **The Wi-Fi screen shows the signal in dBm.** The home screen colours its
+  Wi-Fi glyph by strength, and "the icon is orange" is not something anyone can
+  act on. A number is: it says whether to move the box or move the router.
+  Green above −60, yellow to −75, orange below, red with no connection.
+
+
 ## [1.15.0] - 2026-09-05
 
 ### Fixed
