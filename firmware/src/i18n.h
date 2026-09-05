@@ -59,6 +59,7 @@ enum StrId : uint8_t {
     S_CHANGE_NETWORK,
     S_AP_JOIN,
     S_OR_JOIN,
+    S_OR_OPEN,
     S_AP_OPEN,
     S_AP_CHOOSE,
     S_TT_IMPORTING,

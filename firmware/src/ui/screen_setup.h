@@ -32,6 +32,13 @@ int  takeLanguage();          // index into the locale table, or -1
 // support DPP for third-party devices anyway. The captive portal is the only
 // path that works for every phone.
 void showWifi(const char* apSsid, const char* apPass);
+
+// Shown the moment a phone joins the setup access point: the same QR trick
+// again, but pointing at the portal itself. It is the fallback for a phone
+// whose captive-portal sheet never appears - the page is up and reachable the
+// whole time, and this is how someone gets to it without being told an IP
+// address out loud.
+void showPortalReady(const char* url);
 void showWifiConnecting(const char* ssid, int secondsLeft);
 void showWifiFailed(const char* ssid);
 

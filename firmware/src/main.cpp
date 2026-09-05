@@ -687,7 +687,26 @@ void loop() {
         }
         // Drawn once. The screen has nothing that changes: encoding the QR is
         // the most expensive thing on it, and the payload never varies.
-        if (!apScreenDrawn) { screen_setup::showWifi(webcfg::apName(), webcfg::apPass()); apScreenDrawn = true; }
+        // Two screens, and which one is up is decided by whether anybody has
+        // joined yet.
+        //
+        // Before: the Wi-Fi QR. After: a QR pointing at the portal itself.
+        // That second one is the fallback for a phone whose captive-portal
+        // sheet never opens - the page is up and reachable the whole time, and
+        // this is how someone reaches it without being read an IP address out
+        // loud. It costs nothing to show, because the moment a phone is
+        // associated the join QR has done its job and is only in the way.
+        //
+        // Drawn on the transition, never every pass: encoding a QR is the most
+        // expensive thing on either screen.
+        static int apShown = -1;                 // -1 nothing, 0 join, 1 portal
+        int want = webcfg::apClients() > 0 ? 1 : 0;
+        if (apShown != want) {
+            if (want) screen_setup::showPortalReady(webcfg::url().c_str());
+            else      screen_setup::showWifi(webcfg::apName(), webcfg::apPass());
+            apShown = want;
+            apScreenDrawn = true;
+        }
         lvgl_port::loop();
         return;
     }

@@ -189,3 +189,19 @@ font fallback chain that would restore accents.
 - The captive-portal timing fix in 1.6.0 stands on its own, but this is the
   cause the reporter identified. Still needs the S24 to confirm.
 
+## 2026-09-05 - the captive portal, third time
+
+- Root cause found and TESTED, not guessed: the core `DNSServer` hardcodes
+  `answerType = DNS_TYPE_A` in `replyWithIP()`, so AAAA queries get a
+  type-mismatched response. `net/captive_dns.{h,cpp}` written to replace it.
+- Verified with `dig` against the running device, by temporarily binding the
+  resolver to port 5354 in station mode: A -> NOERROR/1 answer/60s TTL, AAAA ->
+  NOERROR/0 answers. Hook reverted before commit.
+- `screen_setup::showPortalReady()` + `webcfg::apClients()` drive the fallback
+  QR in ST_AP. Drawn on the transition only - encoding a QR is the expensive
+  part of that screen.
+- The two earlier theories were both real defects and both stand: the AP no
+  longer scans during the probe window (1.6.0), and it is WPA2 rather than open
+  (1.8.0). Neither was the cause. Said plainly here so nobody re-litigates them
+  as failed fixes.
+

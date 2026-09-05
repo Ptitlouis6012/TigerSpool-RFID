@@ -51,6 +51,7 @@ static const Row STR[S_COUNT] = {
 /* S_CHANGE_NETWORK  */ {{ "Change network", "Changer de reseau", "Netzwerk wechseln", "Cambiar de red", "Cambia rete", "Zmien siec", "Trocar de rede", "Mudar de rede" }},
 /* S_AP_JOIN         */ {{ "Scan with your phone", "Scannez avec votre telephone", "Mit dem Handy scannen", "Escanea con el movil", "Inquadra col telefono", "Zeskanuj telefonem", "Escaneie com o celular", "Digitalize com o telemovel" }},
 /* S_OR_JOIN         */ {{ "Or join Wi-Fi", "Ou rejoignez le Wi-Fi", "Oder WLAN beitreten", "O conecta al Wi-Fi", "O connettiti al Wi-Fi", "Lub polacz z Wi-Fi", "Ou conecte ao Wi-Fi", "Ou ligue ao Wi-Fi" }},
+/* S_OR_OPEN        */ {{ "Or open this address", "Ou ouvrez cette adresse", "Oder diese Adresse offnen", "O abre esta direccion", "O apri questo indirizzo", "Lub otworz ten adres", "Ou abra este endereco", "Ou abra este endereco" }},
 /* S_AP_OPEN        */ {{ "Then open", "Puis ouvrez", "Dann offnen", "Luego abre", "Poi apri", "Nastepnie otworz", "Depois abra", "Depois abra" }},
 /* S_AP_CHOOSE      */ {{ "and pick your network", "et choisissez votre reseau", "und Netzwerk wahlen", "y elige tu red", "e scegli la rete", "i wybierz siec", "e escolha sua rede", "e escolha a sua rede" }},
 /* S_TT_IMPORTING   */ {{ "Importing printers", "Import des imprimantes", "Drucker werden importiert", "Importando impresoras", "Importazione stampanti", "Importowanie drukarek", "Importando impressoras", "A importar impressoras" }},

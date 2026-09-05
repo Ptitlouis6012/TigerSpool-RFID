@@ -409,6 +409,33 @@ void showSignInChoice() {
 
 int takeSignInChoice() { int v = s_choice; s_choice = -1; return v; }
 
+void showPortalReady(const char* url) {
+    frame(nullptr);            // no header: the QR explains itself
+
+    lv_obj_t* scan = lv_label_create(s_body);
+    lv_label_set_text(scan, i18n::T(S_AP_JOIN));
+    lv_label_set_long_mode(scan, LV_LABEL_LONG_WRAP);
+    lv_obj_set_width(scan, theme::SCREEN_W - 2 * theme::PAD - 6);
+    lv_obj_set_style_text_align(scan, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_style_text_font(scan, &lv_font_montserrat_16, 0);
+    lv_obj_set_style_text_color(scan, lv_color_hex(theme::TEXT), 0);
+    lv_obj_set_style_pad_bottom(scan, 20, 0);
+
+    qr(url, 132);
+
+    lv_obj_t* orOpen = lv_label_create(s_body);
+    lv_obj_set_style_pad_top(orOpen, 22, 0);
+    lv_label_set_text(orOpen, i18n::T(S_OR_OPEN));
+    lv_obj_set_style_text_font(orOpen, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_color(orOpen, lv_color_hex(theme::TEXT_DIM), 0);
+
+    lv_obj_t* a = lv_label_create(s_body);
+    lv_obj_set_style_pad_top(a, 4, 0);
+    lv_label_set_text(a, url);
+    lv_obj_set_style_text_font(a, &lv_font_montserrat_16, 0);
+    lv_obj_set_style_text_color(a, lv_color_hex(theme::ACCENT), 0);
+}
+
 void showEmailPairing(const char* deviceUrl) {
     static String lastUrl;
     if (s_active && lastUrl == deviceUrl) return;

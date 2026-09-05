@@ -1,7 +1,7 @@
 #include "webcfg.h"
 #include <WiFi.h>
 #include <WebServer.h>
-#include <DNSServer.h>
+#include "net/captive_dns.h"
 #include <ESPmDNS.h>
 #include <Preferences.h>
 #include <LovyanGFX.hpp>
@@ -153,7 +153,6 @@ namespace {
     void reply(const String& title, const String& msg);   // fwd
 
     WebServer   server(80);
-    DNSServer   dns;
     Preferences p;
     uint32_t    restartAt = 0;
     uint32_t    apTeardownAt = 0;
@@ -261,6 +260,7 @@ namespace {
         String preview = server.hasArg("preview") ? server.arg("preview") : String();
         if      (preview == "lang") screen_setup::showLanguage(true);
         else if (preview == "wifi") { buildNames(); screen_setup::showWifi(AP_SSID, AP_PASS); }
+        else if (preview == "portal") screen_setup::showPortalReady("http://192.168.4.1");
         else if (preview == "pair") screen_setup::showPairing(
                      "https://tigersystem.io/pair?c=K7QF3M2P", "K7QF-3M2P", 587);
         else if (preview == "pairfail") screen_setup::showPairFailed("Code expired");
@@ -1171,8 +1171,7 @@ void webcfg::beginAP() {
     // yet. The portal fetches the list itself when it is opened, and starts a
     // background scan when its page is served. doScan() is still what
     // /?rescan=1 calls.
-    dns.setErrorReplyCode(DNSReplyCode::NoError);
-    dns.start(53, "*", AP_IP);
+    captive_dns::begin(AP_IP);
     routes(true);
     server.begin();
     Serial.printf("[webcfg] AP '%s' (channel 1)  http://192.168.4.1/\n", AP_SSID);
@@ -1181,7 +1180,7 @@ void webcfg::beginAP() {
 }
 
 void webcfg::loop() {
-    if (apMode) dns.processNextRequest();
+    if (apMode) captive_dns::loop();
     server.handleClient();
     if (restartAt && millis() >= restartAt) { delay(50); ESP.restart(); }
 
@@ -1190,7 +1189,7 @@ void webcfg::loop() {
     if (apTeardownAt && millis() >= apTeardownAt) {
         apTeardownAt = 0;
         apMode = false;
-        dns.stop();
+        captive_dns::end();
         WiFi.softAPdisconnect(true);
         WiFi.mode(WIFI_STA);
         Serial.println("[webcfg] setup access point down, station up");

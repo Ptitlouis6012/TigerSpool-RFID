@@ -7,6 +7,39 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-09-05
+
+### Fixed
+
+- **The captive portal's DNS answered the wrong question, and that is why
+  Android never opened the sign-in page.** The core's `DNSServer` writes an
+  answer of type A whatever type was asked for, so a query for an AAAA record
+  came back with a question section saying AAAA and an answer section holding
+  four bytes of IPv4. That is not a valid response and a resolver may discard
+  it. Android asks for A and AAAA in parallel and waits for both: the A answer
+  arrived, the AAAA answer was thrown away, and the lookup sat there until it
+  timed out — past the deadline of Android's captive-portal probe. The portal
+  was up, encrypted and serving the page the whole time.
+
+  iOS was never affected: its resolver is more forgiving and its probe retries.
+  That asymmetry is what hid this behind two earlier theories.
+
+  `net/captive_dns` replaces the core server. A queries get the device's
+  address; every other type gets NOERROR with no answers, which is the correct
+  way to say the name exists but has no record of that type, and lets the
+  client use the address it already has. Verified against the running firmware
+  with `dig`: `A` returns one answer, `AAAA` returns zero, both NOERROR.
+
+### Added
+
+- **A fallback QR, shown the moment a phone joins the setup network.** The
+  screen switches from *join this Wi-Fi* to a QR pointing at the portal itself.
+  If the sign-in sheet does not open on its own — on any phone, for any reason
+  — scanning again lands on the page, with the address printed underneath for
+  anyone who would rather type it. The page was always reachable; this is how
+  someone reaches it without being read an IP address out loud.
+
+
 ## [1.8.0] - 2026-09-05
 
 ### Fixed
