@@ -7,6 +7,23 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-09-05
+
+### Fixed
+
+- **The network picker came up empty on first open**, and only filled in after
+  pressing "rescan". A regression from 1.7.0, where the blocking scan was taken
+  off the access point's startup path to stop the setup QR appearing four
+  seconds late. The replacement started the station interface and asked it to
+  scan in the same breath — and a scan issued before that interface is up fails
+  outright. The failure was silent, so the first attempt returned nothing.
+
+  It now lets the interface settle, and retries once. The scan endpoint also
+  stops reporting a failed scan as an empty list: those are different answers,
+  and saying "no networks found" in a flat full of them left the user to guess
+  that a button might help.
+
+
 ## [1.9.0] - 2026-09-05
 
 ### Fixed

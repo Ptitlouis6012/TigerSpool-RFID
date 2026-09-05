@@ -455,9 +455,15 @@ namespace {
     // calls to fill that picker.
     void startBackgroundScan() {
         if (WiFi.scanComplete() == WIFI_SCAN_RUNNING) return;
+        // The station interface has to actually be up before a scan can start.
+        // Issued in the same breath as the mode change it fails outright, and
+        // the failure is silent - which is how the network picker came up
+        // empty on first open and only filled in after "rescan".
         WiFi.mode(WIFI_AP_STA);
+        delay(80);
         WiFi.scanDelete();
-        WiFi.scanNetworks(true, true);      // async
+        if (WiFi.scanNetworks(true, true) == WIFI_SCAN_FAILED)
+            Serial.println("[webcfg] background scan refused to start");
     }
 
     void handleApiScan() {
@@ -469,11 +475,21 @@ namespace {
             while ((n = WiFi.scanComplete()) == WIFI_SCAN_RUNNING && millis() - t0 < 6000)
                 delay(60);
         }
-        if (n < 0) {                         // never ran, or failed
+        // Never ran, or failed. Two attempts, because the first one lands
+        // while the station interface may still be coming up.
+        for (int try_ = 0; n < 0 && try_ < 2; try_++) {
             WiFi.mode(WIFI_AP_STA);
+            delay(80);
             WiFi.scanDelete();
             n = WiFi.scanNetworks(false, true);
+            if (n < 0) Serial.printf("[webcfg] scan attempt %d failed (%d)\n", try_ + 1, n);
         }
+
+        // A scan that FAILED and a scan that found NOTHING are different
+        // answers, and this line used to report the second for the first. The
+        // picker then said there were no networks - in a flat full of them -
+        // and the only way out was a button the user had to think to press.
+        const bool failed = (n < 0);
         if (n < 0) n = 0;
 
         int idx[32], m = n > 32 ? 32 : n;
@@ -494,6 +510,7 @@ namespace {
             o["r"] = WiFi.RSSI(idx[k]);
             o["k"] = WiFi.encryptionType(idx[k]) != WIFI_AUTH_OPEN;
         }
+        if (failed) doc["error"] = true;     // the page can say "try again"
         String out; serializeJson(doc, out);
         server.send(200, "application/json", out);
 

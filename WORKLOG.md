@@ -205,3 +205,11 @@ font fallback chain that would restore accents.
   (1.8.0). Neither was the cause. Said plainly here so nobody re-litigates them
   as failed fixes.
 
+### Fixed
+
+- Empty network picker on first open. `startBackgroundScan()` and
+  `handleApiScan()` both issued a scan immediately after raising WIFI_AP_STA;
+  the scan fails if the station interface is not up yet. 80 ms settle plus one
+  retry, and `if (n < 0) n = 0` no longer turns a failure into an empty result
+  - the JSON carries `error` instead.
+
