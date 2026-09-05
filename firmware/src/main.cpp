@@ -587,7 +587,15 @@ void loop() {
 
     // The backlight is the only thing that sleeps. Everything below this line
     // keeps running whether the screen is lit or not.
-    lvgl_port::sleepTick(screenSleepSec, screenBrightness);
+    // The screen never sleeps during setup. Every one of these states puts
+    // something on the panel that has to be READ off it - a QR code to scan, a
+    // pairing code to type, a network being joined - and a screen that goes
+    // dark while someone is holding a phone up to it is a screen that has
+    // failed at its one job. The sleep timeout is for the home screen, where
+    // the device sits idle between spools.
+    const bool inSetup = (state == ST_LANG || state == ST_WIFI || state == ST_AP
+                       || state == ST_ACCOUNT || state == ST_WEB_PAIR);
+    lvgl_port::sleepTick(inSetup ? 0 : screenSleepSec, screenBrightness);
 
     if (backend) backend->loop();
     if (webStarted || webcfg::apActive()) webcfg::loop();

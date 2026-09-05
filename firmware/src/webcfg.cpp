@@ -30,10 +30,15 @@ extern bool        canvasReady;
 namespace {
     // ---- legacy web page translations (UTF-8, order: PT, EN, ES, FR) ----
     //
-    // This table belongs to handleRoot(), the prototype's configuration page,
-    // which is still served over the LAN once the device is provisioned. The
-    // captive portal in net/portal_page.h replaced it for setup and speaks the
-    // product's eight languages; this one still speaks four. See docs/.
+    // Words for the small pages this file still serves itself: the account
+    // sign-in, the Google pairing wait, and the short replies. Four languages,
+    // where the portal and the device screens speak eight - these are seen
+    // once, and by someone who has already chosen a language on the panel.
+    //
+    // The prototype's configuration form used to live here too. It was deleted
+    // once the portal and the account replaced every part of it, and it is why
+    // some rows below are no longer referenced; they cost nothing and the
+    // table's order is checked against the enum, so they are left in place.
     enum Wid {
         W_CFGMODE, W_RESCAN, W_STAR_PW, W_NETS_FOUND, W_PICK,
         W_NET, W_PASS, W_KEEP_EMPTY, W_UNCHANGED, W_LANG, W_PRINTERS,
@@ -157,7 +162,6 @@ namespace {
     uint32_t    restartAt = 0;
     uint32_t    apTeardownAt = 0;
     bool        apMode    = false;
-    String      apScan;                       // <option>s das redes encontradas
     // The last scan that found something. An ESP32 cannot scan usefully while
     // a station is associated to its own access point - the radio is committed
     // to serving that client - so the list is taken BEFORE anyone joins and
@@ -642,138 +646,7 @@ namespace {
         server.send(200, "application/json", "{\"ok\":true}");
     }
 
-    void doScan() {
-        // Scanning needs the station interface, so go AP+STA for it and back to
-        // AP-only afterwards: leaving STA active makes the radio hop channels and
-        // the phone drops off the setup network mid-form.
-        WiFi.mode(WIFI_AP_STA);
-        WiFi.scanDelete();
-        int n = WiFi.scanNetworks(false, true);
-        Serial.printf("[webcfg] scan: %d redes\n", n);
-        int idx[24], m = (n > 24) ? 24 : (n < 0 ? 0 : n);
-        for (int i = 0; i < m; i++) idx[i] = i;
-        for (int i = 0; i < m; i++)
-            for (int j = i + 1; j < m; j++)
-                if (WiFi.RSSI(idx[j]) > WiFi.RSSI(idx[i])) { int t = idx[i]; idx[i] = idx[j]; idx[j] = t; }
-        String o, seen = "\n";
-        for (int k = 0; k < m; k++) {
-            String raw = WiFi.SSID(idx[k]);
-            if (!raw.length() || seen.indexOf("\n" + raw + "\n") >= 0) continue;
-            seen += raw + "\n";
-            bool lock = (WiFi.encryptionType(idx[k]) != WIFI_AUTH_OPEN);
-            o += "<option value=\"" + esc(raw) + "\">" + esc(raw) + "  " + WiFi.RSSI(idx[k]) + "dBm" + (lock ? " *" : "") + "</option>";
-        }
-        WiFi.scanDelete();
-        apScan = o;
-        // The mode stays AP+STA - see beginAP. Tearing the station interface
-        // down after every scan is what made the following one fail.
-    }
-
     struct Row { int type; String name, host, sn, cc; };
-    void load(String& ssid, String& pass, int& lang, Row r[MAX_PRINTERS]) {
-        p.begin("tigerspool", true);
-        ssid = p.getString("ssid", "");
-        pass = p.getString("pass", "");
-        lang = p.getInt("lang", -1);
-        for (int i = 0; i < MAX_PRINTERS; i++) {
-            char k[6];
-            snprintf(k, sizeof(k), "p%dt", i); r[i].type = p.getInt(k, 0);
-            snprintf(k, sizeof(k), "p%dn", i); r[i].name = p.getString(k, "");
-            snprintf(k, sizeof(k), "p%dh", i); r[i].host = p.getString(k, "");
-            snprintf(k, sizeof(k), "p%ds", i); r[i].sn   = p.getString(k, "");
-            snprintf(k, sizeof(k), "p%dc", i); r[i].cc   = p.getString(k, "");
-        }
-        p.end();
-    }
-
-    String page() {
-        String ssid, pass; int lang; Row r[MAX_PRINTERS];
-        load(ssid, pass, lang, r);
-
-        String h; h.reserve(5200);
-        h += F("<!doctype html><html><head><meta charset=utf-8>"
-               "<meta name=viewport content=\"width=device-width,initial-scale=1\">"
-               "<title>TigerSpool</title><style>"
-               "body{font-family:system-ui,sans-serif;background:#111;color:#eee;margin:0;padding:20px}"
-               ".card{max-width:460px;margin:auto;background:#1c1c1c;border:1px solid #333;border-radius:12px;padding:22px}"
-               "h1{font-size:1.15rem;margin:.1rem 0 .3rem}h2{font-size:.95rem;color:#bbb;margin:1.5rem 0 .3rem;border-top:1px solid #333;padding-top:1rem}"
-               "label{display:block;margin:.7rem 0 .2rem;font-size:.85rem;color:#bbb}"
-               "input,select{width:100%;box-sizing:border-box;padding:9px;border-radius:8px;border:1px solid #444;background:#111;color:#eee;font-size:.95rem}"
-               "button{margin-top:1.4rem;width:100%;padding:12px;border:0;border-radius:8px;background:#2d7;color:#012;font-weight:700;font-size:1rem}"
-               "a{color:#2d7}.hint{color:#888;font-size:.78rem;margin-top:.25rem}"
-               "fieldset{border:1px solid #333;border-radius:8px;margin:.6rem 0;padding:.4rem .8rem .8rem}"
-               "legend{color:#999;font-size:.8rem;padding:0 .4rem}"
-               "</style></head><body><div class=card>"
-               "<h1>TigerSpool</h1>");
-        if (apMode) {
-            h += F("<div class=hint>"); h += wl(W_CFGMODE); h += F("</div>");
-        }
-        else {
-            h += F("<div class=hint>IP "); h += WiFi.localIP().toString();
-            // The per-device name, not a bare "tigerspool.local". Two devices
-            // on one network is the whole reason the MAC suffix exists, and a
-            // link that ignores it sends half the owners to the other box.
-            h += F(" &middot; <a href=\"http://"); h += HOSTNAME;
-            h += F(".local/\">"); h += HOSTNAME; h += F(".local</a></div>");
-        }
-        h += F("<form method=POST action=/save>"
-               "<h2>Wi-Fi</h2>");
-        if (apMode) {
-            h += F("<label>"); h += wl(W_NETS_FOUND);
-            h += F("</label><select id=sel onchange=\"document.getElementById('ssid').value=this.value\">"
-                   "<option value=\"\">"); h += wl(W_PICK); h += F("</option>");
-            h += apScan;
-            h += F("</select><div class=hint><a href=\"/?rescan=1\">"); h += wl(W_RESCAN);
-            h += F("</a>"); h += wl(W_STAR_PW); h += F("</div>");
-        }
-        h += F("<label>"); h += wl(W_NET); h += F("</label><input id=ssid name=ssid value=\"");
-        h += esc(ssid);
-        h += F("\"><label>"); h += wl(W_PASS);
-        if (!apMode) h += wl(W_KEEP_EMPTY);
-        h += F("</label><input name=pass type=password autocomplete=off");
-        if (!apMode) { h += F(" placeholder=\""); h += wl(W_UNCHANGED); h += F("\""); }
-        h += F("><h2>"); h += wl(W_LANG); h += F("</h2><select name=lang>");
-        for (int i = 0; i < (int)LANG_N; i++) { h += "<option value=\""; h += i; h += "\""; if (lang == i) h += " selected"; h += ">"; h += LANGS[i]; h += "</option>"; }
-        h += F("</select><h2>"); h += wl(W_PRINTERS);
-        h += F("</h2><div class=hint>"); h += wl(W_LAN_HINT); h += F("</div>");
-        for (int i = 0; i < MAX_PRINTERS; i++) {
-            h += "<fieldset><legend>"; h += wl(W_PRINTER); h += ' '; h += (i + 1); h += "</legend>";
-            h += "<label>"; h += wl(W_TYPE); h += "</label><select name=p"; h += i; h += "t>";
-            for (int t = 0; t < NPTYPES; t++) { h += "<option value=\""; h += t; h += "\""; if (r[i].type == t) h += " selected"; h += ">"; h += (t == 0 ? wl(W_NONE) : PTYPES[t]); h += "</option>"; }
-            h += "</select>";
-            h += "<label>"; h += wl(W_NAME); h += "</label><input name=p"; h += i; h += "n value=\""; h += esc(r[i].name); h += "\">";
-            h += "<label>IP</label><input name=p"; h += i; h += "h inputmode=decimal placeholder=\"192.168.1.50\" value=\""; h += esc(r[i].host); h += "\">";
-            h += "<label>"; h += wl(W_SERIAL); h += "</label><input name=p"; h += i; h += "s value=\""; h += esc(r[i].sn); h += "\">";
-            h += "<label>"; h += wl(W_CHECKCODE); h += "</label><input name=p"; h += i; h += "c value=\""; h += esc(r[i].cc); h += "\">";
-            h += "</fieldset>";
-        }
-        h += F("<button type=submit>"); h += wl(W_SAVE_RESTART); h += F("</button></form>");
-
-        // ---- TigerTag account (imports the machines it holds) ----
-        h += F("<h2>"); h += wl(W_TT_ACCOUNT); h += F("</h2>");
-        if (ttcloud::haveSession()) {
-            h += F("<div class=hint>"); h += wl(W_CONNECTED); h += esc(ttcloud::email());
-            h += F("<br>"); h += esc(ttcloud::lastResult());
-            h += F("</div><form method=POST action=/tt-sync style=margin-top:.6rem>"
-                   "<button type=submit>"); h += wl(W_SYNC_NOW); h += F("</button></form>"
-                   "<p class=hint><a href=/tt-forget>"); h += wl(W_TT_FORGET); h += F("</a></p>");
-        } else {
-            h += F("<div class=hint>"); h += wl(W_TT_HINT); h += F("</div>"
-                   "<form method=POST action=/tt-login>"
-                   "<label>Email</label><input name=ttmail type=email autocomplete=off>"
-                   "<label>"); h += wl(W_PASS); h += F("</label><input name=ttpass type=password autocomplete=off>"
-                   "<button type=submit>"); h += wl(W_TT_LOGIN); h += F("</button></form>"
-                   "<form method=POST action=/tt-gstart style=margin-top:.4rem>"
-                   "<button type=submit style=background:#4285f4;color:#fff>");
-            h += wl(W_GOOGLE); h += F("</button></form>");
-        }
-
-        h += F("<p class=hint><a href=/retry>"); h += wl(W_RETRY_NET);
-        h += F("</a> &middot; <a href=/reset>"); h += wl(W_WIPE); h += F("</a></p>"
-               "</div></body></html>");
-        return h;
-    }
-
     // GET /login - the page the sign-in QR points at.
     //
     // It used to point at "/", which serves the configuration page. That page
@@ -963,55 +836,6 @@ namespace {
         server.send_P(200, "image/svg+xml", TIGER_ICON_SVG);
     }
 
-    void handleRoot() {
-        if (apMode && server.hasArg("rescan")) doScan();
-        server.send(200, "text/html", page());
-    }
-
-    void handleSave() {
-        p.begin("tigerspool", false);
-        if (server.hasArg("ssid")) { String s = server.arg("ssid"); s.trim(); p.putString("ssid", s); }
-        if (server.hasArg("pass") && (apMode || server.arg("pass").length())) p.putString("pass", server.arg("pass"));
-        if (server.hasArg("lang")) p.putInt("lang", server.arg("lang").toInt());
-        for (int i = 0; i < MAX_PRINTERS; i++) {
-            char a[4], k[6];
-            snprintf(a, sizeof(a), "p%dt", i); snprintf(k, sizeof(k), "p%dt", i); p.putInt(k, server.arg(a).toInt());
-            snprintf(a, sizeof(a), "p%dn", i); snprintf(k, sizeof(k), "p%dn", i); { String v = server.arg(a); v.trim();
-                if (v.isEmpty() && server.arg(String("p") + i + "t").toInt() != 0) v = PTYPES[server.arg(String("p") + i + "t").toInt()];
-                p.putString(k, v); }
-            snprintf(a, sizeof(a), "p%dh", i); snprintf(k, sizeof(k), "p%dh", i); { String v = server.arg(a); v.trim(); p.putString(k, v); }
-            snprintf(a, sizeof(a), "p%ds", i); snprintf(k, sizeof(k), "p%ds", i); { String v = server.arg(a); v.trim(); p.putString(k, v); }
-            snprintf(a, sizeof(a), "p%dc", i); snprintf(k, sizeof(k), "p%dc", i); { String v = server.arg(a); v.trim(); p.putString(k, v); }
-        }
-        p.remove("k2ip");
-        p.end();
-        reply(wl(W_SAVED), wl(W_RESTART_JOIN));
-        restartAt = millis() + 1400;
-    }
-
-    // Factory reset: the device must come back exactly as it left the flasher.
-    //
-    // Clearing only "tigerspool" is not that. The account session lives in its
-    // own namespace, and the prototype's namespaces are still on the chip - the
-    // migration in main.cpp would read them on the next boot and put the Wi-Fi
-    // credentials and the printers straight back. A reset that undoes itself is
-    // worse than no reset, because the user believes the device was wiped.
-    void handleReset() {
-        const char* namespaces[] = { "tigerspool", "tsaccount", "k2cfg", "ttcfg" };
-        for (const char* ns : namespaces) {
-            Preferences w;
-            if (w.begin(ns, false)) { w.clear(); w.end(); }
-        }
-        Serial.println("[config] factory reset - all namespaces cleared");
-        reply(wl(W_WIPED), wl(W_RESTARTING));
-        restartAt = millis() + 1200;
-    }
-
-    void handleRetry() {
-        reply(wl(W_RESTARTING), wl(W_RETRY_SAVED));
-        restartAt = millis() + 1000;
-    }
-
     void reply(const String& title, const String& msg) {
         String h = F("<!doctype html><meta charset=utf-8><meta http-equiv=refresh content=\"5;url=/\">"
                      "<body style='font-family:system-ui;background:#111;color:#eee;padding:24px'><h2>");
@@ -1170,14 +994,43 @@ namespace {
     }
 
     void handleCaptive() {
-        server.sendHeader("Location", "http://192.168.4.1/", true);
+        // Absolute in AP mode, because a captive-portal probe is asking for
+        // somewhere to go and a relative redirect answers a different host.
+        // Relative on the local network, where the device's address is not
+        // 192.168.4.1 and sending anyone there would be a dead end.
+        server.sendHeader("Location", apMode ? "http://192.168.4.1/" : "/", true);
         server.send(302, "text/plain", "");
     }
 
-    void routes(bool captive) {
-        // In AP mode the root IS the setup portal. The legacy form stays on the
-        // local network, where printers and the account are configured.
-        server.on("/", apMode ? handlePortal : handleRoot);
+    // Registered ONCE, and every mode-dependent route decides at request time.
+    //
+    // The incident: a device that had joined Wi-Fi and later dropped to the
+    // setup access point served the prototype's old configuration form to the
+    // captive portal instead of the portal page. routes() ran twice - once
+    // from begin(), once from beginAP() - and the ESP32 web server keeps its
+    // handlers in a list where the FIRST match wins. The second registration
+    // of "/" was therefore dead, and "/" still pointed at whatever the device
+    // was doing when it first came up.
+    //
+    // Deciding inside the handler cannot go stale, and registering once means
+    // the order the two starts happen in stops mattering at all.
+    bool routesDone = false;
+
+    void routes() {
+        if (routesDone) return;
+        routesDone = true;
+
+        // In AP mode the root IS the setup portal. The legacy form stays on
+        // the local network, where printers and the account are configured.
+        // In AP mode the root IS the setup portal. On the local network the
+        // account page is the only thing left worth landing on: the
+        // prototype's configuration form is gone, and the printers it used to
+        // edit come from the account now.
+        server.on("/", []() {
+            if (apMode) { handlePortal(); return; }
+            server.sendHeader("Location", "/login", true);
+            server.send(302, "text/plain", "");
+        });
         server.on("/api/scan", handleApiScan);
         server.on("/api/join", HTTP_POST, handleApiJoin);
         server.on("/api/lang", handleApiLang);
@@ -1186,25 +1039,21 @@ namespace {
         server.on("/tiger-icon.svg", handleIcon);
         server.on("/screen.bmp", handleShot);      // raw panel capture
         server.on("/screen", handleShotPage);      // page that refreshes it
-        server.on("/save", HTTP_POST, handleSave);
-        server.on("/reset", handleReset);
-        server.on("/retry", handleRetry);
         server.on("/tt-login", HTTP_POST, handleTtLogin);
         server.on("/tt-gstart", handleTtGStart);   // GET: submits nothing, see handleLogin
         server.on("/tt-gpoll", handleTtGPoll);
         server.on("/tt-sync", HTTP_POST, handleTtSync);
         server.on("/tt-forget", handleTtForget);
-        if (captive) {
-            server.on("/generate_204", handleCaptive);
-            server.on("/gen_204", handleCaptive);
-            server.on("/ncsi.txt", handleCaptive);
-            server.on("/connecttest.txt", handleCaptive);
-            server.on("/hotspot-detect.html", handleCaptive);
-            server.on("/canonical.html", handleCaptive);
-            server.onNotFound(handleCaptive);
-        } else {
-            server.onNotFound([]() { server.sendHeader("Location", "/"); server.send(302, "text/plain", ""); });
-        }
+
+        // The probe paths every phone asks for. Harmless on the local network,
+        // where handleCaptive sends them to "/" instead of to 192.168.4.1.
+        server.on("/generate_204", handleCaptive);
+        server.on("/gen_204", handleCaptive);
+        server.on("/ncsi.txt", handleCaptive);
+        server.on("/connecttest.txt", handleCaptive);
+        server.on("/hotspot-detect.html", handleCaptive);
+        server.on("/canonical.html", handleCaptive);
+        server.onNotFound(handleCaptive);
     }
 }
 
@@ -1212,7 +1061,7 @@ void webcfg::begin() {
     apMode = false;
     buildNames();
     if (MDNS.begin(HOSTNAME)) MDNS.addService("http", "tcp", 80);
-    routes(false);
+    routes();
     server.begin();
     Serial.printf("[webcfg] http://%s  http://%s.local\n", WiFi.localIP().toString().c_str(), HOSTNAME);
 }
@@ -1243,10 +1092,9 @@ void webcfg::beginAP() {
     // a frozen screen before the QR code appeared: a scan takes seconds, and
     // the whole of setup was queued behind it for a list nobody had asked for
     // yet. The portal fetches the list itself when it is opened, and starts a
-    // background scan when its page is served. doScan() is still what
-    // /?rescan=1 calls.
+    // background scan when its page is served.
     captive_dns::begin(AP_IP);
-    routes(true);
+    routes();
     server.begin();
     Serial.printf("[webcfg] AP '%s' (channel 1)  http://192.168.4.1/\n", AP_SSID);
     // The scan goes here, asynchronously. It is the only moment it can usefully

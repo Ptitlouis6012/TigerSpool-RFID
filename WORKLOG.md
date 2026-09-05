@@ -259,3 +259,14 @@ font fallback chain that would restore accents.
   mismatch. Nothing was published under it and it is left alone - the rule is
   not to re-point a pushed tag. Released as 1.17.0.
 
+## 2026-09-05 - the legacy page, and two things it was hiding
+
+- `routes()` registers once; `/` and `handleCaptive` decide on `apMode` at
+  request time. Serving the old form to the captive portal was the symptom.
+- No screen sleep in ST_LANG / ST_WIFI / ST_AP / ST_ACCOUNT / ST_WEB_PAIR.
+- Deleted `page()`, `handleRoot()`, `handleSave()`, `handleReset()`,
+  `handleRetry()`, `doScan()`, `load()`, `apScan`. `/reset` in particular was
+  an unauthenticated GET that cleared every NVS namespace.
+- The W_ table keeps its now-unused rows: the order is checked against the
+  enum, and renumbering it to save a few hundred bytes is not worth the risk.
+

@@ -7,6 +7,33 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.18.0] - 2026-09-05
+
+### Fixed
+
+- **The captive portal served the prototype's old configuration form.** A
+  device that had joined Wi-Fi and later dropped to the setup access point
+  showed the wrong page entirely. The route table was built twice — once when
+  the device came up on the network, once when the access point started — and
+  the ESP32 web server keeps handlers in a list where the first match wins, so
+  the second registration of `/` was dead. It is registered once now and
+  decides inside the handler, which cannot go stale.
+- **The screen no longer sleeps during setup.** Every setup screen puts
+  something on the panel that has to be read off it — a QR code to scan, a
+  pairing code to type — and a screen that goes dark while someone is holding a
+  phone up to it has failed at its one job. The sleep timeout applies to the
+  home screen, where the device sits idle between spools.
+
+### Removed
+
+- **The prototype's configuration form is gone.** The portal replaced it for
+  Wi-Fi, and printers come from the TigerTag account rather than being typed
+  into a web form. On the local network `/` now goes to the account page.
+- With it, `/save`, `/retry`, and `/reset` — the last of which wiped every
+  stored namespace on a plain GET, with no confirmation and no authentication,
+  from anywhere on the network. Factory reset is on the device, behind a hold.
+
+
 ## [1.17.0] - 2026-09-05
 
 ### Added
