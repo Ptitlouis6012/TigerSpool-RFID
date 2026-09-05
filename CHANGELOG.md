@@ -7,6 +7,22 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.20.0] - 2026-09-05
+
+### Fixed
+
+- **Toggling a printer sent the list back to the top.** With more than a
+  handful of printers, turning one on meant scrolling back down to reach the
+  next — and the further down you were, the worse it got.
+
+  The screen was rebuilt to show the new switch position, and a rebuilt list
+  has lost where it was scrolled to. The switch is the only thing that changed,
+  so it is now the only thing that changes: it flips in place, and the redraw
+  signature no longer watches the visibility flags. What still rebuilds the
+  screen is what only an account sync can change — which printers exist and
+  what they are called.
+
+
 ## [1.19.0] - 2026-09-05
 
 ### Fixed

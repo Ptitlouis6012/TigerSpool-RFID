@@ -23,7 +23,23 @@ void onEntry(lv_event_t* e) {
 void onBack()  { s_back = true; }
 void onCheck()   { ota::checkAsync(); }
 void onInstall() { ota::applyAsync(); }
-void onToggle(lv_event_t* e) { s_toggled = (int)(intptr_t)lv_event_get_user_data(e); }
+// Flips the switch on the spot, then reports the tap.
+//
+// The screen used to be rebuilt to show the new state, and rebuilding a
+// scrolled list throws away where it was scrolled to - press a toggle six
+// printers down and the view jumped back to the top. The switch is the only
+// thing on the row that changed, so it is the only thing that changes.
+void onToggle(lv_event_t* e) {
+    s_toggled = (int)(intptr_t)lv_event_get_user_data(e);
+    lv_obj_t* row = lv_event_get_target(e);
+    for (uint32_t i = 0; i < lv_obj_get_child_cnt(row); i++) {
+        lv_obj_t* c = lv_obj_get_child(row, i);
+        if (!lv_obj_check_type(c, &lv_switch_class)) continue;
+        if (lv_obj_has_state(c, LV_STATE_CHECKED)) lv_obj_clear_state(c, LV_STATE_CHECKED);
+        else                                       lv_obj_add_state(c, LV_STATE_CHECKED);
+        break;
+    }
+}
 
 uint32_t hashOf(const char* s, uint32_t h = 2166136261u) {
     for (; s && *s; s++) h = h * 16777619u ^ (uint8_t)*s;
@@ -104,11 +120,16 @@ Entry takeEntry() { Entry v = s_entry; s_entry = E_NONE; return v; }
 bool  takeBack()  { bool v = s_back; s_back = false; return v; }
 
 void showPrinters(const PrinterCfg* printers, int count) {
+    // Deliberately NOT hashing `visible`. It changes on every toggle, and a
+    // changed signature means a rebuilt screen, and a rebuilt list has lost
+    // its scroll position - which is how pressing a switch sent the view back
+    // to the top. The switch shows its own new state; see onToggle. What is in
+    // the signature is what only a sync can change: which printers exist and
+    // what they are called.
     uint32_t sig = 2166136261u;
     for (int i = 0; i < count; i++) {
         if (printers[i].type == PT_NONE) continue;
         sig = hashOf(printers[i].name.c_str(), sig);
-        sig = sig * 16777619u ^ (uint32_t)printers[i].visible;
     }
     if (sig == s_pickSig) return;
     s_pickSig = sig;

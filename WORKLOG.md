@@ -274,4 +274,8 @@ font fallback chain that would restore accents.
   Install button was clipped.
 - `?preview=setupdate` now renders AVAILABLE rather than IDLE. The old preview
   showed the one state that was already fine.
+- Printer picker: `visible` dropped from the redraw signature, `onToggle`
+  flips the switch widget in place. Rebuilding to reflect a value is the
+  recurring bug in any long-lived UI - the TigerScale warned about exactly
+  this - and here it cost the scroll position on every tap.
 
