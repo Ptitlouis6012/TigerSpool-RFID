@@ -168,4 +168,14 @@ font fallback chain that would restore accents.
   behaviour, on every site. It is not controllable from a page, and the usual
   workaround (a text field with -webkit-text-security) is worse: it breaks
   password managers and puts the plaintext in the DOM.
+- `pageOpen()`/`pageClose()` extracted so the sign-in and pairing pages cannot
+  drift apart; the Google mark, the Studio link and the social row are PROGMEM
+  blobs shared by both.
+- `webcfg::webPairing()` reports a live web-initiated pairing; main draws
+  `screen_setup::showPairing()` from it in a new `ST_WEB_PAIR`. Read by main,
+  never pushed by webcfg - a screen driven from two places disagrees with
+  itself after the next redraw.
+- Two bugs found by looking at the rendered page: the pairing page emitted two
+  `<!doctype html>` and two `<head>`, and the Google SVG was sized only on the
+  white button, so on the orange one it filled the screen.
 

@@ -43,7 +43,8 @@ namespace {
         W_SAVED, W_RESTART_JOIN, W_WIPED, W_RESTARTING, W_RETRY_SAVED,
         W_LOGIN_FAIL, W_ACCT_LINKED, W_SYNCED, W_FAILED, W_ACCT_OFF,
         W_RESTART_SUFFIX,
-        W_GOOGLE, W_EMAIL, W_OR, W_NO_ACCOUNT, W_SHOW_PW, W_PAIR_OPEN, W_PAIR_CODE, W_PAIR_WAIT, W_PAIR_DENIED, W_PAIR_EXPIRED,
+        W_GOOGLE, W_EMAIL, W_OR, W_NO_ACCOUNT, W_SHOW_PW,
+        W_PAIR_SCAN, W_PAIR_CODE, W_PAIR_WAIT, W_PAIR_DENIED, W_PAIR_EXPIRED,
         W_N
     };
     const char* const WT[W_N][4] = {
@@ -114,15 +115,19 @@ namespace {
                               "Pas encore de compte ? Créez-le dans Tiger Studio Manager, puis ajoutez-y vos imprimantes." },
         /* W_SHOW_PW      */ { "Mostrar a password", "Show password",
                               "Mostrar la contraseña", "Afficher le mot de passe" },
-        /* W_PAIR_OPEN    */ { "Abre este link (telemovel ou PC) e aprova:",
-                              "Open this link (phone or PC) and approve:",
-                              "Abre este enlace (movil o PC) y aprueba:",
-                              "Ouvre ce lien (telephone ou PC) et approuve :" },
+        /* W_PAIR_SCAN    */ { "Lê o QR code no ecrã do TigerSpool",
+                              "Scan the QR code on the TigerSpool screen",
+                              "Escanea el código QR en la pantalla del TigerSpool",
+                              "Scannez le QR code sur l'écran du TigerSpool" },
         /* W_PAIR_CODE    */ { "codigo", "code", "codigo", "code" },
-        /* W_PAIR_WAIT    */ { "A aguardar aprovacao no telemovel...",
-                              "Waiting for approval on your phone...",
-                              "Esperando aprobacion en el movil...",
-                              "En attente d approbation sur le telephone..." },
+        // No device named, for the same reason W_PAIR_OPEN was dropped: this
+        // page is read from a phone that scanned the QR and from a PC where
+        // someone typed the address off the device's screen, and it cannot
+        // tell which. Accents restored - the browser draws this, not the panel.
+        /* W_PAIR_WAIT    */ { "A aguardar aprovação...",
+                              "Waiting for approval...",
+                              "Esperando aprobación...",
+                              "En attente d'approbation..." },
         /* W_PAIR_DENIED  */ { "Pedido recusado", "Request denied", "Solicitud rechazada", "Demande refusee" },
         /* W_PAIR_EXPIRED */ { "Codigo expirado - tenta de novo", "Code expired - try again",
                               "Codigo expirado - intenta de nuevo", "Code expire - reessaie" },
@@ -730,13 +735,43 @@ namespace {
     // joined to the device's own access point when this matters most, and a
     // missing web font or a remote logo fails silently - an empty box on the
     // one screen where trust is being decided.
-    void handleLogin() {
-        if (ttcloud::haveSession()) { reply(wl(W_CONNECTED) + esc(ttcloud::email()), ""); return; }
+    // The shell both account pages wear. Extracted rather than copied: they
+    // are two steps of one flow, and a phone that changes typeface and ground
+    // halfway through looks like it has handed you to somewhere else - on the
+    // step where the question is precisely who you are talking to.
+    //
+    // NOTHING here may be fetched from the internet. The phone reading this is
+    // joined to the device's own access point when this matters most, and a
+    // missing web font or a remote logo fails silently.
+    const char GOOGLE_G[] PROGMEM =
+        "<svg viewBox=\"0 0 48 48\" aria-hidden=true>"
+        "<path fill=#EA4335 d=\"M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z\"/>"
+        "<path fill=#4285F4 d=\"M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z\"/>"
+        "<path fill=#FBBC05 d=\"M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z\"/>"
+        "<path fill=#34A853 d=\"M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z\"/>"
+        "</svg>";
 
-        String h; h.reserve(4200);
+    const char STUDIO_LINK[] PROGMEM =
+        "<a class=studio href=https://tigersystem.io>"
+        "<img src=/tiger-icon.svg alt=\"\">Tiger Studio Manager"
+        "<svg viewBox=\"0 0 24 24\" aria-hidden=true>"
+        "<path d=\"M9 5h10v10\"/><path d=\"M19 5 8 16\"/><path d=\"M15 19H5V9\"/></svg></a>";
+
+    const char SOCIAL_ROW[] PROGMEM =
+        "<div class=soc>"
+        "<a href=https://github.com/TigerTag-Project aria-label=GitHub>"
+        "<svg viewBox=\"0 0 24 24\" aria-hidden=true><path d=\"M12 .5C5.37.5 0 5.87 0 12.5c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58 0-.29-.01-1.24-.02-2.25-3.34.73-4.04-1.42-4.04-1.42-.55-1.38-1.33-1.75-1.33-1.75-1.09-.75.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5.99.11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.34-5.47-5.95 0-1.31.47-2.38 1.24-3.22-.12-.31-.54-1.53.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6.01 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.65.24 2.87.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.62-2.81 5.64-5.49 5.94.43.37.81 1.1.81 2.22 0 1.6-.01 2.9-.01 3.29 0 .32.22.7.83.58C20.56 22.29 24 17.79 24 12.5 24 5.87 18.63.5 12 .5Z\"/></svg></a>"
+        "<a href=https://discord.gg/3Qv5TSqnJH aria-label=Discord>"
+        "<svg viewBox=\"0 0 24 24\" aria-hidden=true><path d=\"M20.317 4.369a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.249a18.27 18.27 0 0 0-5.487 0 12.6 12.6 0 0 0-.617-1.25.077.077 0 0 0-.079-.036A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.058a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.009c.12.099.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.891.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.056c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03ZM8.02 15.331c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.094 2.157 2.418 0 1.334-.956 2.419-2.157 2.419Zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.094 2.157 2.418 0 1.334-.947 2.419-2.157 2.419Z\"/></svg></a>"
+        "<a href=https://tigersystem.io aria-label=TigerSystem>"
+        "<img src=/tiger-icon.svg alt=\"\"></a></div>";
+
+    void pageOpen(String& h, const char* extraHead = nullptr) {
         h += F("<!doctype html><html><head><meta charset=utf-8>"
                "<meta name=viewport content=\"width=device-width,initial-scale=1,viewport-fit=cover\">"
-               "<title>TigerSpool</title><style>"
+               "<title>TigerSpool</title>");
+        if (extraHead) h += extraHead;     // e.g. the poll page's meta refresh
+        h += F("<style>"
                ":root{--bg:#08090d;--raised:#171a22;--line:#262a36;--soft:#1c2029;"
                "--text:#f4f5f8;--muted:#9aa0b0;--faint:#5f6674;--brand:#ff7a18;--ember:#e6352b}"
                "*{box-sizing:border-box}"
@@ -752,11 +787,12 @@ namespace {
                "label{display:block;margin:0 0 6px;font-size:12px;color:var(--muted)}"
                ".fg{margin-bottom:14px}"
                ".pw{position:relative}"
+               // 16px on the inputs is not a style choice: below that, iOS
+               // Safari zooms the page on focus and the layout jumps under the
+               // thumb mid-word.
                "input{width:100%;height:46px;padding:0 13px;border-radius:12px;"
                "border:1px solid var(--line);background:var(--raised);color:var(--text);"
                "font-size:16px;font-family:inherit}"
-               // 16px on the inputs is not a style choice: below that, iOS Safari
-               // zooms the page on focus and the layout jumps under the thumb.
                "input:focus{outline:0;border-color:var(--brand);"
                "box-shadow:0 0 0 3px rgba(255,122,24,.16)}"
                ".pw input{padding-right:46px}"
@@ -765,16 +801,34 @@ namespace {
                "padding:0;cursor:pointer}"
                ".eye svg{width:19px;height:19px;fill:none;stroke:currentColor;"
                "stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}"
-               "button.go,.g{width:100%;height:50px;border:0;border-radius:14px;"
+               "button.go,.g,a.go{width:100%;height:50px;border:0;border-radius:14px;"
                "font-size:15px;font-family:inherit;display:flex;align-items:center;"
-               "justify-content:center;gap:11px}"
-               "button.go{margin-top:20px;font-weight:700;color:#fff;"
+               "justify-content:center;gap:11px;text-decoration:none}"
+               "button.go,a.go{margin-top:20px;font-weight:700;color:#fff;"
                "background:linear-gradient(96deg,var(--brand),var(--ember))}"
                ".g{background:#fff;color:#1f1f1f;font-weight:600}"
-               ".g svg{width:19px;height:19px}"
+               // Both buttons carry the Google mark, so both have to cap it.
+               // Sized only on .g, the same glyph filled the orange button
+               // edge to edge on the pairing page - an SVG with a viewBox and
+               // no width takes whatever the box will give it.
+               ".g svg,a.go svg{width:19px;height:19px;flex:none}"
                ".sep{display:flex;align-items:center;gap:12px;margin:18px 0;"
                "color:var(--faint);font-size:12px}"
                ".sep:before,.sep:after{content:'';flex:1;height:1px;background:var(--soft)}"
+               ".lead{margin:0 0 4px;font-size:15px;line-height:1.45}"
+               ".codelabel{margin:16px 0 0;text-align:center;font-size:12px;"
+               "color:var(--muted)}"
+               ".code{margin:8px 0 0;padding:14px;border:1px solid var(--line);"
+               "border-radius:12px;background:var(--raised);text-align:center;"
+               "font-size:23px;font-weight:700;letter-spacing:.16em;"
+               "font-variant-numeric:tabular-nums}"
+               ".wait{display:flex;align-items:center;justify-content:center;gap:10px;"
+               "margin-top:20px;color:var(--muted);font-size:13.5px}"
+               ".sp{width:15px;height:15px;border-radius:50%;flex:none;"
+               "border:2px solid rgba(255,255,255,.18);border-top-color:var(--brand);"
+               "animation:t .9s linear infinite}"
+               "@keyframes t{to{transform:rotate(360deg)}}"
+               "@media(prefers-reduced-motion:reduce){.sp{animation:none}}"
                ".foot{margin-top:24px;padding-top:16px;border-top:1px solid var(--soft);"
                "color:var(--faint);font-size:12.5px;line-height:1.5}"
                ".studio{display:flex;align-items:center;gap:10px;margin-top:12px;"
@@ -790,10 +844,26 @@ namespace {
                ".soc svg{width:19px;height:19px;display:block;fill:currentColor}"
                ".soc img{width:19px;height:19px;display:block;border-radius:5px;opacity:.55}"
                ".legal{margin:14px 0 0;text-align:center;font-size:11px;color:#3f4653}"
-               "</style></head><body><div class=card>");
-
-        h += F("<div class=brand><img src=/tiger-icon.svg alt=\"\">"
+               "</style></head><body><div class=card>"
+               "<div class=brand><img src=/tiger-icon.svg alt=\"\">"
                "<b>Tiger<i>Spool</i></b></div>");
+    }
+
+    // The version is read from the macro, never typed. It is also the half of
+    // this line that gets used: the first thing asked for when a problem is
+    // reported, and legible from a phone while the device's own screen is in
+    // another room.
+    void pageClose(String& h) {
+        h += F("<p class=legal>TigerSpool RFID ");
+        h += TIGERSPOOL_FW_VERSION;
+        h += F(" &middot; MIT &middot; &copy; TigerTag</p></div></body></html>");
+    }
+
+    void handleLogin() {
+        if (ttcloud::haveSession()) { reply(wl(W_CONNECTED) + esc(ttcloud::email()), ""); return; }
+
+        String h; h.reserve(7400);
+        pageOpen(h);
 
         h += F("<form method=POST action=/tt-login>"
                "<div class=fg><label for=m>"); h += wl(W_EMAIL); h += F("</label>"
@@ -811,39 +881,17 @@ namespace {
         h += F("<div class=sep>"); h += wl(W_OR); h += F("</div>");
 
         h += F("<form method=POST action=/tt-gstart>"
-               "<button class=g type=submit><svg viewBox=\"0 0 48 48\" aria-hidden=true>"
-               "<path fill=#EA4335 d=\"M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z\"/>"
-               "<path fill=#4285F4 d=\"M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z\"/>"
-               "<path fill=#FBBC05 d=\"M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z\"/>"
-               "<path fill=#34A853 d=\"M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z\"/>"
-               "</svg>"); h += wl(W_GOOGLE); h += F("</button></form>");
+               "<button class=g type=submit>"); h += GOOGLE_G; h += wl(W_GOOGLE);
+        h += F("</button></form>");
 
-        h += F("<p class=foot>"); h += wl(W_NO_ACCOUNT); h += F("</p>"
-               "<a class=studio href=https://tigersystem.io>"
-               "<img src=/tiger-icon.svg alt=\"\">Tiger Studio Manager"
-               "<svg viewBox=\"0 0 24 24\" aria-hidden=true>"
-               "<path d=\"M9 5h10v10\"/><path d=\"M19 5 8 16\"/>"
-               "<path d=\"M15 19H5V9\"/></svg></a>");
-
-        h += F("<div class=soc>"
-               "<a href=https://github.com/TigerTag-Project aria-label=GitHub>"
-               "<svg viewBox=\"0 0 24 24\" aria-hidden=true><path d=\"M12 .5C5.37.5 0 5.87 0 12.5c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58 0-.29-.01-1.24-.02-2.25-3.34.73-4.04-1.42-4.04-1.42-.55-1.38-1.33-1.75-1.33-1.75-1.09-.75.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5.99.11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.34-5.47-5.95 0-1.31.47-2.38 1.24-3.22-.12-.31-.54-1.53.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6.01 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.65.24 2.87.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.62-2.81 5.64-5.49 5.94.43.37.81 1.1.81 2.22 0 1.6-.01 2.9-.01 3.29 0 .32.22.7.83.58C20.56 22.29 24 17.79 24 12.5 24 5.87 18.63.5 12 .5Z\"/></svg></a>"
-               "<a href=https://discord.gg/3Qv5TSqnJH aria-label=Discord>"
-               "<svg viewBox=\"0 0 24 24\" aria-hidden=true><path d=\"M20.317 4.369a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.249a18.27 18.27 0 0 0-5.487 0 12.6 12.6 0 0 0-.617-1.25.077.077 0 0 0-.079-.036A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.058a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.009c.12.099.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.891.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.056c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03ZM8.02 15.331c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.094 2.157 2.418 0 1.334-.956 2.419-2.157 2.419Zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.094 2.157 2.418 0 1.334-.947 2.419-2.157 2.419Z\"/></svg></a>"
-               "<a href=https://tigersystem.io aria-label=TigerSystem>"
-               "<img src=/tiger-icon.svg alt=\"\"></a></div>");
-
-        // The version is read from the macro, never typed here. It is also the
-        // half of this line that gets used: it is the first thing asked for
-        // when someone reports a problem, and this page is legible from a
-        // phone while the device's own screen is in another room.
-        h += F("<p class=legal>TigerSpool RFID ");
-        h += TIGERSPOOL_FW_VERSION;
-        h += F(" &middot; MIT &middot; &copy; TigerTag</p>");
+        h += F("<p class=foot>"); h += wl(W_NO_ACCOUNT); h += F("</p>");
+        h += STUDIO_LINK;
+        h += SOCIAL_ROW;
+        pageClose(h);
 
         h += F("<script>var e=document.getElementById('e'),p=document.getElementById('p');"
                "e.onclick=function(){p.type=p.type=='password'?'text':'password'};"
-               "</script></div></body></html>");
+               "</script>");
         server.send(200, "text/html", h);
     }
 
@@ -930,25 +978,58 @@ namespace {
     }
 
     // --- Google sign-in (link-based pairing flow) ---
-    String g_pairTok, g_pairUrl, g_pairCode;
-    int    g_pairIv = 5;
+    String   g_pairTok, g_pairUrl, g_pairCode;
+    int      g_pairIv = 5;
+    uint32_t g_pairSince = 0;
+    // The pairing code's own lifetime, so the device's screen counts down to
+    // the same moment the server stops accepting it rather than to a number
+    // this file invented.
+    const uint32_t PAIR_WINDOW_S = 300;
 
     // waiting page: shows the link and code, and reloads via /tt-gpoll
+    // Waiting for Google approval.
+    //
+    // The button is the whole instruction. The old page said "open this link
+    // on a phone or PC", which guesses at something it cannot know: this page
+    // is reached from a phone that scanned the QR, and equally from a PC where
+    // someone typed the address off the device's screen. Either way the button
+    // opens where it is pressed, so naming a device only risked being wrong.
+    //
+    // Below it, the code alone - no sentence around it. The device shows the
+    // same pairing as a QR on its own screen for as long as this page waits,
+    // so the two surfaces agree instead of offering two different pairings.
     void pairWaitPage(const String& extra) {
-        String h = F("<!doctype html><html><head><meta charset=utf-8>"
-                     "<meta name=viewport content=\"width=device-width,initial-scale=1\">"
-                     "<meta http-equiv=refresh content=\"");
-        h += g_pairIv; h += F(";url=/tt-gpoll\">"
-                     "<style>body{font-family:system-ui;background:#111;color:#eee;padding:22px;text-align:center}"
-                     "a{color:#4285f4;font-size:1.1rem;word-break:break-all}"
-                     ".c{font-size:1.6rem;letter-spacing:3px;margin:1rem 0}</style></head><body>");
-        h += F("<p>"); h += wl(W_PAIR_OPEN); h += F("</p><p><a href=\""); h += esc(g_pairUrl);
-        h += F("\" target=_blank>"); h += esc(g_pairUrl); h += F("</a></p>");
-        if (g_pairCode.length()) { h += F("<p class=hint>"); h += wl(W_PAIR_CODE);
-            h += F("</p><p class=c>"); h += esc(g_pairCode); h += F("</p>"); }
-        h += F("<p>"); h += wl(W_PAIR_WAIT); h += F("</p>");
-        if (extra.length()) { h += F("<p class=hint>"); h += esc(extra); h += F("</p>"); }
-        h += F("</body></html>");
+        String h; h.reserve(5200);
+        // The refresh goes INSIDE the one head pageOpen writes. Emitted before
+        // it, this page shipped two <!doctype html> and two <head> - which
+        // browsers forgive and nothing else does.
+        String refresh = String(F("<meta http-equiv=refresh content=\"")) +
+                         g_pairIv + F(";url=/tt-gpoll\">");
+        pageOpen(h, refresh.c_str());
+
+        // The QR on the device is the primary path, and it is the one that
+        // works from anywhere: a phone reading this page scans the box in
+        // front of it, and so does someone at a desktop who typed the address
+        // off that same screen. The button below is the shortcut for a browser
+        // that is already signed in to Google - an alternative, not the
+        // instruction.
+        h += F("<p class=lead>"); h += wl(W_PAIR_SCAN); h += F("</p>");
+
+        if (g_pairCode.length()) {
+            h += F("<p class=codelabel>"); h += wl(W_PAIR_CODE);
+            h += F("</p><p class=code>"); h += esc(g_pairCode); h += F("</p>");
+        }
+
+        h += F("<div class=sep>"); h += wl(W_OR); h += F("</div>");
+
+        h += F("<a class=g target=_blank rel=noopener href=\""); h += esc(g_pairUrl);
+        h += F("\">"); h += GOOGLE_G; h += wl(W_GOOGLE); h += F("</a>");
+
+        h += F("<div class=wait><span class=sp></span>"); h += wl(W_PAIR_WAIT);
+        h += F("</div>");
+        if (extra.length()) { h += F("<p class=foot>"); h += esc(extra); h += F("</p>"); }
+
+        pageClose(h);
         server.send(200, "text/html", h);
     }
 
@@ -957,8 +1038,20 @@ namespace {
         if (!ttcloud::pairStart(g_pairCode, g_pairUrl, g_pairTok, g_pairIv, err)) {
             reply(wl(W_FAILED), err); return;
         }
+        g_pairSince = millis();
         if (g_pairIv < 3) g_pairIv = 3;
         pairWaitPage("");
+    }
+
+    // True while a pairing started from the web page is still waiting, so the
+    // device can put the same QR on its own screen. main owns the state; this
+    // only reports.
+    bool webPairing_(String& url, String& code, int& secondsLeft) {
+        if (g_pairTok.isEmpty()) return false;
+        url = g_pairUrl; code = g_pairCode;
+        uint32_t up = (millis() - g_pairSince) / 1000;
+        secondsLeft = (up >= PAIR_WINDOW_S) ? 0 : (int)(PAIR_WINDOW_S - up);
+        return true;
     }
 
     void handleTtGPoll() {
@@ -1085,5 +1178,8 @@ void webcfg::loop() {
 bool webcfg::apActive()   { return apMode; }
 const char* webcfg::apName() { buildNames(); return AP_SSID; }
 int webcfg::apClients()    { return apMode ? WiFi.softAPgetStationNum() : 0; }
+bool webcfg::webPairing(String& url, String& code, int& secondsLeft) {
+    return webPairing_(url, code, secondsLeft);
+}
 String webcfg::url() { buildNames(); return apMode ? String("http://192.168.4.1")
                                                 : String("http://") + HOSTNAME + ".local"; }

@@ -7,6 +7,49 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-09-05
+
+### Changed
+
+- **The sign-in page has been rebuilt.** It is the one screen of this product a
+  stranger reaches by scanning a QR code, on a `192.168.x.x` address their
+  browser decorates with a warning triangle, and it is where they are asked for
+  a password — and it carried no mark of who was asking. It now opens with the
+  TigerTag icon, keeps only what is needed to sign in, and ends with a way out:
+  a Tiger Studio Manager button, GitHub, Discord and tigersystem.io.
+  The password is masked with an eye to reveal it, the Google button carries
+  the real Google mark and reads *Continue with Google*, the accents are back —
+  that page is drawn by the phone's browser, so the panel font's ASCII limit
+  never applied to it — and the firmware version is printed at the foot, read
+  from the version macro rather than typed.
+- **The Google pairing page was rebuilt with it, and the device joins in.** For
+  as long as that page is waiting, the TigerSpool shows the same pairing QR and
+  code on its own screen — so someone who started on their phone can finish on
+  a computer by scanning the box instead of retyping a code, and a box that is
+  waiting stops looking like a box that is idle. The page leads with *scan the
+  QR code on the TigerSpool screen*, then the code, then *or* and a Continue
+  with Google button for a browser already signed in. It no longer guesses
+  where you are reading it: "open this link on a phone or PC" was advice to
+  someone who had already done it, and equally wrong for someone who typed the
+  address off the device's screen at a desk.
+- Nothing on those pages is fetched from the internet. The phone reading it is
+  joined to the device's own access point, where a remote font or logo fails
+  silently — an empty box on the one screen where trust is being decided. The
+  icon is served from flash by the device itself.
+
+### Fixed
+
+- **Choosing a language on a new device no longer freezes the screen.** After
+  the language, the setup QR took several seconds to appear — long enough to
+  read as a crash rather than as work. Two causes, both removed: the access
+  point ran a full Wi-Fi scan on its way up, synchronously, blocking everything
+  behind a list nobody had asked for yet; and the QR was drawn only after the
+  radio had finished. The QR now goes up first — its SSID comes from the MAC
+  and is known before the radio does anything — and the access point comes up
+  behind it, in well under a second. The network list is fetched by the portal
+  when it is opened, which is where it is actually needed.
+
+
 ## [1.6.0] - 2026-09-05
 
 ### Changed
@@ -20,21 +63,6 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   icons follow: three strokes at most, one dominant form owning two thirds of
   the box, nothing thinner than 2 px, and recognisable when filled in solid.
 
-- **The sign-in page has been rebuilt.** It is the one screen of this product a
-  stranger reaches by scanning a QR code, on a `192.168.x.x` address their
-  browser decorates with a warning triangle, and it is where they are asked for
-  a password — and it carried no mark of who was asking. It now opens with the
-  TigerTag icon, keeps only what is needed to sign in, and ends with a way out:
-  a Tiger Studio Manager button, GitHub, Discord and tigersystem.io.
-  The password is masked with an eye to reveal it, the Google button carries
-  the real Google mark and reads *Continue with Google*, the accents are back —
-  that page is drawn by the phone's browser, so the panel font's ASCII limit
-  never applied to it — and the firmware version is printed at the foot, read
-  from the version macro rather than typed.
-- Nothing on that page is fetched from the internet. The phone reading it is
-  joined to the device's own access point, where a remote font or logo fails
-  silently — an empty box on the one screen where trust is being decided. The
-  icon is served from flash by the device itself.
 - **The home screen shows Wi-Fi strength**, next to the gear, the way the
   TigerScale does. LVGL has one Wi-Fi glyph rather than a set of bar counts, so
   the strength is carried by colour — green above −60 dBm, yellow to −75,
@@ -68,6 +96,22 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   eight pointed rays. `scripts/make-icon-font.sh` fetches Font Awesome 6.5.2 at
   a pinned tag and extracts the one codepoint — 4 KB of source, no change to
   the flash figure. The font file is cached locally and never committed.
+
+
+### Fixed
+
+- **The captive portal did not open on recent Android phones.** Scan the Wi-Fi
+  QR code on a Galaxy S24, join the setup network, and the sign-in sheet never
+  appeared — the portal was reachable the whole time, the phone had simply
+  stopped looking. A background Wi-Fi scan was launched from the last line of
+  the access point's startup, and a scan needs the station interface, which
+  makes the radio hop channels. Android probes for a captive portal within
+  about a second of associating, so that probe landed while the access point
+  was away. It times out, the network is filed under "connected, no internet",
+  and Android does not ask again. The scan now starts when the portal page has
+  been served — which is itself proof the probe already succeeded — and the
+  network list is still ready before anyone reaches the picker. iOS was
+  unaffected because it retries its probe; Android's is effectively one-shot.
 
 
 ## [1.5.0] - 2026-09-05
@@ -115,27 +159,6 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
-- **Choosing a language on a new device no longer freezes the screen.** After
-  the language, the setup QR took several seconds to appear — long enough to
-  read as a crash rather than as work. Two causes, both removed: the access
-  point ran a full Wi-Fi scan on its way up, synchronously, blocking everything
-  behind a list nobody had asked for yet; and the QR was drawn only after the
-  radio had finished. The QR now goes up first — its SSID comes from the MAC
-  and is known before the radio does anything — and the access point comes up
-  behind it, in well under a second. The network list is fetched by the portal
-  when it is opened, which is where it is actually needed.
-- **The captive portal did not open on recent Android phones.** Scan the Wi-Fi
-  QR code on a Galaxy S24, join the setup network, and the sign-in sheet never
-  appeared — the portal was reachable the whole time, the phone had simply
-  stopped looking. A background Wi-Fi scan was launched from the last line of
-  the access point's startup, and a scan needs the station interface, which
-  makes the radio hop channels. Android probes for a captive portal within
-  about a second of associating, so that probe landed while the access point
-  was away. It times out, the network is filed under "connected, no internet",
-  and Android does not ask again. The scan now starts when the portal page has
-  been served — which is itself proof the probe already succeeded — and the
-  network list is still ready before anyone reaches the picker. iOS was
-  unaffected because it retries its probe; Android's is effectively one-shot.
 
 - The Settings menu showed an empty Wi-Fi network. `WiFi.SSID()` returns a
   String by value, and the temporary was dying before the menu read it. It

@@ -24,4 +24,10 @@ namespace webcfg {
     String url();              // the address to show the user
     const char* apName();
     int  apClients();          // devices currently joined to the setup AP
+
+    // True while a Google pairing started from the web page is still waiting.
+    // The device puts the same QR on its own screen for the duration, so
+    // whoever walked away from the phone can still finish on a PC - and so the
+    // box does not sit there looking idle while it is in fact waiting.
+    bool webPairing(String& url, String& code, int& secondsLeft);
 }

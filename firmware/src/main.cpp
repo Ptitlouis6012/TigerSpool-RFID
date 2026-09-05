@@ -66,7 +66,8 @@ SnapmakerBackend     snapmakerBackend;
 bool webStarted = false;
 
 enum State { ST_LANG, ST_WIFI, ST_AP, ST_ACCOUNT, ST_SETTINGS, ST_PICK, ST_SET_WIFI, ST_SET_ACCOUNT, ST_SET_SCREEN,
-             ST_SET_UPDATE, ST_SET_RESTART, ST_SET_FACTORY, ST_PRINTER, ST_GRID, ST_SCAN, ST_REVIEW, ST_RESULT };
+             ST_SET_UPDATE, ST_SET_RESTART, ST_SET_FACTORY, ST_PRINTER, ST_GRID, ST_SCAN, ST_REVIEW, ST_RESULT,
+             ST_WEB_PAIR };
 State   state = ST_LANG;
 // Whether the language screen was opened from Settings rather than reached on
 // first boot. It decides two things: that the screen offers a way back, and
@@ -590,6 +591,36 @@ void loop() {
 
     if (backend) backend->loop();
     if (webStarted || webcfg::apActive()) webcfg::loop();
+
+    // A Google pairing started from the phone puts the same QR on this screen
+    // for as long as it is waiting. Two reasons, and the second is the one that
+    // made it worth doing: someone who started on their phone can finish on a
+    // PC by scanning the box instead of retyping a code, and a box that is
+    // waiting stops looking like a box that is idle.
+    //
+    // Read here rather than pushed from webcfg: the web server runs in the
+    // same loop but state belongs to this file, and a screen driven from two
+    // places disagrees with itself after the next redraw.
+    {
+        static State beforePair = ST_PRINTER;
+        String purl, pcode; int pleft = 0;
+        bool pairing = webcfg::webPairing(purl, pcode, pleft);
+        if (pairing && state != ST_WEB_PAIR) {
+            beforePair = state;
+            screen_home::leave();
+            state = ST_WEB_PAIR; stateSince = millis();
+        } else if (!pairing && state == ST_WEB_PAIR) {
+            screen_setup::hide();
+            screen_home::leave();
+            state = beforePair; stateSince = millis();
+        }
+        if (state == ST_WEB_PAIR) {
+            screen_setup::showPairing(purl.c_str(), pcode.c_str(), pleft);
+            lvgl_port::loop();
+            if (webStarted || webcfg::apActive()) webcfg::loop();
+            return;
+        }
+    }
 
     // One check, once, a little after boot. It is what lets the Settings menu
     // colour the Update row before anyone opens the update page - the only
