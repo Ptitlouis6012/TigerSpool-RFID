@@ -505,6 +505,29 @@ void showUpdate(const char* version, const char* channel,
         frame::caption(i18n::T(S_UPDATE_KEEPS), theme::TEXT_DIM);
 }
 
+void showUpdateNotice(const char* current, const char* latest) {
+    uint32_t sig = 0xF0000000u ^ hashOf(current) ^ hashOf(latest);
+    if (sig == s_viewSig) return;
+    s_viewSig = sig;
+
+    // No back chevron: the two buttons are the whole answer, and one of them
+    // is "later". A dismissal that has to be discovered is not a dismissal.
+    lv_obj_t* body = frame::build(i18n::T(S_UPDATE), nullptr);
+    lv_obj_set_flex_align(body, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+
+    // Every pixel is spoken for: badge, version, the one reassurance, two
+    // buttons. The gap that used to sit above them pushed "Later" onto the
+    // bottom edge, and a dismissal you have to aim for is not a dismissal.
+    badge(body, LV_SYMBOL_DOWNLOAD, theme::WARN);
+    frame::caption(i18n::T(S_AVAILABLE), theme::TEXT_DIM);
+    frame::bigLabel(latest, theme::WARN);
+    frame::caption(i18n::T(S_UPDATE_KEEPS), theme::TEXT_DIM);
+
+    frame::button(body, i18n::T(S_INSTALL), 1, []() { s_action = A_INSTALL_NOW; });
+    frame::button(body, i18n::T(S_LATER),   0, []() { s_action = A_LATER; });
+}
+
 void showRestart() {
     if (s_viewSig == 0xD0000000u) return;
     s_viewSig = 0xD0000000u;

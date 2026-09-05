@@ -279,6 +279,7 @@ namespace {
         else if (preview == "setacct")  screen_settings::showAccount("benoit@atome3d.com", 6, true);
         else if (preview == "setscreen") screen_settings::showScreen(80, 60, 2);
         else if (preview == "setupdate") screen_settings::showUpdate(TIGERSPOOL_FW_VERSION, "stable", 0, "", 0);
+        else if (preview == "notice") screen_settings::showUpdateNotice(TIGERSPOOL_FW_VERSION, "1.12.0");
         else if (preview == "setrestart") screen_settings::showRestart();
         else if (preview == "setfactory") screen_settings::showFactory(-1);
         else if (preview == "pick")      screen_settings::showPrinters(nullptr, 0);
@@ -938,9 +939,13 @@ namespace {
 
         h += F("<div class=sep>"); h += wl(W_OR); h += F("</div>");
 
-        h += F("<form method=POST action=/tt-gstart>"
-               "<button class=g type=submit>"); h += GOOGLE_G; h += wl(W_GOOGLE);
-        h += F("</button></form>");
+        // A link, not a form. The Google path submits nothing - it only asks
+        // the device to start a pairing - and Safari warns on ANY form posted
+        // over plain HTTP, including one carrying no data. That warning on
+        // this button was frightening people away from the one route that
+        // never asks them to type a password over the clear.
+        h += F("<a class=g href=/tt-gstart>"); h += GOOGLE_G; h += wl(W_GOOGLE);
+        h += F("</a>");
 
         h += F("<p class=foot>"); h += wl(W_NO_ACCOUNT); h += F("</p>");
         h += STUDIO_LINK;
@@ -1152,7 +1157,7 @@ namespace {
         server.on("/reset", handleReset);
         server.on("/retry", handleRetry);
         server.on("/tt-login", HTTP_POST, handleTtLogin);
-        server.on("/tt-gstart", HTTP_POST, handleTtGStart);
+        server.on("/tt-gstart", handleTtGStart);   // GET: submits nothing, see handleLogin
         server.on("/tt-gpoll", handleTtGPoll);
         server.on("/tt-sync", HTTP_POST, handleTtSync);
         server.on("/tt-forget", handleTtForget);

@@ -53,7 +53,8 @@ int  takeToggled();          // index whose switch was flipped, or -1
 //
 // Each one answers a question and offers at most one action. A settings screen
 // that lists five things you could do is a screen nobody reads.
-enum Action { A_NONE = 0, A_CHANGE_WIFI, A_SIGN_OUT, A_RESTART, A_FACTORY, A_CHECK_UPDATE };
+enum Action { A_NONE = 0, A_CHANGE_WIFI, A_SIGN_OUT, A_RESTART, A_FACTORY, A_CHECK_UPDATE,
+              A_INSTALL_NOW, A_LATER };
 Action takeAction();
 
 void showWifi(const char* ssid, const char* ip, const char* mac, bool connected);
@@ -68,6 +69,12 @@ int  takeRotation();         // 0 or 2, or -1
 // exists, switching it redraws.
 void showUpdate(const char* version, const char* channel,
                 int otaState, const char* latest, int percent);
+// Shown once, after the check that runs on boot finds a newer version. It is
+// the only interruption this device makes: an update it never mentions is an
+// update nobody installs, and the Settings row alone is only seen by someone
+// who already went looking.
+void showUpdateNotice(const char* current, const char* latest);
+
 void showRestart();
 void showFactory(int holdPercent);   // -1 = not holding
 bool factoryHolding();               // true while the finger is down

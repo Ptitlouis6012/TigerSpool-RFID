@@ -225,3 +225,15 @@ font fallback chain that would restore accents.
 - Proven from the boot log rather than inferred: `scan cached: 18 network(s)`
   appears before any client can associate.
 
+## 2026-09-05 - the update notice, and a warning that was ours to remove
+
+- `ST_UPDATE_NOTICE` + `screen_settings::showUpdateNotice()`. Entered once per
+  boot, only from ST_PRINTER, only when the boot check found AVAILABLE.
+  A_INSTALL_NOW calls `ota::applyAsync()` directly - they already pressed
+  Install once.
+- Google button: `<form method=POST>` -> `<a href>`, route no longer POST-only.
+  Safari warns on any form over HTTP; that one submitted nothing.
+- The warning on the e-mail form is truthful and left alone. Removing it would
+  mean HTTPS, and a self-signed certificate on a device would trade a true
+  warning for a scarier one.
+

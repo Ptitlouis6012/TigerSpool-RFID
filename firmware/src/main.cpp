@@ -67,7 +67,7 @@ bool webStarted = false;
 
 enum State { ST_LANG, ST_WIFI, ST_AP, ST_ACCOUNT, ST_SETTINGS, ST_PICK, ST_SET_WIFI, ST_SET_ACCOUNT, ST_SET_SCREEN,
              ST_SET_UPDATE, ST_SET_RESTART, ST_SET_FACTORY, ST_PRINTER, ST_GRID, ST_SCAN, ST_REVIEW, ST_RESULT,
-             ST_WEB_PAIR };
+             ST_WEB_PAIR, ST_UPDATE_NOTICE };
 State   state = ST_LANG;
 // Whether the language screen was opened from Settings rather than reached on
 // first boot. It decides two things: that the screen offers a way back, and
@@ -632,6 +632,19 @@ void loop() {
         bootChecked = ota::checkAsync();
     }
 
+    // Say it once, on the home screen, and never again this boot. An update
+    // the device never mentions is an update nobody installs - the orange row
+    // in Settings is only seen by someone who already went looking. Held to
+    // the home screen so it cannot land on top of a spool being assigned.
+    static bool noticeShown = false;
+    if (!noticeShown && bootChecked && state == ST_PRINTER
+        && ota::state() == ota::AVAILABLE) {
+        noticeShown = true;
+        screen_home::leave();
+        screen_settings::invalidate();
+        state = ST_UPDATE_NOTICE; stateSince = millis();
+    }
+
     if (!nfcReady && millis() - nfcLastTry > 2000) {
         nfcLastTry = millis();
         nfcReady = reader::begin();
@@ -1023,6 +1036,24 @@ void loop() {
         // download task keeps writing the spare slot, and the next screen would
         // give no sign that anything was happening.
         if (ota::state() != ota::DOWNLOADING) BACK_TO_SETTINGS();
+        break;
+    }
+
+    case ST_UPDATE_NOTICE: {
+        screen_settings::showUpdateNotice(TIGERSPOOL_FW_VERSION, ota::latestVersion());
+        lvgl_port::loop();
+        screen_settings::Action a = screen_settings::takeAction();
+        if (a == screen_settings::A_INSTALL_NOW) {
+            // Start it here rather than dropping the user on the update page
+            // to press Install a second time. They just pressed Install.
+            ota::applyAsync();
+            screen_settings::invalidate();
+            state = ST_SET_UPDATE; stateSince = millis();
+        } else if (a == screen_settings::A_LATER) {
+            screen_settings::invalidate();
+            screen_home::leave();
+            state = ST_PRINTER; stateSince = millis();
+        }
         break;
     }
 

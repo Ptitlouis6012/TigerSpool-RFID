@@ -7,6 +7,29 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-09-05
+
+### Added
+
+- **The device tells you when there is an update, instead of waiting to be
+  asked.** It already checked once, twenty seconds after boot, and coloured the
+  Update row orange — but that row is only seen by someone who went looking. A
+  waiting update now says so on the home screen: the version, the line
+  confirming Wi-Fi, account and printers are kept, and two buttons. *Install*
+  starts it there and then; *Later* goes back and does not ask again this boot.
+  It is held to the home screen, so it can never land on top of a spool being
+  assigned.
+
+### Fixed
+
+- **Safari's "this form is not secure" warning on the Google button.** The
+  button was a form, and Safari warns on any form posted over plain HTTP — even
+  one carrying no data, which this one was. It is a link now. The same warning
+  on the e-mail form is *correct* and stays: that password really does cross an
+  unencrypted connection, which is the strongest argument for the Google route,
+  where no password is typed at all.
+
+
 ## [1.11.0] - 2026-09-05
 
 ### Fixed
