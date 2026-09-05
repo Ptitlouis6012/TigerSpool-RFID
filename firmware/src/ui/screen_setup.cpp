@@ -267,7 +267,7 @@ void showLanguage(bool force, bool withBack) {
 
 int takeLanguage() { int v = s_lang; s_lang = -1; return v; }
 
-void showWifi(const char* apSsid) {
+void showWifi(const char* apSsid, const char* apPass) {
     frame(nullptr);            // no header: the QR explains itself
 
     // Two instructions, one per route, each sitting with the thing it describes:
@@ -287,8 +287,11 @@ void showWifi(const char* apSsid) {
 
     // The standard Wi-Fi join format, which both phone cameras recognise
     // natively - no app, and no SSID read off a small screen and typed.
-    char payload[96];
-    snprintf(payload, sizeof(payload), "WIFI:S:%s;T:nopass;;", apSsid);
+    // T:WPA and the key, so a camera joins an encrypted network without
+    // anyone reading a password off a 2" panel. The manual route below still
+    // needs it printed, which is why it is on the screen as well.
+    char payload[128];
+    snprintf(payload, sizeof(payload), "WIFI:T:WPA;S:%s;P:%s;;", apSsid, apPass);
     qr(payload);
 
     // The fallback route, for a camera that will not scan.
@@ -303,6 +306,16 @@ void showWifi(const char* apSsid) {
     lv_label_set_text(ssid, apSsid);
     lv_obj_set_style_text_font(ssid, &lv_font_montserrat_16, 0);
     lv_obj_set_style_text_color(ssid, lv_color_hex(theme::ACCENT), 0);
+
+    // The key, for the manual route. The QR carries it too, so this is only
+    // read by someone whose camera would not scan - but that someone has no
+    // other way in, and an access point they cannot join is worse than an open
+    // one.
+    lv_obj_t* pass = lv_label_create(s_body);
+    lv_obj_set_style_pad_top(pass, 2, 0);
+    lv_label_set_text(pass, apPass);
+    lv_obj_set_style_text_font(pass, &lv_font_montserrat_16, 0);
+    lv_obj_set_style_text_color(pass, lv_color_hex(theme::ACCENT), 0);
 
     // No "waiting for a phone", and no count of connected devices. Neither
     // tells the user anything they can act on: the screen already says what to

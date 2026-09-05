@@ -61,18 +61,37 @@ The screen shows a **standard Wi-Fi join QR**, which iOS and Android cameras
 recognise natively:
 
 ```
-WIFI:S:TigerSpool-Setup-XXXX;T:nopass;;
+WIFI:T:WPA;S:TigerSpool-Setup-XXXX;P:tigerXXXXXX;;
 ```
 
 The phone offers "Join network TigerSpool-Setup-XXXX" as a tap. No app, no typing an
 SSID, no hunting through a Wi-Fi settings list for a name the user has to read
 off a small screen first.
 
-The access point is **open**. That is a deliberate trade: a password on the setup
-AP would have to be shown on screen and typed on the phone, which is exactly the
-friction being removed, and the AP exists for two minutes on a network with
-nothing on it but a form. What *is* required is that the AP stop existing once
-provisioning succeeds.
+**The access point is WPA2, and the key travels in the QR.**
+
+It was open until 1.8.0, on the reasoning that a password would have to be read
+off a 2" screen and typed on a phone — which is the friction the QR exists to
+remove. That reasoning had a hole: the QR format carries a key, so nothing is
+typed either way. The trade was never real.
+
+Two things then made it a cost. A Galaxy S24 in the field never showed the
+sign-in sheet, and open networks are why: Android treats one with no internet as
+a mistake to correct rather than a destination, and Samsung's adaptive Wi-Fi
+drops back to mobile data instead of probing for a portal. An encrypted network
+is handled as somewhere the user chose to be.
+
+And this portal accepts the user's home Wi-Fi password and their TigerTag
+password, over plain HTTP. On an open access point both crossed the air in clear
+to anyone in range.
+
+The key is derived from the MAC — `tiger` plus the last three bytes — so the QR,
+the screen and the radio always agree, and a factory reset comes back with the
+same key rather than stranding someone who wrote it down. It is printed on the
+screen under the SSID for a camera that will not scan: an access point nobody
+can join would be worse than an open one.
+
+What is still required is that the AP stop existing once provisioning succeeds.
 
 ### On the phone
 

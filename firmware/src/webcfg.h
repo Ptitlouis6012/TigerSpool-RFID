@@ -23,6 +23,7 @@ namespace webcfg {
     bool apActive();
     String url();              // the address to show the user
     const char* apName();
+    const char* apPass();      // WPA2 key for the setup AP - see buildNames
     int  apClients();          // devices currently joined to the setup AP
 
     // True while a Google pairing started from the web page is still waiting.

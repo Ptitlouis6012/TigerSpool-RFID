@@ -180,8 +180,10 @@ namespace {
     // ------------------------------------------------------------------
     char HOSTNAME_BUF[24];
     char AP_SSID_BUF[28];
+    char AP_PASS_BUF[20];
     const char* HOSTNAME = HOSTNAME_BUF;
     const char* AP_SSID  = AP_SSID_BUF;
+    const char* AP_PASS  = AP_PASS_BUF;
 
     void buildNames() {
         if (HOSTNAME_BUF[0]) return;                 // built once
@@ -189,6 +191,26 @@ namespace {
         WiFi.macAddress(mac);                        // station interface
         snprintf(HOSTNAME_BUF, sizeof(HOSTNAME_BUF), "tigerspool-%02x%02x", mac[4], mac[5]);
         snprintf(AP_SSID_BUF,  sizeof(AP_SSID_BUF),  "TigerSpool-Setup-%02X%02X", mac[4], mac[5]);
+        // The setup access point is WPA2, not open, and this is its key.
+        //
+        // Not for secrecy: the key is printed on the device's own screen and
+        // carried in the QR, so nobody types it. It is here because Android
+        // treats an open network that has no internet as a mistake to be
+        // corrected - Samsung's adaptive Wi-Fi in particular drops back to
+        // mobile data and stops probing for a portal - and an encrypted
+        // network is handled as a deliberate choice instead. Reported from the
+        // field on a Galaxy S24 that never showed the sign-in sheet.
+        //
+        // It earns its place a second way: during setup this portal accepts
+        // the user's home Wi-Fi password and their TigerTag password, over
+        // plain HTTP. On an open access point those cross the air in clear to
+        // anyone within range.
+        //
+        // Derived from the MAC, so the QR, the screen and the radio always
+        // agree, and a device reset comes back with the same key rather than
+        // stranding whoever wrote it down.
+        snprintf(AP_PASS_BUF, sizeof(AP_PASS_BUF), "tiger%02x%02x%02x",
+                 mac[3], mac[4], mac[5]);
     }
     const IPAddress AP_IP(192, 168, 4, 1);
     const char* PTYPES[] = { "None", "Creality K2", "FlashForge Creator 5 Pro",
@@ -238,7 +260,7 @@ namespace {
         // state a developer cannot get a networked screenshot out of.
         String preview = server.hasArg("preview") ? server.arg("preview") : String();
         if      (preview == "lang") screen_setup::showLanguage(true);
-        else if (preview == "wifi") { buildNames(); screen_setup::showWifi(AP_SSID); }
+        else if (preview == "wifi") { buildNames(); screen_setup::showWifi(AP_SSID, AP_PASS); }
         else if (preview == "pair") screen_setup::showPairing(
                      "https://tigersystem.io/pair?c=K7QF3M2P", "K7QF-3M2P", 587);
         else if (preview == "pairfail") screen_setup::showPairFailed("Code expired");
@@ -1139,7 +1161,7 @@ void webcfg::beginAP() {
     WiFi.setSleep(false);                 // AP without modem-sleep = stable connections
     buildNames();
     WiFi.softAPConfig(AP_IP, AP_IP, IPAddress(255, 255, 255, 0));
-    WiFi.softAP(AP_SSID, nullptr, 1, 0, 4);   // canal 1 fixo, max 4 clientes
+    WiFi.softAP(AP_SSID, AP_PASS, 1, 0, 4);   // WPA2, channel 1, max 4 clients
     delay(300);
 
     // No scan here. It used to run synchronously at this point, and it is the
@@ -1177,6 +1199,7 @@ void webcfg::loop() {
 
 bool webcfg::apActive()   { return apMode; }
 const char* webcfg::apName() { buildNames(); return AP_SSID; }
+const char* webcfg::apPass() { buildNames(); return AP_PASS; }
 int webcfg::apClients()    { return apMode ? WiFi.softAPgetStationNum() : 0; }
 bool webcfg::webPairing(String& url, String& code, int& secondsLeft) {
     return webPairing_(url, code, secondsLeft);

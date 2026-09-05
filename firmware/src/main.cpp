@@ -459,7 +459,7 @@ static void startConfigAP() {
     // while the access point comes up. Drawn the other way round, choosing a
     // language on a new device was followed by seconds of nothing, which reads
     // as a device that has crashed rather than one that is working.
-    screen_setup::showWifi(webcfg::apName());
+    screen_setup::showWifi(webcfg::apName(), webcfg::apPass());
     lvgl_port::loop();
     apScreenDrawn = true;
 
@@ -687,7 +687,7 @@ void loop() {
         }
         // Drawn once. The screen has nothing that changes: encoding the QR is
         // the most expensive thing on it, and the payload never varies.
-        if (!apScreenDrawn) { screen_setup::showWifi(webcfg::apName()); apScreenDrawn = true; }
+        if (!apScreenDrawn) { screen_setup::showWifi(webcfg::apName(), webcfg::apPass()); apScreenDrawn = true; }
         lvgl_port::loop();
         return;
     }

@@ -31,7 +31,7 @@ int  takeLanguage();          // index into the locale table, or -1
 // enabling it means building Arduino as an ESP-IDF component, and iOS does not
 // support DPP for third-party devices anyway. The captive portal is the only
 // path that works for every phone.
-void showWifi(const char* apSsid);
+void showWifi(const char* apSsid, const char* apPass);
 void showWifiConnecting(const char* ssid, int secondsLeft);
 void showWifiFailed(const char* ssid);
 

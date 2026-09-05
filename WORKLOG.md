@@ -179,3 +179,13 @@ font fallback chain that would restore accents.
   `<!doctype html>` and two `<head>`, and the Google SVG was sized only on the
   white button, so on the orange one it filled the screen.
 
+## 2026-09-05 - the setup AP is encrypted
+
+- `AP_PASS` from the MAC, `WiFi.softAP(AP_SSID, AP_PASS, ...)`, QR payload
+  `WIFI:T:WPA;S:...;P:...;;`, key shown under the SSID, `webcfg::apPass()`.
+- `docs/WIFI-PROVISIONING.md` argued FOR the open AP. Rewritten rather than
+  left to contradict the code - the argument it made was wrong on its own
+  terms, because the QR format has always been able to carry a key.
+- The captive-portal timing fix in 1.6.0 stands on its own, but this is the
+  cause the reporter identified. Still needs the S24 to confirm.
+

@@ -7,6 +7,34 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-09-05
+
+### Fixed
+
+- **The setup access point is WPA2 instead of open, which is what stopped
+  Android from opening the sign-in page.** A Galaxy S24 joined the setup
+  network and never showed the captive-portal sheet. Open networks are why:
+  Android treats one with no internet as a mistake to correct rather than a
+  destination, and Samsung's adaptive Wi-Fi falls back to mobile data instead
+  of probing for a portal. An encrypted network is handled as somewhere the
+  user chose to be. iPhones were unaffected, which is what made this look like
+  a timing problem for so long.
+
+  **Nothing is typed.** The Wi-Fi QR format carries a key, so the phone joins
+  in one tap exactly as before. The old reasoning for leaving it open — that a
+  password would have to be read off a 2" screen — had a hole in it: the trade
+  it described was never real.
+
+  It also closes something that should not have been open. This portal accepts
+  the user's home Wi-Fi password and their TigerTag password over plain HTTP,
+  and on an open access point both crossed the air in clear to anyone in range.
+
+  The key is derived from the MAC — `tiger` plus the last three bytes — so the
+  QR, the screen and the radio always agree, and a factory reset comes back
+  with the same key rather than stranding whoever wrote it down. It is printed
+  under the network name for a camera that will not scan.
+
+
 ## [1.7.0] - 2026-09-05
 
 ### Changed
