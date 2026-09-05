@@ -100,6 +100,15 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Choosing a language on a new device no longer freezes the screen.** After
+  the language, the setup QR took several seconds to appear — long enough to
+  read as a crash rather than as work. Two causes, both removed: the access
+  point ran a full Wi-Fi scan on its way up, synchronously, blocking everything
+  behind a list nobody had asked for yet; and the QR was drawn only after the
+  radio had finished. The QR now goes up first — its SSID comes from the MAC
+  and is known before the radio does anything — and the access point comes up
+  behind it, in well under a second. The network list is fetched by the portal
+  when it is opened, which is where it is actually needed.
 - **The captive portal did not open on recent Android phones.** Scan the Wi-Fi
   QR code on a Galaxy S24, join the setup network, and the sign-in sheet never
   appeared — the portal was reachable the whole time, the phone had simply

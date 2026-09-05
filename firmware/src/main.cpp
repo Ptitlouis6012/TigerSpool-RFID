@@ -446,7 +446,22 @@ static void onWifiUp() {
 static State afterWifi() {
     return ttcloud::haveSession() ? ST_PRINTER : ST_ACCOUNT;
 }
+// Set by startConfigAP once the QR is on the panel, so ST_AP does not encode
+// it a second time. Encoding the QR is the most expensive thing on that screen.
+static bool apScreenDrawn = false;
+
 static void startConfigAP() {
+    // The QR goes up FIRST, and the radio work happens behind it.
+    //
+    // The SSID is derived from the MAC, so it is known before the radio has
+    // done anything - there is no reason to make someone watch a dead screen
+    // while the access point comes up. Drawn the other way round, choosing a
+    // language on a new device was followed by seconds of nothing, which reads
+    // as a device that has crashed rather than one that is working.
+    screen_setup::showWifi(webcfg::apName());
+    lvgl_port::loop();
+    apScreenDrawn = true;
+
     webcfg::beginAP();
     state = ST_AP;
     stateSince = millis();
@@ -641,8 +656,7 @@ void loop() {
         }
         // Drawn once. The screen has nothing that changes: encoding the QR is
         // the most expensive thing on it, and the payload never varies.
-        static bool drawn = false;
-        if (!drawn) { screen_setup::showWifi(webcfg::apName()); drawn = true; }
+        if (!apScreenDrawn) { screen_setup::showWifi(webcfg::apName()); apScreenDrawn = true; }
         lvgl_port::loop();
         return;
     }

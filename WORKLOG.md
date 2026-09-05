@@ -146,4 +146,10 @@ font fallback chain that would restore accents.
 - **Not reproduced here** - no S24 on the bench, and the mechanism is a timing
   window that needs a real Android probe. Diagnosed from the code path and the
   iPhone/Android asymmetry. Needs the reporter to confirm.
+- First boot: `startConfigAP()` draws the QR before calling `beginAP()`, and
+  `beginAP()` no longer calls `doScan()`. Those two together were the several
+  seconds of frozen language screen. `doScan()` stays for `/?rescan=1`.
+- `beginAP()` now raises WIFI_AP rather than WIFI_AP_STA. The station interface
+  was only there for the scan that no longer runs, and the file already said
+  AP-only is the stable one.
 

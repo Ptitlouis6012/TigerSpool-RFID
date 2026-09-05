@@ -926,23 +926,31 @@ void webcfg::beginAP() {
     WiFi.disconnect(true, true);          // stop, and erase the station credentials
     delay(100);
 
-    WiFi.mode(WIFI_AP_STA);               // AP+STA only for the initial scan
+    // AP only. This was AP+STA for the scan that used to run below; with the
+    // scan gone there is no reason to keep a station interface up, and the
+    // file's own note applies - AP-only is the stable one. startBackgroundScan
+    // raises AP+STA when it needs it and handleApiScan puts it back.
+    WiFi.mode(WIFI_AP);
     WiFi.setSleep(false);                 // AP without modem-sleep = stable connections
     buildNames();
     WiFi.softAPConfig(AP_IP, AP_IP, IPAddress(255, 255, 255, 0));
     WiFi.softAP(AP_SSID, nullptr, 1, 0, 4);   // canal 1 fixo, max 4 clientes
     delay(300);
 
-    doScan();                            // scans, then returns to plain AP
-
+    // No scan here. It used to run synchronously at this point, and it is the
+    // reason picking a language on a new device was followed by four seconds of
+    // a frozen screen before the QR code appeared: a scan takes seconds, and
+    // the whole of setup was queued behind it for a list nobody had asked for
+    // yet. The portal fetches the list itself when it is opened, and starts a
+    // background scan when its page is served. doScan() is still what
+    // /?rescan=1 calls.
     dns.setErrorReplyCode(DNSReplyCode::NoError);
     dns.start(53, "*", AP_IP);
     routes(true);
     server.begin();
     Serial.printf("[webcfg] AP '%s' (channel 1)  http://192.168.4.1/\n", AP_SSID);
-    // Deliberately NOT scanning here. doScan() above already ran, synchronously
-    // and before the server opened, and the radio is back on AP-only. The next
-    // scan waits until the portal page has been served.
+    // Deliberately NOT scanning here: the radio is on AP-only and staying that
+    // way until the portal page has been served. See startBackgroundScan.
 }
 
 void webcfg::loop() {
