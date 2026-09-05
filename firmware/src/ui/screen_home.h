@@ -12,8 +12,12 @@
 namespace screen_home {
 
 // Builds the screen on first call, refreshes it afterwards. Cheap to re-call.
+// `wifiRssi` is dBm, or 0 when there is no connection. It is bucketed into
+// four levels before it reaches the screen's redraw signature: raw dBm moves by
+// a few points every second on a still desk, and a screen that rebuilds itself
+// on that loses the scroll position while someone is reading it.
 void show(const PrinterCfg* printers, int count,
-          int selected, const bool* online, bool syncing);
+          int selected, const bool* online, bool syncing, int wifiRssi);
 
 // True while this screen owns the display, so the legacy raw-drawn screens know
 // to leave the canvas alone.

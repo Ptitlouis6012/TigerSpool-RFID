@@ -132,3 +132,6 @@ font fallback chain that would restore accents.
   Coordinates come from the image's bounding rect, so it works on a phone where
   the image is scaled down.
 
+- Wi-Fi strength on the home header, left of the gear. Four levels by colour;
+  the level, not the dBm, goes into the redraw signature.
+

@@ -20,6 +20,13 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   icons follow: three strokes at most, one dominant form owning two thirds of
   the box, nothing thinner than 2 px, and recognisable when filled in solid.
 
+- **The home screen shows Wi-Fi strength**, next to the gear, the way the
+  TigerScale does. LVGL has one Wi-Fi glyph rather than a set of bar counts, so
+  the strength is carried by colour — green above −60 dBm, yellow to −75,
+  orange below, red when there is no connection. It is bucketed into those four
+  levels before it reaches the redraw signature: raw dBm drifts by a few points
+  every second on a still desk, and a screen that rebuilds on that loses the
+  scroll position while someone is reading it.
 - **Screen orientation is a setting.** Both mountings of the board exist, so
   which way up the panel is belongs to the user rather than to a build
   constant. Under Display, alongside brightness and sleep; applied immediately

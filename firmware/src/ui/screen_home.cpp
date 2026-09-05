@@ -10,6 +10,17 @@ namespace {
 lv_obj_t* s_screen   = nullptr;
 lv_obj_t* s_list     = nullptr;
 lv_obj_t* s_syncDot  = nullptr;
+lv_obj_t* s_wifi     = nullptr;
+
+// Four levels, and the thresholds are the ones a phone uses: -60 is a good
+// signal anywhere in a workshop, -75 is where a Bambu's MQTT starts dropping,
+// and below -85 the link is nominally up and practically not.
+int wifiLevel(int rssi) {
+    if (rssi == 0)   return 0;      // not connected
+    if (rssi >= -60) return 3;
+    if (rssi >= -75) return 2;
+    return 1;
+}
 bool      s_active   = false;
 int       s_tapped   = -1;
 bool      s_settings = false;
@@ -48,8 +59,16 @@ void buildScreen() {
     lv_obj_set_style_text_color(title, lv_color_hex(theme::TEXT), 0);
     lv_obj_align(title, LV_ALIGN_LEFT_MID, 9, 0);
 
+    // Wi-Fi first, then the sync dot, then the gear. The order is left to
+    // right in importance: nothing else on this screen works without the
+    // first, and the reason a printer shows as unreachable is usually here.
+    s_wifi = lv_label_create(header);
+    lv_label_set_text(s_wifi, LV_SYMBOL_WIFI);
+    lv_obj_set_style_text_font(s_wifi, &lv_font_montserrat_16, 0);
+    lv_obj_align(s_wifi, LV_ALIGN_RIGHT_MID, -theme::ICON_HIT_W - 4, 0);
+
     s_syncDot = makeDot(header, theme::TEXT_DIM);
-    lv_obj_align(s_syncDot, LV_ALIGN_RIGHT_MID, -theme::ICON_HIT_W - 6, 0);
+    lv_obj_align(s_syncDot, LV_ALIGN_RIGHT_MID, -theme::ICON_HIT_W - 32, 0);
 
     // The gear's hit area is 52 x 44 (6.6 x 5.6 mm) even though the glyph is
     // small. Sizing a target to its icon is how a 2 mm button happens.
@@ -89,8 +108,10 @@ namespace screen_home {
 // under the finger that is pressing it - taps never land, the CPU does nothing
 // else, and the screen looks frozen while the device is perfectly healthy.
 static uint32_t signature(const PrinterCfg* printers, int count,
-                          int selected, const bool* online, bool syncing) {
-    uint32_t h = 2166136261u ^ (uint32_t)selected ^ ((uint32_t)syncing << 16);
+                          int selected, const bool* online, bool syncing,
+                          int wifiRssi) {
+    uint32_t h = 2166136261u ^ (uint32_t)selected ^ ((uint32_t)syncing << 16)
+               ^ ((uint32_t)wifiLevel(wifiRssi) << 24);
     for (int i = 0; i < count; i++) {
         h = h * 16777619u ^ (uint32_t)printers[i].type;
         h = h * 16777619u ^ (uint32_t)printers[i].visible;
@@ -102,12 +123,12 @@ static uint32_t signature(const PrinterCfg* printers, int count,
 }
 
 void show(const PrinterCfg* printers, int count,
-          int selected, const bool* online, bool syncing) {
+          int selected, const bool* online, bool syncing, int wifiRssi) {
     if (!s_screen) buildScreen();
 
     static uint32_t lastSig = 0;
     static bool     everBuilt = false;
-    uint32_t sig = signature(printers, count, selected, online, syncing);
+    uint32_t sig = signature(printers, count, selected, online, syncing, wifiRssi);
     if (everBuilt && s_active && sig == lastSig) return;
     lastSig = sig; everBuilt = true;
 
@@ -160,6 +181,14 @@ void show(const PrinterCfg* printers, int count,
 
     lv_obj_set_style_bg_color(s_syncDot,
         lv_color_hex(syncing ? theme::OK : theme::TEXT_DIM), 0);
+
+    // One glyph, four colours. LVGL has a single Wi-Fi symbol rather than a set
+    // of bar counts, so the strength is carried by colour - which is the rule
+    // the settings rows already follow, so it needs no explaining twice.
+    static const uint32_t WIFI_COLOUR[4] = {
+        theme::DANGER, theme::WARN, theme::ACCENT, theme::OK };
+    lv_obj_set_style_text_color(
+        s_wifi, lv_color_hex(WIFI_COLOUR[wifiLevel(wifiRssi)]), 0);
 
     if (!s_active) {
         lv_scr_load(s_screen);

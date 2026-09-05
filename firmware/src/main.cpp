@@ -777,7 +777,8 @@ void loop() {
             bool online[MAX_PRINTERS];
             for (int i = 0; i < MAX_PRINTERS; i++) online[i] = isOnline(i);
             screen_home::show(printers, MAX_PRINTERS, selectedPrinter,
-                              online, ttcloud::asyncBusy());
+                              online, ttcloud::asyncBusy(),
+                              WiFi.isConnected() ? WiFi.RSSI() : 0);
         }
         lvgl_port::loop();
 
