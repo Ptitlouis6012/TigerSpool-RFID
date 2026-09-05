@@ -16,6 +16,7 @@
 #include "net/portal_page.h"
 #include "version.h"
 #include "web_assets.h"
+#include "net/ota.h"
 #include <ArduinoJson.h>
 #include "printer.h"
 #include "tigertag_cloud.h"
@@ -282,7 +283,12 @@ namespace {
                                                                   WiFi.macAddress().c_str(), true, -55);
         else if (preview == "setacct")  screen_settings::showAccount("benoit@atome3d.com", 6, true);
         else if (preview == "setscreen") screen_settings::showScreen(80, 60, 2);
-        else if (preview == "setupdate") screen_settings::showUpdate(TIGERSPOOL_FW_VERSION, "stable", 0, "", 0);
+        // The state that cannot be reached on demand - the device is only ever
+        // behind by accident - and the one whose layout is tightest.
+        else if (preview == "setupdate") screen_settings::showUpdate(TIGERSPOOL_FW_VERSION, "stable",
+                                             (int)ota::AVAILABLE, "9.9.9", 0);
+        else if (preview == "updone")    screen_settings::showUpdate(TIGERSPOOL_FW_VERSION, "stable",
+                                             (int)ota::UP_TO_DATE, "", 0);
         else if (preview == "notice") screen_settings::showUpdateNotice(TIGERSPOOL_FW_VERSION, "1.12.0");
         else if (preview == "setrestart") screen_settings::showRestart();
         else if (preview == "setfactory") screen_settings::showFactory(-1);

@@ -393,7 +393,7 @@ static void badge(lv_obj_t* parent, const char* glyph, uint32_t colour) {
 
     lv_obj_t* gap = lv_obj_create(parent);
     lv_obj_remove_style_all(gap);
-    lv_obj_set_size(gap, 1, 14);
+    lv_obj_set_size(gap, 1, 8);
 }
 
 void showUpdate(const char* version, const char* channel,
@@ -472,11 +472,20 @@ void showUpdate(const char* version, const char* channel,
     // prints, on the scale's screen and on this repository's tags alike.
     char vbuf[24];
     snprintf(vbuf, sizeof(vbuf), "v%s", version);
+    // Scrollable, because what goes below depends on the state AND on the
+    // language: the available-update case carries a row, a badge, two captions
+    // and a button, and in a language with longer words that is more than 276
+    // pixels of body. It was cutting the Install button in half - the one
+    // control the screen exists for.
+    lv_obj_add_flag(body, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scroll_dir(body, LV_DIR_VER);
+    lv_obj_set_scrollbar_mode(body, LV_SCROLLBAR_MODE_AUTO);
+
     frame::row(body, i18n::T(S_INSTALLED), vbuf, false, nullptr, nullptr);
 
     lv_obj_t* spacer = lv_obj_create(body);
     lv_obj_remove_style_all(spacer);
-    lv_obj_set_size(spacer, 1, 26);
+    lv_obj_set_size(spacer, 1, 12);
 
     switch (otaState) {
     case ota::CHECKING:
@@ -506,11 +515,6 @@ void showUpdate(const char* version, const char* channel,
         break;
     }
 
-    // The question everybody asks before pressing Install, answered before it
-    // is asked. Nothing an update writes touches the NVS partition; saying so
-    // is cheaper than a support message.
-    if (otaState == ota::AVAILABLE)
-        frame::caption(i18n::T(S_UPDATE_KEEPS), theme::TEXT_DIM);
 }
 
 void showUpdateNotice(const char* current, const char* latest) {

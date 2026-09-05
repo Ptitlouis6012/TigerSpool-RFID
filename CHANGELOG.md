@@ -7,6 +7,24 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.19.0] - 2026-09-05
+
+### Fixed
+
+- **The Install button was cut in half by the bottom of the screen** when an
+  update was available — the one control that page exists for. The line about
+  Wi-Fi, account and printers being kept is gone, the spacing is tighter, and
+  the page scrolls, so a longer translation cannot push a button off the panel
+  again.
+
+### Added
+
+- `?preview=setupdate` renders the update page with a version waiting, and
+  `?preview=updone` with none. Being behind is not a state a device can be put
+  into on demand, and it is the state whose layout is tightest — which is how
+  the cut button reached a release in the first place.
+
+
 ## [1.18.0] - 2026-09-05
 
 ### Fixed

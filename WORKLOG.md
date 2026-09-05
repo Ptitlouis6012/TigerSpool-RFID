@@ -269,4 +269,9 @@ font fallback chain that would restore accents.
   an unauthenticated GET that cleared every NVS namespace.
 - The W_ table keeps its now-unused rows: the order is checked against the
   enum, and renumbering it to save a few hundred bytes is not worth the risk.
+- Update page: `S_UPDATE_KEEPS` removed from it, spacer 26 -> 12, badge gap
+  14 -> 8, body scrollable. The AVAILABLE layout was 20 px over 276 and the
+  Install button was clipped.
+- `?preview=setupdate` now renders AVAILABLE rather than IDLE. The old preview
+  showed the one state that was already fine.
 
