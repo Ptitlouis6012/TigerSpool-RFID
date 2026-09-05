@@ -7,6 +7,34 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-09-05
+
+### Fixed
+
+- **The network list is ready before you get there again.** It had been empty
+  on first open since 1.7.0, filling in only after pressing "rescan".
+
+  An ESP32 shares one radio between its access point and its station
+  interface. Once a phone is associated to the access point, that radio is
+  committed to serving it, and a scan started afterwards comes back with
+  nothing — it does not fail, it succeeds and finds zero networks, which is why
+  the earlier attempt at this looked for an error that was never reported.
+
+  So the scan happens at the one moment it can: when the access point comes up,
+  before anyone can join. It runs asynchronously, so the setup QR still appears
+  instantly — that was the point of taking the *blocking* scan off this path in
+  1.7.0, and removing the scan altogether was the mistake. The result is
+  collected the moment it lands and served from there.
+
+  The station interface also stays up now. Three places tore it down after
+  every scan, and a scan cannot start on an interface that has not finished
+  starting, so each one left the next scan worse off. Idle, it costs nothing.
+
+  Verified on hardware: `scan cached: 18 network(s)` in the boot log before any
+  client joined, and the endpoint serving eight named networks with signal
+  strengths.
+
+
 ## [1.10.0] - 2026-09-05
 
 ### Fixed

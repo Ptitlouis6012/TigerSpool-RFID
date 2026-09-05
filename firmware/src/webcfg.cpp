@@ -158,6 +158,11 @@ namespace {
     uint32_t    apTeardownAt = 0;
     bool        apMode    = false;
     String      apScan;                       // <option>s das redes encontradas
+    // The last scan that found something. An ESP32 cannot scan usefully while
+    // a station is associated to its own access point - the radio is committed
+    // to serving that client - so the list is taken BEFORE anyone joins and
+    // kept. That is the only moment it can be taken.
+    String      netsJson;
     // ------------------------------------------------------------------
     //  Names carry the last four hex digits of the station MAC.
     //
@@ -425,8 +430,6 @@ namespace {
         int l = (int)i18n::current();
         page.replace("%LANG%", LANG_CODES[(l >= 0 && l < (int)LANG_N) ? l : 0]);
         server.send(200, "text/html", page);
-        // Only now, once the page is out: see startBackgroundScan.
-        if (apMode) startBackgroundScan();
     }
 
     // Networks, strongest first and deduplicated. The signal is reported in dBm
@@ -466,33 +469,10 @@ namespace {
             Serial.println("[webcfg] background scan refused to start");
     }
 
-    void handleApiScan() {
-        int n = WiFi.scanComplete();
-        if (n == WIFI_SCAN_RUNNING) {
-            // One is already in flight - wait for it rather than starting a
-            // second, which would abort the first and double the wait.
-            uint32_t t0 = millis();
-            while ((n = WiFi.scanComplete()) == WIFI_SCAN_RUNNING && millis() - t0 < 6000)
-                delay(60);
-        }
-        // Never ran, or failed. Two attempts, because the first one lands
-        // while the station interface may still be coming up.
-        for (int try_ = 0; n < 0 && try_ < 2; try_++) {
-            WiFi.mode(WIFI_AP_STA);
-            delay(80);
-            WiFi.scanDelete();
-            n = WiFi.scanNetworks(false, true);
-            if (n < 0) Serial.printf("[webcfg] scan attempt %d failed (%d)\n", try_ + 1, n);
-        }
-
-        // A scan that FAILED and a scan that found NOTHING are different
-        // answers, and this line used to report the second for the first. The
-        // picker then said there were no networks - in a flat full of them -
-        // and the only way out was a button the user had to think to press.
-        const bool failed = (n < 0);
-        if (n < 0) n = 0;
-
-        int idx[32], m = n > 32 ? 32 : n;
+    // Reads whatever the last scan left behind and turns it into the portal's
+    // list. Kept apart from the scanning so one can fail without the other.
+    String scanToJson(int n) {
+        int idx[32], m = n > 32 ? 32 : (n < 0 ? 0 : n);
         for (int i = 0; i < m; i++) idx[i] = i;
         for (int i = 0; i < m; i++)
             for (int j = i + 1; j < m; j++)
@@ -510,14 +490,50 @@ namespace {
             o["r"] = WiFi.RSSI(idx[k]);
             o["k"] = WiFi.encryptionType(idx[k]) != WIFI_AUTH_OPEN;
         }
-        if (failed) doc["error"] = true;     // the page can say "try again"
         String out; serializeJson(doc, out);
-        server.send(200, "application/json", out);
+        return out;
+    }
 
-        // Back to AP-only: leaving the station interface scanning makes the
-        // radio hop channels and the phone falls off the setup network.
+    // Keep a finished scan. Only one that found something replaces what is
+    // held: an empty result while a phone is associated is the radio saying
+    // "not now", not the flat saying "there are no networks".
+    void harvestScan() {
+        int n = WiFi.scanComplete();
+        if (n <= 0) return;
+        netsJson = scanToJson(n);
+        Serial.printf("[webcfg] scan cached: %d network(s)\n", n);
         WiFi.scanDelete();
-        if (apMode) WiFi.mode(WIFI_AP);
+    }
+
+    void handleApiScan() {
+        harvestScan();
+
+        // A scan already in flight is worth a short wait: the page has just
+        // opened and this list is the only thing on it.
+        if (WiFi.scanComplete() == WIFI_SCAN_RUNNING) {
+            for (uint32_t t0 = millis(); millis() - t0 < 4000; ) {
+                delay(60);
+                if (WiFi.scanComplete() != WIFI_SCAN_RUNNING) break;
+            }
+            harvestScan();
+        }
+
+        // Nothing held and nobody has joined yet - still a good moment to look,
+        // so look. Once a phone is associated it is not, and what was found
+        // before it arrived is the honest answer.
+        if (netsJson.isEmpty() && WiFi.softAPgetStationNum() == 0) {
+            WiFi.scanDelete();
+            int n = WiFi.scanNetworks(false, true);
+            if (n > 0) { netsJson = scanToJson(n); WiFi.scanDelete(); }
+            else Serial.printf("[webcfg] on-demand scan gave %d\n", n);
+        }
+
+        if (netsJson.isEmpty()) {
+            Serial.println("[webcfg] no networks held to serve");
+            server.send(200, "application/json", "{\"nets\":[],\"error\":true}");
+            return;
+        }
+        server.send(200, "application/json", netsJson);
     }
 
     // Join, verify, and only then report - no reboot.
@@ -550,7 +566,9 @@ namespace {
         JsonDocument out;
         if (WiFi.status() != WL_CONNECTED) {
             WiFi.disconnect(true);
-            if (apMode) WiFi.mode(WIFI_AP);
+            // Stay AP+STA. Dropping the station interface here left the next
+            // scan with nothing to start on, and that is what emptied the
+            // network picker.
             out["ok"] = false;
             String j; serializeJson(out, j);
             server.send(200, "application/json", j);
@@ -646,7 +664,8 @@ namespace {
         }
         WiFi.scanDelete();
         apScan = o;
-        if (apMode) { WiFi.mode(WIFI_AP); delay(50); }   // AP-only = estavel
+        // The mode stays AP+STA - see beginAP. Tearing the station interface
+        // down after every scan is what made the following one fail.
     }
 
     struct Row { int type; String name, host, sn, cc; };
@@ -1170,11 +1189,11 @@ void webcfg::beginAP() {
     WiFi.disconnect(true, true);          // stop, and erase the station credentials
     delay(100);
 
-    // AP only. This was AP+STA for the scan that used to run below; with the
-    // scan gone there is no reason to keep a station interface up, and the
-    // file's own note applies - AP-only is the stable one. startBackgroundScan
-    // raises AP+STA when it needs it and handleApiScan puts it back.
-    WiFi.mode(WIFI_AP);
+    // AP+STA. The station interface is what a scan needs, and bringing it up
+    // cold at scan time is part of how the list came back empty: esp_wifi
+    // refuses to start a scan on an interface that has not finished starting.
+    // Idle, it costs nothing.
+    WiFi.mode(WIFI_AP_STA);
     WiFi.setSleep(false);                 // AP without modem-sleep = stable connections
     buildNames();
     WiFi.softAPConfig(AP_IP, AP_IP, IPAddress(255, 255, 255, 0));
@@ -1192,12 +1211,23 @@ void webcfg::beginAP() {
     routes(true);
     server.begin();
     Serial.printf("[webcfg] AP '%s' (channel 1)  http://192.168.4.1/\n", AP_SSID);
-    // Deliberately NOT scanning here: the radio is on AP-only and staying that
-    // way until the portal page has been served. See startBackgroundScan.
+    // The scan goes here, asynchronously. It is the only moment it can usefully
+    // happen - once a phone is associated the radio is committed to it and a
+    // scan comes back empty - and async means the QR is already on the panel
+    // and nothing waits on it, which was the point of taking the BLOCKING scan
+    // off this path. Removing it altogether was the mistake: the networks used
+    // to be ready before anyone had finished scanning the QR.
+    startBackgroundScan();
 }
 
 void webcfg::loop() {
-    if (apMode) captive_dns::loop();
+    if (apMode) {
+        captive_dns::loop();
+        // Collect the scan the moment it lands, rather than waiting for a
+        // browser to ask. By the time anyone asks, a phone is associated and
+        // the radio can no longer look - so the answer has to already be held.
+        harvestScan();
+    }
     server.handleClient();
     if (restartAt && millis() >= restartAt) { delay(50); ESP.restart(); }
 

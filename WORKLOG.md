@@ -213,3 +213,15 @@ font fallback chain that would restore accents.
   retry, and `if (n < 0) n = 0` no longer turns a failure into an empty result
   - the JSON carries `error` instead.
 
+### Fixed
+
+- Empty network picker, properly this time. The scan is not failing, it is
+  succeeding with zero results because the radio is busy serving the associated
+  client - so no error flag would ever have caught it. `startBackgroundScan()`
+  back at the end of `beginAP()` (async), `harvestScan()` called from
+  `webcfg::loop()` so the result is kept without waiting for a request, and
+  `netsJson` served from there. WIFI_AP_STA is the resting mode in AP; the
+  three `WiFi.mode(WIFI_AP)` drop-backs are gone.
+- Proven from the boot log rather than inferred: `scan cached: 18 network(s)`
+  appears before any client can associate.
+
