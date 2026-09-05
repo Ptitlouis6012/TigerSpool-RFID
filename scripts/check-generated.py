@@ -38,6 +38,9 @@ GENERATED = [
      REPO / "firmware" / "include" / "splash.h"),
     (["scripts/make-icon-font.sh"],
      REPO / "firmware" / "src" / "ui" / "font_icons_16.c"),
+    (["scripts/make-web-asset-header.py", "installer/tiger-icon.svg",
+      "--name", "TIGER_ICON_SVG", "--out", "firmware/include/web_assets.h"],
+     REPO / "firmware" / "include" / "web_assets.h"),
 ]
 
 # A generator exiting with this says "I could not check", which is a different

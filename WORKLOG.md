@@ -153,3 +153,19 @@ font fallback chain that would restore accents.
   was only there for the scan that no longer runs, and the file already said
   AP-only is the stable one.
 
+## 2026-09-05 - the sign-in page
+
+- `handleLogin()` rebuilt. Mark at the top, two fields, an eye on the password,
+  the Google mark, a Tiger Studio Manager button, three community marks, and a
+  legal line whose version comes from `TIGERSPOOL_FW_VERSION`.
+- `scripts/make-web-asset-header.py` turns a file into a PROGMEM C string;
+  `firmware/include/web_assets.h` holds the tiger icon and `/tiger-icon.svg`
+  serves it. Registered with `check-generated.py`. +0.5 points of flash.
+- Five new words in four languages, and W_TT_LOGIN reworded from "Connect and
+  import" to "Sign in" - a button says what it does, not what follows.
+- Inputs are 16 px on purpose: below that, iOS Safari zooms the page on focus.
+- The last character of a typed password showing briefly is the phone's own
+  behaviour, on every site. It is not controllable from a page, and the usual
+  workaround (a text field with -webkit-text-security) is worse: it breaks
+  password managers and puts the plaintext in the DOM.
+

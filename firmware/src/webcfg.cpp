@@ -15,6 +15,7 @@
 #include "ui/screen_settings.h"
 #include "net/portal_page.h"
 #include "version.h"
+#include "web_assets.h"
 #include <ArduinoJson.h>
 #include "printer.h"
 #include "tigertag_cloud.h"
@@ -42,7 +43,7 @@ namespace {
         W_SAVED, W_RESTART_JOIN, W_WIPED, W_RESTARTING, W_RETRY_SAVED,
         W_LOGIN_FAIL, W_ACCT_LINKED, W_SYNCED, W_FAILED, W_ACCT_OFF,
         W_RESTART_SUFFIX,
-        W_GOOGLE, W_PAIR_OPEN, W_PAIR_CODE, W_PAIR_WAIT, W_PAIR_DENIED, W_PAIR_EXPIRED,
+        W_GOOGLE, W_EMAIL, W_OR, W_NO_ACCOUNT, W_SHOW_PW, W_PAIR_OPEN, W_PAIR_CODE, W_PAIR_WAIT, W_PAIR_DENIED, W_PAIR_EXPIRED,
         W_N
     };
     const char* const WT[W_N][4] = {
@@ -81,7 +82,9 @@ namespace {
                               "Imports the printers registered in your account (Firebase). Login is just email/password.",
                               "Importa las impresoras registradas en tu cuenta (Firebase). El acceso es solo email/password.",
                               "Importe les imprimantes enregistrees dans ton compte (Firebase). La connexion est juste email/mot de passe." },
-        /* W_TT_LOGIN     */ { "Ligar e importar", "Connect and import", "Conectar e importar", "Connecter et importer" },
+        // A button says what happens when it is pressed. Importing the
+        // printers is the consequence, not the action.
+        /* W_TT_LOGIN     */ { "Entrar", "Sign in", "Iniciar sesión", "Se connecter" },
         /* W_RETRY_NET    */ { "Tentar rede atual de novo", "Retry current network", "Reintentar la red actual", "Reessayer le reseau actuel" },
         /* W_WIPE         */ { "Apagar tudo", "Wipe everything", "Borrar todo", "Tout effacer" },
         /* W_NONE         */ { "Nenhuma", "None", "Ninguna", "Aucune" },
@@ -98,8 +101,19 @@ namespace {
         /* W_FAILED       */ { "Falhou", "Failed", "Fallo", "Echoue" },
         /* W_ACCT_OFF     */ { "Conta desligada", "Account disconnected", "Cuenta desconectada", "Compte deconnecte" },
         /* W_RESTART_SUFFIX*/{ " - a reiniciar...", " - restarting...", " - reiniciando...", " - redemarrage..." },
-        /* W_GOOGLE       */ { "Entrar com Google", "Sign in with Google",
-                              "Iniciar sesion con Google", "Se connecter avec Google" },
+        /* W_GOOGLE       */ { "Continuar com Google", "Continue with Google",
+                              "Continuar con Google", "Continuer avec Google" },
+        /* W_EMAIL        */ { "Endereço de e-mail", "Email address",
+                              "Dirección de correo", "Adresse e-mail" },
+        /* W_OR           */ { "ou", "or", "o", "ou" },
+        // Accents intact: this page is drawn by the phone's browser, so the
+        // ASCII-only limit of the panel's compiled font never applied here.
+        /* W_NO_ACCOUNT   */ { "Ainda sem conta? Cria-a no Tiger Studio Manager e adiciona lá as tuas impressoras.",
+                              "No account yet? Create one in Tiger Studio Manager, then add your printers there.",
+                              "¿Todavía sin cuenta? Créala en Tiger Studio Manager y añade allí tus impresoras.",
+                              "Pas encore de compte ? Créez-le dans Tiger Studio Manager, puis ajoutez-y vos imprimantes." },
+        /* W_SHOW_PW      */ { "Mostrar a password", "Show password",
+                              "Mostrar la contraseña", "Afficher le mot de passe" },
         /* W_PAIR_OPEN    */ { "Abre este link (telemovel ou PC) e aprova:",
                               "Open this link (phone or PC) and approve:",
                               "Abre este enlace (movil o PC) y aprueba:",
@@ -707,38 +721,135 @@ namespace {
     //
     // So the QR gets a page with one job on it. The POST target is the same
     // handler as before; only the wrapper is new.
+    // The sign-in page: the one screen of this product a stranger reaches by
+    // scanning a QR code, on a 192.168.x.x URL their browser decorates with a
+    // warning triangle, and it is where they are asked for a password. So it
+    // carries the mark, and nothing that is not needed to sign in.
+    //
+    // NOTHING here may be fetched from the internet. The phone reading this is
+    // joined to the device's own access point when this matters most, and a
+    // missing web font or a remote logo fails silently - an empty box on the
+    // one screen where trust is being decided.
     void handleLogin() {
         if (ttcloud::haveSession()) { reply(wl(W_CONNECTED) + esc(ttcloud::email()), ""); return; }
 
-        String h; h.reserve(1800);
+        String h; h.reserve(4200);
         h += F("<!doctype html><html><head><meta charset=utf-8>"
-               "<meta name=viewport content=\"width=device-width,initial-scale=1\">"
+               "<meta name=viewport content=\"width=device-width,initial-scale=1,viewport-fit=cover\">"
                "<title>TigerSpool</title><style>"
-               "body{font-family:system-ui,sans-serif;background:#0a0b0f;color:#f4f5f8;"
-               "margin:0;padding:26px 18px;display:flex;justify-content:center}"
+               ":root{--bg:#08090d;--raised:#171a22;--line:#262a36;--soft:#1c2029;"
+               "--text:#f4f5f8;--muted:#9aa0b0;--faint:#5f6674;--brand:#ff7a18;--ember:#e6352b}"
+               "*{box-sizing:border-box}"
+               "body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;"
+               "background:var(--bg);color:var(--text);margin:0;"
+               "padding:26px 18px calc(26px + env(safe-area-inset-bottom));"
+               "display:flex;justify-content:center}"
                ".card{width:100%;max-width:380px}"
-               "h1{font-size:1.25rem;margin:.2rem 0 .2rem}"
-               ".hint{color:#9aa0b0;font-size:.86rem;margin:0 0 1.3rem}"
-               "label{display:block;margin:.9rem 0 .3rem;font-size:.82rem;color:#9aa0b0}"
-               "input{width:100%;box-sizing:border-box;padding:12px;border-radius:10px;"
-               "border:1px solid #262a36;background:#12141b;color:#f4f5f8;font-size:1rem}"
-               "button{margin-top:1.4rem;width:100%;padding:14px;border:0;border-radius:999px;"
-               "background:linear-gradient(96deg,#ff7a18,#e6352b);color:#fff;font-weight:700;"
-               "font-size:1rem;font-family:inherit}"
-               ".g{background:#fff;color:#1c2030;margin-top:.7rem}"
+               ".brand{display:flex;align-items:center;gap:11px;margin:6px 0 30px}"
+               ".brand img{width:34px;height:34px;border-radius:9px;display:block}"
+               ".brand b{font-size:16.5px;font-weight:700;letter-spacing:-.01em}"
+               ".brand b i{color:var(--brand);font-style:normal}"
+               "label{display:block;margin:0 0 6px;font-size:12px;color:var(--muted)}"
+               ".fg{margin-bottom:14px}"
+               ".pw{position:relative}"
+               "input{width:100%;height:46px;padding:0 13px;border-radius:12px;"
+               "border:1px solid var(--line);background:var(--raised);color:var(--text);"
+               "font-size:16px;font-family:inherit}"
+               // 16px on the inputs is not a style choice: below that, iOS Safari
+               // zooms the page on focus and the layout jumps under the thumb.
+               "input:focus{outline:0;border-color:var(--brand);"
+               "box-shadow:0 0 0 3px rgba(255,122,24,.16)}"
+               ".pw input{padding-right:46px}"
+               ".eye{position:absolute;right:4px;top:0;height:46px;width:42px;"
+               "border:0;background:0;color:var(--faint);display:grid;place-items:center;"
+               "padding:0;cursor:pointer}"
+               ".eye svg{width:19px;height:19px;fill:none;stroke:currentColor;"
+               "stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}"
+               "button.go,.g{width:100%;height:50px;border:0;border-radius:14px;"
+               "font-size:15px;font-family:inherit;display:flex;align-items:center;"
+               "justify-content:center;gap:11px}"
+               "button.go{margin-top:20px;font-weight:700;color:#fff;"
+               "background:linear-gradient(96deg,var(--brand),var(--ember))}"
+               ".g{background:#fff;color:#1f1f1f;font-weight:600}"
+               ".g svg{width:19px;height:19px}"
+               ".sep{display:flex;align-items:center;gap:12px;margin:18px 0;"
+               "color:var(--faint);font-size:12px}"
+               ".sep:before,.sep:after{content:'';flex:1;height:1px;background:var(--soft)}"
+               ".foot{margin-top:24px;padding-top:16px;border-top:1px solid var(--soft);"
+               "color:var(--faint);font-size:12.5px;line-height:1.5}"
+               ".studio{display:flex;align-items:center;gap:10px;margin-top:12px;"
+               "padding:11px 13px;border:1px solid var(--line);border-radius:12px;"
+               "background:var(--raised);color:var(--text);text-decoration:none;"
+               "font-size:13.5px;font-weight:500}"
+               ".studio img{width:22px;height:22px;border-radius:6px;flex:none}"
+               ".studio svg{width:15px;height:15px;margin-left:auto;flex:none;"
+               "fill:none;stroke:var(--faint);stroke-width:1.8;stroke-linecap:round;"
+               "stroke-linejoin:round}"
+               ".soc{display:flex;justify-content:center;gap:26px;margin-top:22px}"
+               ".soc a{display:block;color:#4d5462}"
+               ".soc svg{width:19px;height:19px;display:block;fill:currentColor}"
+               ".soc img{width:19px;height:19px;display:block;border-radius:5px;opacity:.55}"
+               ".legal{margin:14px 0 0;text-align:center;font-size:11px;color:#3f4653}"
                "</style></head><body><div class=card>");
-        h += F("<h1>"); h += wl(W_TT_ACCOUNT); h += F("</h1>");
-        h += F("<p class=hint>"); h += wl(W_TT_HINT); h += F("</p>");
+
+        h += F("<div class=brand><img src=/tiger-icon.svg alt=\"\">"
+               "<b>Tiger<i>Spool</i></b></div>");
+
         h += F("<form method=POST action=/tt-login>"
-               "<label>Email</label>"
-               "<input name=ttmail type=email autocomplete=username inputmode=email>"
-               "<label>"); h += wl(W_PASS); h += F("</label>"
-               "<input name=ttpass type=password autocomplete=current-password>"
-               "<button type=submit>"); h += wl(W_TT_LOGIN); h += F("</button></form>"
-               "<form method=POST action=/tt-gstart>"
-               "<button type=submit class=g>"); h += wl(W_GOOGLE); h += F("</button></form>");
-        h += F("</div></body></html>");
+               "<div class=fg><label for=m>"); h += wl(W_EMAIL); h += F("</label>"
+               "<input id=m name=ttmail type=email autocomplete=username "
+               "inputmode=email autocapitalize=off autocorrect=off></div>"
+               "<div class=fg><label for=p>"); h += wl(W_PASS); h += F("</label>"
+               "<div class=pw><input id=p name=ttpass type=password "
+               "autocomplete=current-password>"
+               "<button type=button class=eye id=e aria-label=\""); h += wl(W_SHOW_PW);
+        h += F("\"><svg viewBox=\"0 0 24 24\" aria-hidden=true>"
+               "<path d=\"M1.8 12S5.5 5.2 12 5.2 22.2 12 22.2 12 18.5 18.8 12 18.8 1.8 12 1.8 12Z\"/>"
+               "<circle cx=12 cy=12 r=3.1 /></svg></button></div></div>"
+               "<button class=go type=submit>"); h += wl(W_TT_LOGIN); h += F("</button></form>");
+
+        h += F("<div class=sep>"); h += wl(W_OR); h += F("</div>");
+
+        h += F("<form method=POST action=/tt-gstart>"
+               "<button class=g type=submit><svg viewBox=\"0 0 48 48\" aria-hidden=true>"
+               "<path fill=#EA4335 d=\"M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z\"/>"
+               "<path fill=#4285F4 d=\"M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z\"/>"
+               "<path fill=#FBBC05 d=\"M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z\"/>"
+               "<path fill=#34A853 d=\"M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z\"/>"
+               "</svg>"); h += wl(W_GOOGLE); h += F("</button></form>");
+
+        h += F("<p class=foot>"); h += wl(W_NO_ACCOUNT); h += F("</p>"
+               "<a class=studio href=https://tigersystem.io>"
+               "<img src=/tiger-icon.svg alt=\"\">Tiger Studio Manager"
+               "<svg viewBox=\"0 0 24 24\" aria-hidden=true>"
+               "<path d=\"M9 5h10v10\"/><path d=\"M19 5 8 16\"/>"
+               "<path d=\"M15 19H5V9\"/></svg></a>");
+
+        h += F("<div class=soc>"
+               "<a href=https://github.com/TigerTag-Project aria-label=GitHub>"
+               "<svg viewBox=\"0 0 24 24\" aria-hidden=true><path d=\"M12 .5C5.37.5 0 5.87 0 12.5c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58 0-.29-.01-1.24-.02-2.25-3.34.73-4.04-1.42-4.04-1.42-.55-1.38-1.33-1.75-1.33-1.75-1.09-.75.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5.99.11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.34-5.47-5.95 0-1.31.47-2.38 1.24-3.22-.12-.31-.54-1.53.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6.01 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.65.24 2.87.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.62-2.81 5.64-5.49 5.94.43.37.81 1.1.81 2.22 0 1.6-.01 2.9-.01 3.29 0 .32.22.7.83.58C20.56 22.29 24 17.79 24 12.5 24 5.87 18.63.5 12 .5Z\"/></svg></a>"
+               "<a href=https://discord.gg/3Qv5TSqnJH aria-label=Discord>"
+               "<svg viewBox=\"0 0 24 24\" aria-hidden=true><path d=\"M20.317 4.369a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.249a18.27 18.27 0 0 0-5.487 0 12.6 12.6 0 0 0-.617-1.25.077.077 0 0 0-.079-.036A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.058a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.009c.12.099.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.891.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.056c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03ZM8.02 15.331c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.094 2.157 2.418 0 1.334-.956 2.419-2.157 2.419Zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.094 2.157 2.418 0 1.334-.947 2.419-2.157 2.419Z\"/></svg></a>"
+               "<a href=https://tigersystem.io aria-label=TigerSystem>"
+               "<img src=/tiger-icon.svg alt=\"\"></a></div>");
+
+        // The version is read from the macro, never typed here. It is also the
+        // half of this line that gets used: it is the first thing asked for
+        // when someone reports a problem, and this page is legible from a
+        // phone while the device's own screen is in another room.
+        h += F("<p class=legal>TigerSpool RFID ");
+        h += TIGERSPOOL_FW_VERSION;
+        h += F(" &middot; MIT &middot; &copy; TigerTag</p>");
+
+        h += F("<script>var e=document.getElementById('e'),p=document.getElementById('p');"
+               "e.onclick=function(){p.type=p.type=='password'?'text':'password'};"
+               "</script></div></body></html>");
         server.send(200, "text/html", h);
+    }
+
+    void handleIcon() {
+        server.sendHeader("Cache-Control", "max-age=86400");
+        server.send_P(200, "image/svg+xml", TIGER_ICON_SVG);
     }
 
     void handleRoot() {
@@ -883,6 +994,7 @@ namespace {
         server.on("/api/lang", handleApiLang);
         server.on("/api/tap",  handleApiTap);
         server.on("/login",    handleLogin);
+        server.on("/tiger-icon.svg", handleIcon);
         server.on("/screen.bmp", handleShot);      // raw panel capture
         server.on("/screen", handleShotPage);      // page that refreshes it
         server.on("/save", HTTP_POST, handleSave);

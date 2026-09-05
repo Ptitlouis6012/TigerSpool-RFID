@@ -20,6 +20,21 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   icons follow: three strokes at most, one dominant form owning two thirds of
   the box, nothing thinner than 2 px, and recognisable when filled in solid.
 
+- **The sign-in page has been rebuilt.** It is the one screen of this product a
+  stranger reaches by scanning a QR code, on a `192.168.x.x` address their
+  browser decorates with a warning triangle, and it is where they are asked for
+  a password — and it carried no mark of who was asking. It now opens with the
+  TigerTag icon, keeps only what is needed to sign in, and ends with a way out:
+  a Tiger Studio Manager button, GitHub, Discord and tigersystem.io.
+  The password is masked with an eye to reveal it, the Google button carries
+  the real Google mark and reads *Continue with Google*, the accents are back —
+  that page is drawn by the phone's browser, so the panel font's ASCII limit
+  never applied to it — and the firmware version is printed at the foot, read
+  from the version macro rather than typed.
+- Nothing on that page is fetched from the internet. The phone reading it is
+  joined to the device's own access point, where a remote font or logo fails
+  silently — an empty box on the one screen where trust is being decided. The
+  icon is served from flash by the device itself.
 - **The home screen shows Wi-Fi strength**, next to the gear, the way the
   TigerScale does. LVGL has one Wi-Fi glyph rather than a set of bar counts, so
   the strength is carried by colour — green above −60 dBm, yellow to −75,
