@@ -236,4 +236,5 @@ font fallback chain that would restore accents.
 - The warning on the e-mail form is truthful and left alone. Removing it would
   mean HTTPS, and a self-signed certificate on a device would trade a true
   warning for a scarier one.
+- Update notice: `S_UPDATE_KEEPS` removed from it. Still on the update page.
 

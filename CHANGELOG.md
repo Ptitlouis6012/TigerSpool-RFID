@@ -7,6 +7,16 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.13.0] - 2026-09-05
+
+### Changed
+
+- The update notice is down to the badge, the version and two buttons. What an
+  update keeps belongs on the update page, where someone is considering the
+  question — not on a screen that interrupts them and has to be answerable at a
+  glance.
+
+
 ## [1.12.0] - 2026-09-05
 
 ### Added

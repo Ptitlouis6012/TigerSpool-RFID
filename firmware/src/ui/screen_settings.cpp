@@ -516,13 +516,17 @@ void showUpdateNotice(const char* current, const char* latest) {
     lv_obj_set_flex_align(body, LV_FLEX_ALIGN_CENTER,
                           LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
-    // Every pixel is spoken for: badge, version, the one reassurance, two
-    // buttons. The gap that used to sit above them pushed "Later" onto the
-    // bottom edge, and a dismissal you have to aim for is not a dismissal.
+    // Badge, version, two buttons. Nothing else: this screen interrupts
+    // somebody, so it earns its place by being answerable at a glance. What is
+    // kept across an update belongs on the update page, where the question is
+    // being considered rather than answered.
     badge(body, LV_SYMBOL_DOWNLOAD, theme::WARN);
     frame::caption(i18n::T(S_AVAILABLE), theme::TEXT_DIM);
     frame::bigLabel(latest, theme::WARN);
-    frame::caption(i18n::T(S_UPDATE_KEEPS), theme::TEXT_DIM);
+
+    lv_obj_t* gap = lv_obj_create(body);
+    lv_obj_remove_style_all(gap);
+    lv_obj_set_size(gap, 1, 16);
 
     frame::button(body, i18n::T(S_INSTALL), 1, []() { s_action = A_INSTALL_NOW; });
     frame::button(body, i18n::T(S_LATER),   0, []() { s_action = A_LATER; });
