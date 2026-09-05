@@ -791,11 +791,18 @@ void loop() {
             if (printers[i].type == PT_NONE) continue;
             total++; if (printers[i].visible) visible++;
         }
+        // WiFi.SSID() and ttcloud::email() both return String BY VALUE. Held
+        // in named locals, or the temporary dies at the end of the statement
+        // and the struct carries a pointer into freed memory - which showed up
+        // as an empty Wi-Fi value on the menu, not as a crash.
+        String ssid  = WiFi.SSID();
+        String email = ttcloud::email();
+
         screen_settings::MenuState menu{};
         menu.wifiUp   = WiFi.isConnected();
         menu.signedIn = ttcloud::haveSession();
-        menu.network  = menu.wifiUp   ? WiFi.SSID().c_str()      : i18n::T(S_OFFLINE);
-        menu.account  = menu.signedIn ? ttcloud::email().c_str() : i18n::T(S_ADD_WEB);
+        menu.network  = menu.wifiUp   ? ssid.c_str()  : i18n::T(S_OFFLINE);
+        menu.account  = menu.signedIn ? email.c_str() : i18n::T(S_ADD_WEB);
         menu.visiblePrinters = visible;
         menu.totalPrinters   = total;
         menu.updateWaiting   = (ota::state() == ota::AVAILABLE);

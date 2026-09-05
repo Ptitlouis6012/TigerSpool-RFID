@@ -1,4 +1,5 @@
 #pragma once
+#include "icons.h"
 #include <lvgl.h>
 
 // The shell every screen shares: a 44 px header with an optional back chevron,
@@ -35,12 +36,13 @@ lv_obj_t* button(lv_obj_t* parent, const char* text, int tone, Callback onClick)
 
 // A 48 px row with a label, an optional dim value and an optional chevron.
 //
-// `icon` is an LV_SYMBOL_* and takes the left of the row. It is where the
-// row's state is expressed - green for reachable, orange for interrupts,
-// red for destroys - so the label itself stays white and readable. Pass 0 for
-// `iconColour` to leave it the dim default.
+// `icon` takes the left of the row. It is where the row's state is expressed -
+// green for reachable, red for not, orange for what interrupts - so the label
+// itself stays white and readable. Pass 0 for `iconColour` to leave it plain
+// white, which is what most rows want: an icon that is coloured on every row is
+// an icon that says nothing on any of them.
 lv_obj_t* row(lv_obj_t* parent, const char* label, const char* value,
               bool chevron, lv_event_cb_t cb, void* userData,
-              const char* icon = nullptr, uint32_t iconColour = 0);
+              icons::Id icon = icons::NONE, uint32_t iconColour = 0);
 
 }  // namespace frame

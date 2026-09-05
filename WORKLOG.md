@@ -59,3 +59,22 @@ font fallback chain that would restore accents.
   `MenuState` struct - four adjacent bools as positional arguments is a swap
   waiting to happen.
 
+- Row icons are now drawn from LVGL primitives in `ui/icons.{h,cpp}` rather than
+  taken from `LV_SYMBOL_*` where LVGL has no glyph for the thing: a person for
+  the account (an envelope says "messages"), a globe for the language (a
+  keyboard is not a language), a printer, a sun. The globe uses the
+  TigerScale's own 22 px coordinates verbatim. About a kilobyte of code and no
+  data - no font to generate, no licence to carry, nothing for a guard to
+  police. The remaining four rows keep LV_SYMBOL_*, which is the right answer
+  where LVGL already has the shape.
+- Colour rule tightened to the scale's: an icon is plain white unless it says
+  something worth seeing without reading the row. Three tinted in the healthy
+  case, not six.
+
+### Fixed
+
+- The Settings menu showed an empty Wi-Fi network. `WiFi.SSID()` and
+  `ttcloud::email()` both return String BY VALUE, and moving the call into a
+  MenuState struct meant the temporaries died before the struct was read. It
+  never crashed - it just looked like a network problem. Held in named locals.
+

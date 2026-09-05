@@ -51,30 +51,37 @@ void showMenu(const MenuState& st) {
     snprintf(printersVal, sizeof(printersVal), "%d/%d",
              st.visiblePrinters, st.totalPrinters);
 
-    // The icon carries the state, the label stays white. Green for something
-    // that is reachable, red for something that is not, orange for what
-    // interrupts, red for what destroys. Eight rows, one glance.
+    // The icon carries the state, the label stays white.
+    //
+    // An icon is plain white unless it holds something worth seeing without
+    // reading the row: a binary state, something waiting, or a consequence.
+    // Colour every row and no row stands out - which is the whole point. In
+    // the healthy case exactly three are tinted, and each of the other five
+    // says something real when it lights up.
     struct Row { Entry id; const char* label; const char* value;
-                 const char* icon; uint32_t tint; };
+                 icons::Id icon; uint32_t tint; };
     const Row rows[] = {
+        // Red on an account with no printers in it: the single most common
+        // thing wrong with a new device, and until now you had to open the row
+        // to find out.
         { E_PRINTERS, i18n::T(S_PRINTER),    printersVal,
-          LV_SYMBOL_LIST,     st.totalPrinters ? theme::OK : theme::DANGER },
+          icons::PRINTER, st.totalPrinters ? 0u : theme::DANGER },
         { E_WIFI,     "Wi-Fi",               st.network,
-          LV_SYMBOL_WIFI,     st.wifiUp   ? theme::OK : theme::DANGER },
+          icons::WIFI,    st.wifiUp   ? theme::OK : theme::DANGER },
         { E_ACCOUNT,  i18n::T(S_TT_ACCOUNT), st.account,
-          LV_SYMBOL_ENVELOPE, st.signedIn ? theme::OK : theme::DANGER },
+          icons::USER,    st.signedIn ? 0u : theme::DANGER },
         { E_SCREEN,   i18n::T(S_SCREEN),     "",
-          LV_SYMBOL_IMAGE,    0 },
+          icons::SCREEN,  0 },
         { E_LANGUAGE, i18n::T(S_LANGUAGE),   i18n::name(i18n::current()),
-          LV_SYMBOL_KEYBOARD, 0 },
+          icons::GLOBE,   0 },
         { E_UPDATE,   i18n::T(S_UPDATE),
           st.updateWaiting && st.latest && *st.latest
               ? st.latest : TIGERSPOOL_FW_VERSION,
-          LV_SYMBOL_DOWNLOAD, st.updateWaiting ? theme::WARN : 0 },
+          icons::UPDATE,  st.updateWaiting ? theme::WARN : 0 },
         { E_RESTART,  i18n::T(S_RESTART),    "",
-          LV_SYMBOL_REFRESH,  theme::WARN },
+          icons::RESTART, theme::WARN },
         { E_FACTORY,  i18n::T(S_FACTORY),    "",
-          LV_SYMBOL_TRASH,    theme::DANGER },
+          icons::ERASE,   theme::DANGER },
     };
     for (auto& r : rows) {
         lv_obj_t* row = frame::row(body, r.label, r.value, true, onEntry,

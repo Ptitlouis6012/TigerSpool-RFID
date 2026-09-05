@@ -152,7 +152,7 @@ lv_obj_t* button(lv_obj_t* parent, const char* text, int tone, Callback onClick)
 
 lv_obj_t* row(lv_obj_t* parent, const char* label, const char* value,
               bool chevron, lv_event_cb_t cb, void* userData,
-              const char* icon, uint32_t iconColour) {
+              icons::Id icon, uint32_t iconColour) {
     lv_obj_t* r = lv_btn_create(parent);
     lv_obj_remove_style_all(r);
     lv_obj_add_style(r, theme::rowStyle(), 0);
@@ -164,24 +164,17 @@ lv_obj_t* row(lv_obj_t* parent, const char* label, const char* value,
     lv_obj_set_style_pad_column(r, 6, 0);
     if (cb) lv_obj_add_event_cb(r, cb, LV_EVENT_CLICKED, userData);
 
-    if (icon) {
-        // A fixed 22 px column, so every label on a menu starts at the same x
-        // whatever glyph sits beside it. A ragged left edge on a list of eight
-        // rows is more distracting than no icons at all.
-        lv_obj_t* g = lv_label_create(r);
-        lv_label_set_text(g, icon);
-        lv_obj_set_width(g, 22);
-        lv_obj_set_style_text_align(g, LV_TEXT_ALIGN_CENTER, 0);
-        lv_obj_set_style_text_font(g, &lv_font_montserrat_16, 0);
-        lv_obj_set_style_text_color(
-            g, lv_color_hex(iconColour ? iconColour : theme::TEXT_DIM), 0);
-    }
+    // A fixed 22 px column, so every label on a menu starts at the same x
+    // whatever sits beside it. A ragged left edge down a list of eight rows is
+    // more distracting than no icons at all.
+    if (icon != icons::NONE)
+        icons::build(r, icon, iconColour ? iconColour : theme::TEXT);
 
     lv_obj_t* l = lv_label_create(r);
     lv_label_set_text(l, label);
     lv_label_set_long_mode(l, LV_LABEL_LONG_DOT);
     lv_obj_set_flex_grow(l, 1);
-    lv_obj_set_style_min_width(l, icon ? 66 : 84, 0);
+    lv_obj_set_style_min_width(l, icon != icons::NONE ? 66 : 84, 0);
     lv_obj_set_style_text_font(l, &lv_font_montserrat_14, 0);
 
     if (value && *value) {
@@ -195,7 +188,7 @@ lv_obj_t* row(lv_obj_t* parent, const char* label, const char* value,
         // The icon column costs 28 px of a 240 px row, and it comes out of the
         // value - which truncates by design - not out of the chevron, which
         // was being pushed off the row entirely.
-        lv_obj_set_style_max_width(v, icon ? 84 : 108, 0);
+        lv_obj_set_style_max_width(v, icon != icons::NONE ? 84 : 108, 0);
         lv_obj_set_style_text_color(v, lv_color_hex(theme::TEXT_DIM), 0);
         lv_obj_set_style_text_font(v, &lv_font_montserrat_12, 0);
     }

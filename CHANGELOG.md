@@ -46,6 +46,18 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   present — red when it is not, orange for what interrupts, red for what
   destroys. The label stays white, so eight rows read at a glance instead of
   turning into a colour chart. Taken from the TigerScale, which does the same.
+- Icons LVGL has no glyph for are drawn rather than imported: a person for the
+  account, a globe for the language, a printer, a sun. A kilobyte of code and
+  no data — no font to generate and no licence to carry.
+
+### Fixed
+
+- The Settings menu showed an empty Wi-Fi network. `WiFi.SSID()` returns a
+  String by value, and the temporary was dying before the menu read it. It
+  never crashed; it just looked like a network problem.
+
+### Changed
+
 - Wording aligned with the TigerScale where the two devices name the same
   thing: "Your TigerSpool is up to date" as a sentence rather than "Up to
   date", and "Installed version" rather than "Installed".
