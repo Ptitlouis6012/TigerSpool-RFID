@@ -237,4 +237,8 @@ font fallback chain that would restore accents.
   mean HTTPS, and a self-signed certificate on a device would trade a true
   warning for a scarier one.
 - Update notice: `S_UPDATE_KEEPS` removed from it. Still on the update page.
+- OTA check on a 6 h timer, first at 20 s. Notice gated on `notifiedVersion`
+  rather than a once-per-boot flag. Verified by temporarily shortening the
+  interval to 40 s and watching three checks land in the serial log at 17 s,
+  55 s and 95 s; the interval was restored before commit.
 

@@ -627,19 +627,32 @@ void loop() {
     // announcement a waiting update gets. Deliberately not repeated on a timer:
     // nothing here needs to know within the hour, and a device that phones home
     // every few minutes is a device that phones home for no reason.
-    static bool bootChecked = false;
-    if (!bootChecked && WiFi.isConnected() && millis() > 20000) {
-        bootChecked = ota::checkAsync();
+    // Twenty seconds after boot, then every six hours.
+    //
+    // The boot check alone was not enough: this box sits on a shelf next to a
+    // printer and plenty of them will never be switched off. A device that
+    // checks once in its life learns about one update and then stops.
+    static const uint32_t CHECK_EVERY_MS = 6UL * 60 * 60 * 1000;
+    static uint32_t nextCheckAt = 20000;
+    static bool     everChecked = false;
+    if (WiFi.isConnected() && (int32_t)(millis() - nextCheckAt) >= 0) {
+        if (ota::checkAsync()) { everChecked = true; nextCheckAt = millis() + CHECK_EVERY_MS; }
+        else                     nextCheckAt = millis() + 60000;   // busy or offline: soon
     }
 
-    // Say it once, on the home screen, and never again this boot. An update
-    // the device never mentions is an update nobody installs - the orange row
-    // in Settings is only seen by someone who already went looking. Held to
-    // the home screen so it cannot land on top of a spool being assigned.
-    static bool noticeShown = false;
-    if (!noticeShown && bootChecked && state == ST_PRINTER
-        && ota::state() == ota::AVAILABLE) {
-        noticeShown = true;
+    // Told once per version, not once per boot and not once per check. An
+    // update the device never mentions is an update nobody installs - the
+    // orange row in Settings is seen only by someone who already went looking
+    // - but repeating it every six hours for a version already declined is
+    // nagging, and nagging is what teaches people to dismiss without reading.
+    // A NEWER version speaks up again, because it is news.
+    //
+    // Held to the home screen so it cannot land on top of a spool being
+    // assigned.
+    static String notifiedVersion;
+    if (everChecked && state == ST_PRINTER && ota::state() == ota::AVAILABLE
+        && notifiedVersion != ota::latestVersion()) {
+        notifiedVersion = ota::latestVersion();
         screen_home::leave();
         screen_settings::invalidate();
         state = ST_UPDATE_NOTICE; stateSince = millis();

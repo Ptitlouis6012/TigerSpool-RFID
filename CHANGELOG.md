@@ -7,6 +7,22 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.14.0] - 2026-09-05
+
+### Changed
+
+- **The device checks for updates every six hours, not just once at boot.**
+  This box sits on a shelf next to a printer and plenty of them will never be
+  switched off — a device that checks once in its life learns about one update
+  and then stops.
+
+  It says so once per version, not once per check. A version already declined
+  stays declined: repeating the notice every six hours is nagging, and nagging
+  is what teaches people to dismiss without reading. A *newer* version speaks
+  up again, because that is news. The Update row in Settings stays orange
+  either way.
+
+
 ## [1.13.0] - 2026-09-05
 
 ### Changed
