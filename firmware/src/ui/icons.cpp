@@ -100,13 +100,15 @@ lv_obj_t* build(lv_obj_t* parent, Id id, uint32_t c) {
         break;
 
     case PRINTER:
-        // Three strokes, one dominant. The body owns two thirds of the box and
-        // the sheet coming out of it is the information; the paper tray on top
-        // is the stroke to sacrifice first, so it is the thinnest. Passes the
-        // silhouette test - filled in solid it still reads as a printer.
-        bar(box, 6, 0, 10, 4, 1, c);
-        outline(box, 1, 5, 20, 11, 2, c);
-        bar(box, 5, 15, 12, 7, 1, c);
+        // The sheet going in, the body, the sheet coming out. An earlier
+        // revision widened the body to twenty and fattened the output tray to
+        // 12x7, on the reasoning that one form should dominate. On the glass
+        // it did not read better - the heavy block at the bottom took over the
+        // icon and the printer stopped looking like a printer. Reverted to the
+        // first version, which was balanced.
+        bar(box, 6, 0, 10, 5, 1, c);
+        outline(box, 2, 6, 18, 10, 2, c);
+        bar(box, 6, 17, 10, 5, 1, c);
         break;
 
     default:

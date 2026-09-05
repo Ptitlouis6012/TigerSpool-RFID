@@ -108,3 +108,9 @@ font fallback chain that would restore accents.
   fallback chain - and watch that the resulting `Opts` line carries two `-r`,
   which a naive generated-file check reads as one.
 
+- Printer icon reverted to its first geometry. Widening the body and fattening
+  the output tray followed the scale's "one dominant form" rule, and on the
+  glass it read worse: the heavy block at the bottom took over and the printer
+  stopped looking like a printer. A rule about silhouettes is not a substitute
+  for looking at the thing.
+

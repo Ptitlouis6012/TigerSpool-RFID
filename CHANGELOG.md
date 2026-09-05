@@ -20,6 +20,8 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   icons follow: three strokes at most, one dominant form owning two thirds of
   the box, nothing thinner than 2 px, and recognisable when filled in solid.
 
+- The printer icon keeps its original proportions. A heavier body and output
+  tray followed the "one dominant form" rule and read worse on the panel.
 - **The Display row now carries the real sun**, the same Font Awesome glyph the
   TigerScale draws, rather than an approximation of it. Drawing it was never
   going to work: LVGL primitives are axis-aligned rectangles, and that sun has
