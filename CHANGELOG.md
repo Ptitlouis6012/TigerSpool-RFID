@@ -7,6 +7,27 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.15.0] - 2026-09-05
+
+### Fixed
+
+- **The word "Text" in the header while the firmware downloads.** The download
+  screen deliberately has no title, and an LVGL label created and then handed a
+  null string keeps the placeholder it ships with. It appeared on the one
+  screen that tells the user not to unplug the box — where anything unexplained
+  is the most alarming. No title now means no label.
+- **Google sign-in took minutes to complete after it had already been
+  approved.** The device only learned of the approval when the phone's browser
+  refreshed the waiting page — and the approval opens in a second tab by
+  construction, which iOS then suspends. On a real phone the pairing sat
+  unnoticed for two minutes, until the user thought to switch back to the first
+  tab.
+
+  Nothing about a pairing needs a browser. The device holds the token, so it
+  now asks Google itself, every few seconds, for as long as the pairing screen
+  is up. Approval completes whether or not anyone is looking at a phone.
+
+
 ## [1.14.0] - 2026-09-05
 
 ### Changed

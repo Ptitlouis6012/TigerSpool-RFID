@@ -64,12 +64,18 @@ lv_obj_t* build(const char* title, Callback onBack) {
         titleX = 56;
     }
 
-    lv_obj_t* t = lv_label_create(s_header);
-    lv_label_set_text(t, title);
-    lv_label_set_long_mode(t, LV_LABEL_LONG_DOT);
-    lv_obj_set_width(t, theme::SCREEN_W - titleX - 60);
-    lv_obj_set_style_text_font(t, &lv_font_montserrat_16, 0);
-    lv_obj_align(t, LV_ALIGN_LEFT_MID, titleX, 0);
+    // No title means NO LABEL. Created and then handed a null string, an LVGL
+    // label keeps the placeholder it ships with, and the word "Text" appeared
+    // in the header of the one screen that asks for no header at all - the
+    // firmware download, where the user is being told not to unplug the box.
+    if (title) {
+        lv_obj_t* t = lv_label_create(s_header);
+        lv_label_set_text(t, title);
+        lv_label_set_long_mode(t, LV_LABEL_LONG_DOT);
+        lv_obj_set_width(t, theme::SCREEN_W - titleX - 60);
+        lv_obj_set_style_text_font(t, &lv_font_montserrat_16, 0);
+        lv_obj_align(t, LV_ALIGN_LEFT_MID, titleX, 0);
+    }
 
     for (int i = 0; i < 3; i++) {
         s_dots[i] = dot(s_header);

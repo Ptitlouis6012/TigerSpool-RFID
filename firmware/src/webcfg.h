@@ -31,4 +31,9 @@ namespace webcfg {
     // whoever walked away from the phone can still finish on a PC - and so the
     // box does not sit there looking idle while it is in fact waiting.
     bool webPairing(String& url, String& code, int& secondsLeft);
+
+    // Ask Google whether the pairing was approved. Called by main while the
+    // pairing screen is up, so completing it never depends on a phone browser
+    // being awake. Blocking HTTPS, about a second, rate-limited internally.
+    void pairTick();
 }

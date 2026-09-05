@@ -1044,6 +1044,7 @@ namespace {
     String   g_pairTok, g_pairUrl, g_pairCode;
     int      g_pairIv = 5;
     uint32_t g_pairSince = 0;
+    uint32_t g_pairPolledAt = 0;
     // The pairing code's own lifetime, so the device's screen counts down to
     // the same moment the server stops accepting it rather than to a number
     // this file invented.
@@ -1115,6 +1116,38 @@ namespace {
         uint32_t up = (millis() - g_pairSince) / 1000;
         secondsLeft = (up >= PAIR_WINDOW_S) ? 0 : (int)(PAIR_WINDOW_S - up);
         return true;
+    }
+
+    // The device asks Google whether the pairing was approved, on its own,
+    // instead of waiting for the phone's browser to refresh.
+    //
+    // The page carries a meta refresh, and that was the ONLY thing driving the
+    // poll. iOS suspends timers in a background tab - and the Google approval
+    // opens in another tab by construction - so the approval sat there
+    // unnoticed until the user thought to switch back. Measured at two minutes
+    // on a real phone for an approval that had already happened.
+    //
+    // Nothing about the pairing needs a browser. The device has the token.
+    void pairTick_() {
+        if (g_pairTok.isEmpty()) return;
+        uint32_t every = (uint32_t)(g_pairIv < 3 ? 3 : g_pairIv) * 1000;
+        if (g_pairPolledAt && millis() - g_pairPolledAt < every) return;
+        g_pairPolledAt = millis();
+
+        String ct, em, err;
+        int st = ttcloud::pairPoll(g_pairTok, ct, em, err);
+        if (st == 1) {
+            g_pairTok = "";
+            if (ttcloud::signInWithCustomToken(ct, em, err)) {
+                String s; ttcloud::syncNow(s);
+                Serial.printf("[account] paired: %s\n", em.c_str());
+            } else {
+                Serial.printf("[account] pairing sign-in failed: %s\n", err.c_str());
+            }
+        } else if (st == 2 || st == 3) {
+            g_pairTok = "";
+            Serial.printf("[account] pairing %s\n", st == 2 ? "denied" : "expired");
+        }
     }
 
     void handleTtGPoll() {
@@ -1252,6 +1285,7 @@ bool webcfg::apActive()   { return apMode; }
 const char* webcfg::apName() { buildNames(); return AP_SSID; }
 const char* webcfg::apPass() { buildNames(); return AP_PASS; }
 int webcfg::apClients()    { return apMode ? WiFi.softAPgetStationNum() : 0; }
+void webcfg::pairTick() { pairTick_(); }
 bool webcfg::webPairing(String& url, String& code, int& secondsLeft) {
     return webPairing_(url, code, secondsLeft);
 }

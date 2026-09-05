@@ -241,4 +241,9 @@ font fallback chain that would restore accents.
   rather than a once-per-boot flag. Verified by temporarily shortening the
   interval to 40 s and watching three checks land in the serial log at 17 s,
   55 s and 95 s; the interval was restored before commit.
+- `webcfg::pairTick()` polls `ttcloud::pairPoll` from main's ST_WEB_PAIR loop.
+  The meta refresh on the wait page was the only thing driving the poll, and
+  iOS suspends background tabs. Measured at two minutes on a real iPhone for an
+  approval that had already happened.- `frame::build(nullptr, ...)` created the title label anyway, so LVGL's
+  placeholder "Text" showed in the header during the OTA download.
 

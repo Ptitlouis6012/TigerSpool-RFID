@@ -618,6 +618,7 @@ void loop() {
             screen_setup::showPairing(purl.c_str(), pcode.c_str(), pleft);
             lvgl_port::loop();
             if (webStarted || webcfg::apActive()) webcfg::loop();
+            webcfg::pairTick();      // the device asks, not the phone
             return;
         }
     }
