@@ -5,7 +5,7 @@
 #
 # WHY THIS EXISTS. LVGL's built-in Montserrat faces are compiled with
 # `-r 0x20-0x7F,0xB0,0x2022` - ASCII, the degree sign and a bullet. Everything
-# else the eight languages of this product need is missing: every French accent,
+# else the languages of this product need is missing: every French accent,
 # every German umlaut, the Spanish tilde, the Polish ogonek. LVGL draws a
 # character it has no glyph for as a blank box and logs nothing, so the
 # translations were written without accents rather than shipped broken - which
@@ -91,6 +91,34 @@ if [ ! -s "$BOLD" ]; then
 fi
 [ -s "$BOLD" ] || { echo "note: no bold face available - skipping the bold sizes" >&2; BOLD=""; }
 
+# Chinese, and why it is required rather than skipped when it cannot be had.
+#
+# Montserrat has no Han characters, so the Chinese column of i18n.cpp is drawn
+# from a SUBSET of Noto Sans SC Medium merged into every face: only the
+# characters scripts/cjk-chars.py finds in the source, a few hundred glyphs,
+# instead of the thousands of the whole typeface. Medium rather than Regular,
+# as on the TigerScale: a Han glyph packs several strokes into the space a Latin
+# letter uses for one, and at 12-16 px on this panel Regular reads thinner than
+# the Montserrat beside it. The bold faces take the same weight - SemiBold and
+# heavier fill the counters at these sizes.
+#
+# SIL OFL 1.1 (THIRD_PARTY_LICENSES.md). Pinned to a release tag so the same
+# command makes the same face next year; fetched and cached like the bold face,
+# never committed.
+#
+# Unlike the bold face this cannot be skipped: faces regenerated without it
+# would overwrite the committed ones and every Chinese string would draw as
+# boxes. No font, no regeneration - exit 3, "could not check".
+CJK_URL="https://raw.githubusercontent.com/notofonts/noto-cjk/Sans2.004/Sans/SubsetOTF/SC/NotoSansSC-Medium.otf"
+CJK="firmware/.pio/fontcache/NotoSansSC-Medium.otf"
+if [ ! -s "$CJK" ]; then
+    mkdir -p "$(dirname "$CJK")"
+    curl -fsSL -o "$CJK" "$CJK_URL" || true
+fi
+[ -s "$CJK" ] || { echo "note: Noto Sans SC not available - cannot regenerate the faces" >&2; exit 3; }
+CJK_CHARS="$(python3 "$(dirname "$0")/cjk-chars.py" 2>/dev/null)"
+[ -n "$CJK_CHARS" ] || { echo "error: no Chinese characters found in the source" >&2; exit 1; }
+
 # The monospace face, for one screen: the NFC tester's page dump.
 #
 # A dump is read down a column - you look for the byte that changed - and that
@@ -115,6 +143,7 @@ for S in $SIZES; do
         --no-compress --no-prefilter --bpp 4 --size "$S" \
         --font "$TTF" -r "$TEXT_RANGE" \
         --font "$AWESOME" -r "$SYMBOLS" \
+        --font "$CJK" --symbols "$CJK_CHARS" \
         --format lvgl -o "$OUT" --force-fast-kern-format
     # lv_font_conv writes the absolute path of whatever it was handed into the
     # banner, which differs between machines and would make the generated file
@@ -139,6 +168,7 @@ if [ -n "$BOLD" ]; then
         npx --yes lv_font_conv@1.5.3 \
             --no-compress --no-prefilter --bpp 4 --size "$S" \
             --font "$BOLD" -r "$TEXT_RANGE" \
+            --font "$CJK" --symbols "$CJK_CHARS" \
             --format lvgl -o "$OUT" --force-fast-kern-format
         python3 "$(dirname "$0")/strip-font-banner.py" "$OUT"
         echo "OK -> $OUT"

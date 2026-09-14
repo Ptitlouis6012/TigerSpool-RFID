@@ -12,6 +12,10 @@ namespace {
 lv_obj_t* s_screen   = nullptr;
 lv_obj_t* s_list     = nullptr;
 lv_obj_t* s_account  = nullptr;
+// The header is built once, with the screen, and only the list below it is
+// rebuilt - so the title has to be told when the language changes, or a
+// device switched to Chinese keeps the title of the language it booted in.
+lv_obj_t* s_title    = nullptr;
 lv_obj_t* s_wifi     = nullptr;
 
 // The level lives in icons::wifiLevelFromRssi. The portal's picker uses the
@@ -48,7 +52,7 @@ void buildScreen() {
     lv_obj_align(header, LV_ALIGN_TOP_MID, 0, 0);
     lv_obj_clear_flag(header, LV_OBJ_FLAG_SCROLLABLE);
 
-    lv_obj_t* title = lv_label_create(header);
+    lv_obj_t* title = s_title = lv_label_create(header);
     lv_label_set_text(title, i18n::T(S_PRINTER));
     // This screen builds its own header rather than using frame::build, so the
     // title's weight has to be set here too - and it has to match, or the home
@@ -132,9 +136,11 @@ namespace screen_home {
 static uint32_t signature(const PrinterCfg* printers, int count,
                           int selected, const uint8_t* state, bool syncing,
                           int wifiRssi, int account) {
+    // The language is in it: the list's own words - no printers yet, all
+    // hidden - are translated too.
     uint32_t h = 2166136261u ^ (uint32_t)selected ^ ((uint32_t)syncing << 16)
                ^ ((uint32_t)icons::wifiLevelFromRssi(wifiRssi) << 24)
-               ^ ((uint32_t)account << 12);
+               ^ ((uint32_t)account << 12) ^ ((uint32_t)i18n::current() << 20);
     for (int i = 0; i < count; i++) {
         h = h * 16777619u ^ (uint32_t)printers[i].type;
         h = h * 16777619u ^ (uint32_t)printers[i].visible;
@@ -155,6 +161,12 @@ void show(const PrinterCfg* printers, int count,
     uint32_t sig = signature(printers, count, selected, state, syncing, wifiRssi, account);
     if (everBuilt && s_active && sig == lastSig) return;
     lastSig = sig; everBuilt = true;
+
+    static Lang titleLang = LANG_N;
+    if (s_title && titleLang != i18n::current()) {
+        titleLang = i18n::current();
+        lv_label_set_text(s_title, i18n::T(S_PRINTER));
+    }
 
     lv_obj_clean(s_list);
     int shown = 0, configured = 0;

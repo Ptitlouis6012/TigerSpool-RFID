@@ -42,7 +42,7 @@ def compiled_range(repo_root: pathlib.Path):
             f"{committed.name} is missing - regenerate it with "
             "'python3 scripts/gen-font-range.py'")
 
-    spec = json.loads(committed.read_text()).get("spec", "")
+    spec = json.loads(committed.read_text(encoding="utf-8")).get("spec", "")
     if not spec:
         raise FontRangeUnavailable(f"{committed.name} carries no range")
 
@@ -53,6 +53,12 @@ def compiled_range(repo_root: pathlib.Path):
             allowed.update(range(int(lo, 16), int(hi, 16) + 1))
         else:
             allowed.add(int(part, 16))
+    # The Chinese subset: characters, not a range - exactly the glyphs the faces
+    # were compiled with, so a Chinese string using one more is caught here.
+    symbols = json.loads(committed.read_text(encoding="utf-8")).get("symbols", "")
+    allowed.update(ord(c) for c in symbols)
+    if symbols:
+        spec = f"{spec} + {len(symbols)} CJK glyphs"
     return allowed, spec
 
 

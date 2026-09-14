@@ -81,7 +81,7 @@ def main() -> int:
     problems = []
     checked = 0
 
-    # --- the device table: 53 strings x 8 languages -----------------------
+    # --- the device table: every string x every language in enum Lang ------
     h = (REPO / "firmware/src/i18n.h").read_text()
     c = (REPO / "firmware/src/i18n.cpp").read_text()
     langs = enum_members(h, "Lang", "LANG_N")

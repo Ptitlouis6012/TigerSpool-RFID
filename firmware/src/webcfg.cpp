@@ -154,7 +154,7 @@ namespace {
                               "Codigo expirado - intenta de nuevo", "Code expire - reessaie" },
     };
     // The web form still carries its own four-column table (PT, EN, ES, FR),
-    // inherited from the prototype. The device now has eight languages, so an
+    // inherited from the prototype. The device now has nine languages, so an
     // unmapped index would read past the end of every row.
     //
     // This maps what it can and falls back to English. The real fix is phase 7:
@@ -579,7 +579,7 @@ namespace {
     //  opens in the language chosen on the device, so someone who picked
     //  Portugues on the screen does not meet an English page on their phone.
     // ------------------------------------------------------------------
-    const char* LANG_CODES[] = { "en", "fr", "de", "es", "it", "pl", "pt", "ptpt" };
+    const char* LANG_CODES[] = { "en", "fr", "de", "es", "it", "pl", "pt", "ptpt", "zh" };
 
     void startBackgroundScan();          // defined below, called from here
 

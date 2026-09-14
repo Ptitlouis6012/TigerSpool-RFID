@@ -104,7 +104,7 @@ MULTILINGUAL = {
 }
 
 SKIP_FILES = {
-    # Eight languages of HTML, on purpose.
+    # Nine languages of HTML, on purpose.
     "firmware/src/net/portal_page.h",
     # This file is a list of non-English words by construction, and quotes the
     # words it was written to catch. Scanning it finds itself, every time.

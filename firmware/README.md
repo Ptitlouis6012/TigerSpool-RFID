@@ -21,11 +21,13 @@ firmware/
     ├── printer_budget.h    how many printers at once - docs/CONNECTION-BUDGET.md
     ├── backend_*.cpp       one backend per brand, one object per printer
     ├── bambu_cloud.cpp     the TLS session every cloud Bambu on an account shares
+    ├── filament_resolve.cpp what a slot is sent, field by field - pure, host-testable
+    ├── product_api.cpp     the TigerTag+ product lookup, on its own task
     ├── reader.cpp          PN532 use, TigerTag decoding
     ├── tigertag_cloud.cpp  account sign-in, pairing, printer import
     ├── tt_db.cpp           reference-table lookups, compiled and downloaded
     ├── webcfg.cpp          captive portal, LAN page, /screen.bmp, /api/*
-    ├── i18n.cpp            every on-screen string, in eight languages
+    ├── i18n.cpp            every on-screen string, in nine languages
     ├── net/                captive DNS, OTA, TLS helpers
     └── ui/                 LVGL screens, theme, icons, generated fonts
 ```

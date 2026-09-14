@@ -7,6 +7,19 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Chinese.** The TigerSpool now speaks simplified Chinese - 中文 is the last
+  entry in the language list, on the device and on the Wi-Fi setup page. The
+  panel draws it from a subset of Noto Sans SC holding only the characters the
+  interface uses, as the TigerScale does. The NFC tester's field names stay in
+  English, as in every language.
+
+### Fixed
+
+- **The home screen's title follows a language change.** It kept the language
+  the device had started in until the next restart.
+
 ## [1.50.0] - 2026-09-14
 
 ### Changed

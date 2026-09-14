@@ -166,9 +166,13 @@ scanning:"Procurando",name:"Nome da rede",kName:"Nome",kAddr:"Endereço",kMac:"M
 ptpt:{net:"Escolha uma rede",pw:"Palavra-passe",join:"Ligar",other:"Outra rede",rescan:"Procurar de novo",
 show:"Mostrar palavra-passe",back:"Voltar",joining:"A ligar",done:"Ligado",
 close:"Pode fechar esta página.",badT:"Palavra-passe incorreta",badB:"Verifique e tente de novo.",
-scanning:"A procurar",name:"Nome da rede",kName:"Nome",kAddr:"Endereço",kMac:"MAC"}};
+scanning:"A procurar",name:"Nome da rede",kName:"Nome",kAddr:"Endereço",kMac:"MAC"},
+zh:{net:"选择网络",pw:"密码",join:"连接",other:"其他网络",rescan:"重新搜索",
+show:"显示密码",back:"返回",joining:"连接中",done:"已连接",
+close:"您可以关闭此页面。",badT:"密码错误",badB:"请检查后重试。",
+scanning:"搜索中",name:"网络名称",kName:"名称",kAddr:"地址",kMac:"MAC"}};
 var N={en:"English",fr:"Français",de:"Deutsch",es:"Español",it:"Italiano",pl:"Polski",
-pt:"Português (BR)",ptpt:"Português (PT)"};
+pt:"Português (BR)",ptpt:"Português (PT)",zh:"中文"};
 var st={lang:"%LANG%",view:"scanning",pick:"",light:false,nets:[],info:null,open:-1,bad:false};
 if(!L[st.lang])st.lang="en";
 var V=document.getElementById("v"),LB=document.getElementById("lb"),LM=document.getElementById("lm");

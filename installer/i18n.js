@@ -1,15 +1,14 @@
 // Translations for the web installer.
 //
-// The eight languages the device itself speaks (firmware/src/i18n.cpp), plus
-// Chinese. Somebody who reads the box in Polish also reads the page that flashes
-// it in Polish. `pt` and `pt-pt` are kept apart on purpose: that split exists in
+// The nine languages the device itself speaks (firmware/src/i18n.cpp).
+// Somebody who reads the box in Polish also reads the page that flashes it in
+// Polish. `pt` and `pt-pt` are kept apart on purpose: that split exists in
 // the firmware too, and Brazilian and European Portuguese differ in exactly the
 // words this page uses.
 //
-// Chinese is HERE and not on the device, and the difference is the font. The
-// panel draws from a Montserrat subset with no CJK glyphs, so a Chinese string
-// would reach it as a row of empty boxes. A browser has the whole system font
-// and simply renders it.
+// Chinese came to this page first, because a browser has the whole system font.
+// The panel now draws it too, from a Noto Sans SC subset compiled into its faces
+// (scripts/make-ui-font.sh).
 //
 // Unlike the device's strings, these carry accents. This is HTML rendered by a
 // browser, not LVGL drawing from a font subset that has none.
@@ -50,7 +49,7 @@ en: {
   serial_b: "The usual cause is a charge-only USB cable. The board lights up, the screen works, and no computer ever sees it. Try a cable you know transfers files.",
 
   s3_title: "Set it up on the box",
-  a1_html: "<b>Pick your language.</b> Eight of them, before anything else.",
+  a1_html: "<b>Pick your language.</b> Nine of them, before anything else.",
   a2_html: "<b>Join Wi-Fi.</b> The box shows a QR code. Scan it with your phone and a page opens listing the networks it can see — pick yours and type the password on the phone. Nothing is typed on the small screen, and the box does not reboot.",
   a3_html: "<b>Sign in</b> to your TigerTag account, by e-mail or with Google through a second QR code.",
   a4_html: "<b>Your printers arrive</b> from your account.",
@@ -113,7 +112,7 @@ fr: {
   serial_b: "La cause habituelle est un câble USB de charge seule. La carte s'allume, l'écran fonctionne, et aucun ordinateur ne la voit. Essayez un câble dont vous savez qu'il transfère des fichiers.",
 
   s3_title: "La configurer sur le boîtier",
-  a1_html: "<b>Choisissez votre langue.</b> Huit, avant toute chose.",
+  a1_html: "<b>Choisissez votre langue.</b> Neuf, avant toute chose.",
   a2_html: "<b>Rejoignez le Wi-Fi.</b> Le boîtier affiche un QR code. Scannez-le avec votre téléphone : une page s'ouvre avec les réseaux qu'il voit — choisissez le vôtre et tapez le mot de passe sur le téléphone. Rien n'est saisi sur le petit écran, et le boîtier ne redémarre pas.",
   a3_html: "<b>Connectez-vous</b> à votre compte TigerTag, par e-mail ou avec Google via un second QR code.",
   a4_html: "<b>Vos imprimantes arrivent</b> depuis votre compte.",
@@ -176,7 +175,7 @@ de: {
   serial_b: "Meist liegt es an einem reinen Ladekabel. Das Board leuchtet, das Display läuft, und kein Computer sieht es. Nehmen Sie ein Kabel, von dem Sie wissen, dass es Dateien überträgt.",
 
   s3_title: "Am Gerät einrichten",
-  a1_html: "<b>Sprache wählen.</b> Acht davon, noch vor allem anderen.",
+  a1_html: "<b>Sprache wählen.</b> Neun davon, noch vor allem anderen.",
   a2_html: "<b>WLAN verbinden.</b> Das Gerät zeigt einen QR-Code. Mit dem Telefon scannen, eine Seite listet die sichtbaren Netze — Ihres wählen und das Passwort am Telefon eingeben. Nichts wird auf dem kleinen Display getippt, und das Gerät startet nicht neu.",
   a3_html: "<b>Anmelden</b> an Ihrem TigerTag-Konto, per E-Mail oder mit Google über einen zweiten QR-Code.",
   a4_html: "<b>Ihre Drucker erscheinen</b> aus Ihrem Konto.",
@@ -239,7 +238,7 @@ es: {
   serial_b: "La causa habitual es un cable USB de solo carga. La placa se enciende, la pantalla funciona, y ningún ordenador la ve. Prueba un cable que sepas que transfiere archivos.",
 
   s3_title: "Configurarla en la caja",
-  a1_html: "<b>Elige tu idioma.</b> Ocho, antes que nada.",
+  a1_html: "<b>Elige tu idioma.</b> Nueve, antes que nada.",
   a2_html: "<b>Conecta el Wi-Fi.</b> La caja muestra un código QR. Escanéalo con el móvil y se abre una página con las redes que ve — elige la tuya y escribe la contraseña en el móvil. Nada se teclea en la pantalla pequeña, y la caja no se reinicia.",
   a3_html: "<b>Inicia sesión</b> en tu cuenta TigerTag, por correo o con Google mediante un segundo QR.",
   a4_html: "<b>Tus impresoras llegan</b> desde tu cuenta.",
@@ -302,7 +301,7 @@ it: {
   serial_b: "La causa abituale è un cavo USB di sola ricarica. La scheda si accende, lo schermo funziona, e nessun computer la vede. Prova un cavo che sai trasferire file.",
 
   s3_title: "Configurarla sulla scatola",
-  a1_html: "<b>Scegli la lingua.</b> Otto, prima di tutto il resto.",
+  a1_html: "<b>Scegli la lingua.</b> Nove, prima di tutto il resto.",
   a2_html: "<b>Collegati al Wi-Fi.</b> La scatola mostra un QR. Inquadralo col telefono e si apre una pagina con le reti che vede — scegli la tua e digita la password sul telefono. Nulla si digita sullo schermo piccolo, e la scatola non si riavvia.",
   a3_html: "<b>Accedi</b> al tuo account TigerTag, via e-mail o con Google tramite un secondo QR.",
   a4_html: "<b>Le tue stampanti arrivano</b> dal tuo account.",
@@ -365,7 +364,7 @@ pl: {
   serial_b: "Zwykle winny jest kabel USB tylko do ładowania. Płytka się świeci, ekran działa, a żaden komputer jej nie widzi. Spróbuj kabla, o którym wiesz, że przesyła pliki.",
 
   s3_title: "Konfiguracja na urządzeniu",
-  a1_html: "<b>Wybierz język.</b> Osiem, zanim cokolwiek innego.",
+  a1_html: "<b>Wybierz język.</b> Dziewięć, zanim cokolwiek innego.",
   a2_html: "<b>Połącz z Wi-Fi.</b> Urządzenie pokazuje kod QR. Zeskanuj go telefonem — otworzy się strona z widocznymi sieciami; wybierz swoją i wpisz hasło na telefonie. Nic nie wpisuje się na małym ekranie, a urządzenie się nie restartuje.",
   a3_html: "<b>Zaloguj się</b> na konto TigerTag, e-mailem albo przez Google drugim kodem QR.",
   a4_html: "<b>Twoje drukarki pojawiają się</b> z konta.",
@@ -428,7 +427,7 @@ pt: {
   serial_b: "A causa habitual é um cabo USB só de carga. A placa acende, a tela funciona, e nenhum computador a enxerga. Tente um cabo que você sabe que transfere arquivos.",
 
   s3_title: "Configurar na caixa",
-  a1_html: "<b>Escolha seu idioma.</b> Oito, antes de tudo.",
+  a1_html: "<b>Escolha seu idioma.</b> Nove, antes de tudo.",
   a2_html: "<b>Entre no Wi-Fi.</b> A caixa mostra um QR code. Escaneie com o celular e abre uma página com as redes que ela vê — escolha a sua e digite a senha no celular. Nada é digitado na tela pequena, e a caixa não reinicia.",
   a3_html: "<b>Entre</b> na sua conta TigerTag, por e-mail ou com Google via um segundo QR code.",
   a4_html: "<b>Suas impressoras chegam</b> da sua conta.",
@@ -491,7 +490,7 @@ pt: {
   serial_b: "A causa habitual é um cabo USB apenas de carga. A placa acende, o ecrã funciona, e nenhum computador a vê. Experimente um cabo que saiba que transfere ficheiros.",
 
   s3_title: "Configurá-la na caixa",
-  a1_html: "<b>Escolha o seu idioma.</b> Oito, antes de tudo o resto.",
+  a1_html: "<b>Escolha o seu idioma.</b> Nove, antes de tudo o resto.",
   a2_html: "<b>Ligue-se ao Wi-Fi.</b> A caixa mostra um código QR. Leia-o com o telemóvel e abre-se uma página com as redes que ela vê — escolha a sua e escreva a palavra-passe no telemóvel. Nada é escrito no ecrã pequeno, e a caixa não reinicia.",
   a3_html: "<b>Inicie sessão</b> na sua conta TigerTag, por e-mail ou com Google através de um segundo código QR.",
   a4_html: "<b>As suas impressoras chegam</b> da sua conta.",
@@ -554,7 +553,7 @@ zh: {
   serial_b: "通常是因为用了只能充电的 USB 线。板子会亮、屏幕会工作，但电脑始终看不到它。换一根你确定能传文件的线试试。",
 
   s3_title: "在设备上完成设置",
-  a1_html: "<b>选择语言。</b>共八种，在其他一切之前。",
+  a1_html: "<b>选择语言。</b>共九种，在其他一切之前。",
   a2_html: "<b>连接 Wi-Fi。</b>设备显示一个二维码。用手机扫描后会打开一个页面，列出它能看到的网络 —— 选择你的网络并在手机上输入密码。小屏幕上不用输入任何内容，设备也不会重启。",
   a3_html: "<b>登录</b>你的 TigerTag 账户，用邮箱，或者通过第二个二维码用 Google 登录。",
   a4_html: "<b>你的打印机会出现</b>，来自你的账户。",

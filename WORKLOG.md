@@ -1353,3 +1353,40 @@ ten, not by memory.
   Benoit's point: two accent lines under each other read as one name.
   Captured on the bench.
 
+## 2026-09-15 - Chinese
+
+### Added
+
+- LANG_ZH, last in enum Lang so every stored index keeps its meaning (no
+  LANG_SCHEMA bump - appending needs none). A ninth column on all 148 rows of
+  the STR table; vocabulary aligned with the TigerScale's Chinese column
+  (设置, 账户, 打印机, 耗材/料盘, 更新...). The NFC tester rows that are the
+  same in every language stay English. NAMES: "中文". The Wi-Fi portal page
+  gets a zh block and a "zh" language code; the four-column legacy page table
+  still falls back to English for it, as it does for four other languages.
+- The font, as the TigerScale does it: a subset of Noto Sans SC Medium
+  (Sans2.004, OFL 1.1) holding only the characters the source uses, listed by
+  the new scripts/cjk-chars.py (216 glyphs today), merged with --symbols into
+  every regular and bold UI face by make-ui-font.sh - so no fallback chain is
+  needed. Unlike the bold face the download is required: faces rebuilt without
+  it would overwrite the committed ones, so the script exits 3 instead.
+- gen-font-range.py records the subset in font_range.json ("symbols") and
+  checks every face carries the same one; font_range.py adds it to the allowed
+  set, so check-ui-fonts.py fails on a Chinese character the faces lack.
+- Flash: 2 189 201 bytes, 52% of an OTA slot (was ~1.99 MB).
+- README, firmware/README, installer page ("nine"), THIRD_PARTY_LICENSES,
+  CLAUDE.md, CODEMAP updated.
+
+### Verified
+
+- Bench, language set to Chinese: settings menu, Wi-Fi screen, setup QR screen
+  with the padlock, printer list with the load gauge, the slot grid (外置), and
+  the language picker scrolled to 中文 - all drawn, no boxes. Put back to French.
+- Benoit, in Chinese: the home screen's header still said "Imprimantes". The
+  home screen builds its header once, with the screen, and rebuilds only the
+  list - so the title kept the language the device booted in, in any language,
+  not only Chinese. s_title is now updated whenever the language differs from
+  the one it was drawn in, and the language is part of the list's signature so
+  its own words follow too. Bench, from the home screen without a restart:
+  打印机 -> Imprimantes -> 打印机.
+

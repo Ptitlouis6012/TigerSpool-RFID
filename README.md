@@ -18,7 +18,7 @@
   <img src="https://img.shields.io/badge/Platform-ESP32--S3-blue.svg" alt="Platform: ESP32-S3">
   <img src="https://img.shields.io/badge/Build-PlatformIO-orange.svg" alt="Build: PlatformIO">
   <img src="https://img.shields.io/badge/UI-LVGL%208.4-6c3.svg" alt="UI: LVGL 8.4">
-  <img src="https://img.shields.io/badge/Languages-8-informational.svg" alt="8 languages">
+  <img src="https://img.shields.io/badge/Languages-9-informational.svg" alt="9 languages">
 </p>
 
 <p align="center">
@@ -67,7 +67,8 @@ identity. TigerSpool is the thirty centimetres between them.
   assignment reaches the printer over its own protocol.
 - **Your printers come from your account.** They are configured once, in Tiger
   Studio Manager, and every TigerSpool you own reads the same list.
-- **It speaks eight languages** and asks which one before anything else.
+- **It speaks nine languages** - English, French, German, Spanish, Italian,
+  Polish, both Portuguese and Chinese - and asks which one before anything else.
 - **It updates itself.** Over the air, verified, from this repository's releases.
 
 ## Before you start
@@ -127,7 +128,7 @@ failing quietly.
 
 ### Step 2 — set it up on the box
 
-1. **Pick your language.** Eight of them, before anything else.
+1. **Pick your language.** Nine of them, before anything else.
 2. **Join Wi-Fi.** The box shows a QR code. Scan it with your phone, and a page
    opens listing the networks it can see. Pick yours, type the password on your
    phone, and the box joins — no reboot, nothing typed on the small screen.
