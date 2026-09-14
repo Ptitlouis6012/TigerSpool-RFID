@@ -7,6 +7,13 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Slot names are bold and larger** on a printer's slot screen - Ext., 1A,
+  A1 - so the slot is easy to find at a glance.
+- **A brand too long for its slot is cut with one dot, not three**, on every
+  printer: "Durami." instead of "Dura...", two more letters to recognise it by.
+
 ## [1.49.2] - 2026-09-14
 
 ### Fixed

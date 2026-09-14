@@ -1292,3 +1292,24 @@ ten, not by memory.
   TigerSpool to 1D: frame `"minTemp":190.0,"maxTemp":240.0`; read back 190/240,
   same as the app's write to 1C.
 
+## 2026-09-14 - slot names in bold
+
+### Changed
+
+- screen_slots.cpp: the slot name above each colour block is font_ui_bold_16
+  (Montserrat SemiBold), up from font_ui_12 regular - Benoit's request. 16 is
+  the only bold size compiled in.
+
+### Verified
+
+- Bench: X1C (Ext., B1-B4) and Anycubic Kobra X (A1-A4) grids drawn in bold,
+  nothing clipped. Not new, but a little closer now: the slot body does not
+  scroll, and a printer with a third row of slots (a Bambu with two AMS, an
+  Anycubic with more ACE units) already ran past the bottom of the panel.
+- The brand under each slot, when it does not fit the 51 px cell, is cut
+  with a single "." (`setFittedText()` in screen_slots.cpp, whole UTF-8
+  characters, trailing space dropped before the dot) instead of LVGL's "...".
+  Applies to every printer's slot screen. LV_LABEL_DOT_NUM left alone: it would
+  change every truncated label in the product. Bench: "Duramic 3D" under the
+  Ender-3's 1C and 1D reads "Durami.".
+

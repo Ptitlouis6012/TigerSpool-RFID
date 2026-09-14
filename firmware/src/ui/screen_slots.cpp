@@ -10,6 +10,7 @@ static const char* LINK_HELP_URL = "https://wiki.tigersystem.io";
 #include "theme.h"
 #include "i18n.h"
 #include <lvgl.h>
+#include <cstring>
 
 namespace {
 // The white margin a scanner needs around a QR code, in pixels, on every side.
@@ -59,6 +60,34 @@ uint32_t signature(PrinterBackend* b, int n, int selected, int link) {
     }
     return h;
 }
+// Text cut to a width with ONE dot where it was cut, not LVGL's three.
+//
+// Under a 51 px slot a brand gets six or seven letters, and "..." spends two
+// of them saying nothing a single "." does not: "Duramic 3D" reads "Duram..."
+// with three, "Duramic." with one. LV_LABEL_DOT_NUM would do it for every
+// label in the product; this is only for the brands under the slots.
+// Characters are removed whole - a UTF-8 accent is two bytes - so a cut never
+// leaves half a letter for the panel to draw as a box.
+void setFittedText(lv_obj_t* label, const char* text, const lv_font_t* font, lv_coord_t width) {
+    lv_point_t size;
+    lv_txt_get_size(&size, text, font, 0, 0, LV_COORD_MAX, LV_TEXT_FLAG_NONE);
+    if (size.x <= width) { lv_label_set_text(label, text); return; }
+
+    char buf[64];
+    size_t len = strlen(text);
+    if (len > sizeof(buf) - 2) len = sizeof(buf) - 2;
+    memcpy(buf, text, len);
+    while (len > 0) {
+        do { len--; } while (len > 0 && ((uint8_t)buf[len] & 0xC0) == 0x80);
+        while (len > 0 && buf[len - 1] == ' ') len--;     // "Duramic ." -> "Duramic."
+        buf[len] = '.';
+        buf[len + 1] = '\0';
+        lv_txt_get_size(&size, buf, font, 0, 0, LV_COORD_MAX, LV_TEXT_FLAG_NONE);
+        if (size.x <= width) break;
+    }
+    lv_label_set_text(label, buf);
+}
+
 }  // namespace
 
 namespace screen_slots {
@@ -318,10 +347,11 @@ void show(const char* printerName, PrinterBackend* backend,
         // shrinks the circle until the colour stops carrying.
         lv_obj_t* label = lv_label_create(cell);
         lv_label_set_text(label, backend->slotLabel(i));
-        lv_obj_set_style_text_font(label, &font_ui_12, 0);
-        // White, like the brand below: at 12 px on black the dim grey was
-        // hard to read, and the slot name is what someone matches against the
-        // machine in front of them.
+        // Bold and larger than the rest of the cell, in white: the slot name
+        // - Ext., 1A, A1 - is what someone matches against the machine in
+        // front of them, and at 12 px regular it read as a footnote. The
+        // only bold face compiled in is 16 px.
+        lv_obj_set_style_text_font(label, &font_ui_bold_16, 0);
         lv_obj_set_style_text_color(label, lv_color_hex(theme::TEXT), 0);
 
         lv_obj_t* block = lv_obj_create(cell);
@@ -362,16 +392,17 @@ void show(const char* printerName, PrinterBackend* backend,
         lv_obj_center(mat);
 
         lv_obj_t* brand = lv_label_create(cell);
-        lv_label_set_text(brand, st.brand.length() ? st.brand.c_str() : "-");
-        lv_label_set_long_mode(brand, LV_LABEL_LONG_DOT);
-        lv_obj_set_width(brand, CELL_W);
         // One line, or a long vendor wraps and pushes its cell taller than the
         // three beside it - "Snapmaker" came out as "Snapma / ker" and took the
-        // row with it. With the height pinned, LONG_DOT ellipsises instead.
+        // row with it. Cut to the cell with a single dot, and clipped rather
+        // than left to LVGL, which would add its own three.
+        lv_label_set_long_mode(brand, LV_LABEL_LONG_CLIP);
+        lv_obj_set_width(brand, CELL_W);
         lv_obj_set_height(brand, 14);
         lv_obj_set_style_text_align(brand, LV_TEXT_ALIGN_CENTER, 0);
         lv_obj_set_style_text_color(brand, lv_color_hex(theme::TEXT), 0);
         lv_obj_set_style_text_font(brand, &font_ui_12, 0);
+        setFittedText(brand, st.brand.length() ? st.brand.c_str() : "-", &font_ui_12, CELL_W);
     }
 
     // Not on a cloud printer: it has no slots here because nothing is
