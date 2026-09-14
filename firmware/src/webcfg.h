@@ -19,6 +19,7 @@
 namespace webcfg {
     void begin();              // station mode, on the local network
     void beginAP();            // access point + captive portal
+    void endAP();              // and back down, without joining anything
     void loop();               // call from the main loop
     bool apActive();
     String url();              // the address to show the user

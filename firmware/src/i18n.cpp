@@ -173,6 +173,11 @@ static const Row STR[S_COUNT] = {
 /* S_NT_NOKEY       */ {{ "NO KEY", "NO KEY", "NO KEY", "NO KEY", "NO KEY", "NO KEY", "NO KEY", "NO KEY" }},
 /* S_LOAD           */ {{ "Load", "Charge", "Auslastung", "Carga", "Carico", "Obciążenie", "Carga", "Carga" }},
 /* S_NO_ROOM        */ {{ "Not enough room", "Plus assez de place", "Kein Platz mehr", "No queda espacio", "Spazio esaurito", "Brak miejsca", "Sem espaço", "Sem espaço" }},
+/* S_SIG_EXCELLENT  */ {{ "Excellent", "Excellent", "Ausgezeichnet", "Excelente", "Eccellente", "Doskonały", "Excelente", "Excelente" }},
+/* S_SIG_GOOD       */ {{ "Good", "Bon", "Gut", "Buena", "Buono", "Dobry", "Bom", "Bom" }},
+/* S_SIG_FAIR       */ {{ "Fair", "Moyen", "Mittel", "Media", "Medio", "Średni", "Médio", "Médio" }},
+/* S_SIG_WEAK       */ {{ "Weak", "Faible", "Schwach", "Débil", "Debole", "Słaby", "Fraco", "Fraco" }},
+/* S_CHANNEL        */ {{ "Channel", "Canal", "Kanal", "Canal", "Canale", "Kanał", "Canal", "Canal" }},
 };
 
 // A mismatch here is silent at runtime and reads as garbled text on screen, so

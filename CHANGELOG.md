@@ -7,6 +7,19 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **The Wi-Fi settings screen is clearer.** The network gets a card of its
+  own with the Wi-Fi wave, its name in bold and the signal as a word in colour
+  - Excellent, Good, Fair, Weak - beside the dBm. The address, MAC and the
+  Wi-Fi channel sit in a second card, in bold.
+- **Changing network can be backed out of.** The setup screen opened from
+  Settings > Wi-Fi > Change network now has a header with a back arrow: it
+  closes the setup access point, rejoins the saved network and returns to the
+  Wi-Fi screen. A first start, with no network to go back to, is unchanged.
+- **The setup access point's password has a padlock in front of it**, so it
+  reads as the Wi-Fi password rather than a second line of the network name.
+
 ## [1.49.3] - 2026-09-14
 
 ### Changed

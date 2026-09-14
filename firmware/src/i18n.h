@@ -170,6 +170,11 @@ enum StrId : uint8_t {
     S_NT_NOKEY,
     S_LOAD,
     S_NO_ROOM,
+    S_SIG_EXCELLENT,
+    S_SIG_GOOD,
+    S_SIG_FAIR,
+    S_SIG_WEAK,
+    S_CHANNEL,
     S_COUNT
 };
 

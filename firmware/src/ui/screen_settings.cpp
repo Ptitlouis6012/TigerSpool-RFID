@@ -546,7 +546,9 @@ int  s_newRot    = screen_settings::ROT_NONE;
 // a second. Valid only while s_viewSig still names the screen that made them.
 lv_obj_t* s_ring      = nullptr;   // OTA progress ring
 lv_obj_t* s_ringPct   = nullptr;
-lv_obj_t* s_signal    = nullptr;   // Wi-Fi strength readout
+lv_obj_t* s_signal    = nullptr;   // Wi-Fi strength readout, in dBm
+lv_obj_t* s_quality   = nullptr;   // the same strength as a word
+lv_obj_t* s_wave      = nullptr;   // and as the wave, as on the home header
 
 void onAction(lv_event_t* e) {
     s_action = (screen_settings::Action)(intptr_t)lv_event_get_user_data(e);
@@ -648,48 +650,145 @@ int  takeBrightness() { int v = s_newBright; s_newBright = -1; return v; }
 int  takeSleep()      { int v = s_newSleep;  s_newSleep  = -1; return v; }
 int  takeRotation()   { int v = s_newRot; s_newRot = ROT_NONE; return v; }
 
-void showWifi(const char* ssid, const char* ip, const char* mac, bool connected,
-              int rssi) {
-    // The signal moves by a decibel or two every second. Hashed into the
-    // signature it rebuilt this screen continuously; it is written into its
-    // label instead.
-    char sig_[16];
-    snprintf(sig_, sizeof(sig_), "%d dBm", rssi);
+// A card: the row style's outline around a flex column, no fill.
+static lv_obj_t* wifiCard(lv_obj_t* parent, lv_coord_t padV) {
+    lv_obj_t* c = lv_obj_create(parent);
+    lv_obj_remove_style_all(c);
+    lv_obj_add_style(c, theme::rowStyle(), 0);
+    lv_obj_set_width(c, LV_PCT(100));
+    lv_obj_set_height(c, LV_SIZE_CONTENT);
+    lv_obj_set_style_pad_hor(c, 12, 0);
+    lv_obj_set_style_pad_ver(c, padV, 0);
+    lv_obj_clear_flag(c, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_clear_flag(c, LV_OBJ_FLAG_CLICKABLE);
+    return c;
+}
 
-    uint32_t sig = 0xA0000000u ^ hashOf(ssid) ^ hashOf(ip) ^ (uint32_t)connected;
+// One detail line: the name dim on the left, the value white on the right,
+// both bold - the 12 px regular rows this replaced were the hardest text in
+// the settings to read. 16 px is the only bold face compiled in.
+static void wifiDetail(lv_obj_t* card, const char* k, const char* v) {
+    lv_obj_t* row = lv_obj_create(card);
+    lv_obj_remove_style_all(row);
+    lv_obj_set_size(row, LV_PCT(100), 26);
+    lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_t* a = lv_label_create(row);
+    lv_label_set_text(a, k);
+    lv_obj_set_style_text_font(a, &font_ui_bold_16, 0);
+    lv_obj_set_style_text_color(a, lv_color_hex(theme::TEXT_DIM), 0);
+    lv_obj_align(a, LV_ALIGN_LEFT_MID, 0, 0);
+    lv_obj_t* b = lv_label_create(row);
+    lv_label_set_text(b, v);
+    lv_obj_set_style_text_font(b, &font_ui_bold_16, 0);
+    lv_obj_set_style_text_color(b, lv_color_hex(theme::TEXT), 0);
+    lv_obj_align(b, LV_ALIGN_RIGHT_MID, 0, 0);
+}
+
+// Signal as a word and a colour, from the same thresholds as the wave's arcs.
+static void wifiQuality(int level, bool connected, const char*& word, uint32_t& colour) {
+    if (!connected) { word = "-"; colour = theme::TEXT_DIM; return; }
+    switch (level) {
+        case 3:  word = i18n::T(S_SIG_EXCELLENT); colour = theme::OK;     break;
+        case 2:  word = i18n::T(S_SIG_GOOD);      colour = theme::OK;     break;
+        case 1:  word = i18n::T(S_SIG_FAIR);      colour = theme::WARN;   break;
+        default: word = i18n::T(S_SIG_WEAK);      colour = theme::DANGER; break;
+    }
+}
+
+// Wi-Fi, laid out to answer the two questions people open it with - which
+// network, and is it any good - before the numbers only a router needs.
+//
+// The network is a card of its own: the wave, drawn exactly as on the home
+// header so the two read as one thing, the network's name in bold, and the
+// signal as a word in its colour with the dBm beside it. "-72 dBm" alone was
+// correct and told nobody whether to move the box. The address, the MAC (a
+// DHCP reservation needs it, and nothing else on the device shows it) and the
+// channel go in a second card, at 14 px.
+void showWifi(const char* ssid, const char* ip, const char* mac, bool connected, int channel,
+              int rssi) {
+    const int level = icons::wifiLevelFromRssi(rssi);
+    char dbm[16];
+    snprintf(dbm, sizeof(dbm), "%d dBm", rssi);
+    const char* word; uint32_t colour;
+    wifiQuality(level, connected, word, colour);
+
+    // The signal moves by a decibel or two every second. Hashed into the
+    // signature it rebuilt this screen continuously; the three things that
+    // show it are updated in place instead.
+    uint32_t sig = 0xA0000000u ^ hashOf(ssid) ^ hashOf(ip) ^ (uint32_t)connected
+                 ^ ((uint32_t)channel << 20);
     if (sameView((const void*)showWifi, sig)) {
-        if (s_signal) lv_label_set_text(s_signal, connected ? sig_ : "-");
+        if (s_signal)  lv_label_set_text(s_signal, connected ? dbm : "");
+        if (s_quality) {
+            lv_label_set_text(s_quality, word);
+            lv_obj_set_style_text_color(s_quality, lv_color_hex(colour), 0);
+        }
+        if (s_wave) icons::setSignal(s_wave, level, connected);
         return;
     }
     claimView((const void*)showWifi, sig);
-    s_signal = nullptr;
 
     lv_obj_t* body = frame::build("Wi-Fi", onBack);
     lv_obj_set_flex_align(body, LV_FLEX_ALIGN_START,
                           LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
-    lv_obj_t* name = lv_label_create(body);
-    lv_label_set_text(name, connected ? ssid : i18n::T(S_NO_NETWORK));
-    lv_label_set_long_mode(name, LV_LABEL_LONG_DOT);
-    lv_obj_set_width(name, LV_PCT(100));
-    lv_obj_set_style_text_font(name, &font_ui_20, 0);
-    lv_obj_set_style_text_color(name, lv_color_hex(connected ? theme::OK : theme::TEXT_DIM), 0);
-    lv_obj_set_style_pad_bottom(name, 16, 0);
+    // ---- the network --------------------------------------------------------
+    lv_obj_t* net = wifiCard(body, 12);
+    lv_obj_set_flex_flow(net, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(net, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(net, 12, 0);
 
-    // The address and the MAC, because a DHCP reservation needs the second one
-    // and there is nowhere else on the device to read it. See docs/ONBOARDING.md.
-    // The number behind the colour of the home screen's Wi-Fi glyph. Printed
-    // because "the icon is orange" is not something anyone can act on, and
-    // dBm is - it says move the box or move the router.
-    // kv() hands back the row; the value is its second child.
-    s_signal = lv_obj_get_child(
-        kv(body, i18n::T(S_SIGNAL), connected ? sig_ : "-", theme::TEXT), 1);
-    kv(body, "IP", ip, theme::TEXT);
-    kv(body, "MAC", mac, theme::TEXT);
+    s_wave = icons::wifiWave(net);
+    icons::setSignal(s_wave, level, connected);
+
+    lv_obj_t* text = lv_obj_create(net);
+    lv_obj_remove_style_all(text);
+    lv_obj_set_flex_grow(text, 1);
+    lv_obj_set_height(text, LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(text, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(text, 2, 0);
+    lv_obj_clear_flag(text, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_clear_flag(text, LV_OBJ_FLAG_CLICKABLE);
+
+    lv_obj_t* name = lv_label_create(text);
+    lv_label_set_text(name, connected ? ssid : i18n::T(S_NO_NETWORK));
+    lv_label_set_long_mode(name, connected ? LV_LABEL_LONG_DOT : LV_LABEL_LONG_WRAP);
+    lv_obj_set_width(name, LV_PCT(100));
+    lv_obj_set_style_text_font(name, &font_ui_bold_16, 0);
+    lv_obj_set_style_text_color(name, lv_color_hex(connected ? theme::TEXT : theme::TEXT_DIM), 0);
+
+    s_quality = nullptr; s_signal = nullptr;
+    if (connected) {
+        lv_obj_t* line = lv_obj_create(text);
+        lv_obj_remove_style_all(line);
+        lv_obj_set_size(line, LV_PCT(100), LV_SIZE_CONTENT);
+        lv_obj_set_flex_flow(line, LV_FLEX_FLOW_ROW);
+        lv_obj_set_flex_align(line, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_END);
+        lv_obj_set_style_pad_column(line, 6, 0);
+        lv_obj_clear_flag(line, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_clear_flag(line, LV_OBJ_FLAG_CLICKABLE);
+        s_quality = lv_label_create(line);
+        lv_label_set_text(s_quality, word);
+        lv_obj_set_style_text_font(s_quality, &font_ui_14, 0);
+        lv_obj_set_style_text_color(s_quality, lv_color_hex(colour), 0);
+        s_signal = lv_label_create(line);
+        lv_label_set_text(s_signal, dbm);
+        lv_obj_set_style_text_font(s_signal, &font_ui_12, 0);
+        lv_obj_set_style_text_color(s_signal, lv_color_hex(theme::TEXT_DIM), 0);
+    }
+
+    // ---- the numbers --------------------------------------------------------
+    lv_obj_t* details = wifiCard(body, 6);
+    lv_obj_set_flex_flow(details, LV_FLEX_FLOW_COLUMN);
+    wifiDetail(details, "IP", ip);
+    wifiDetail(details, "MAC", mac);
+    char ch[8];
+    snprintf(ch, sizeof(ch), "%d", channel);
+    wifiDetail(details, i18n::T(S_CHANNEL), connected && channel > 0 ? ch : "-");
 
     lv_obj_t* spacer = lv_obj_create(body);
     lv_obj_remove_style_all(spacer);
-    lv_obj_set_size(spacer, 1, 18);
+    lv_obj_set_size(spacer, 1, 4);
 
     frame::button(body, i18n::T(S_CHANGE_NETWORK), 0,
                   []() { s_action = A_CHANGE_WIFI; });

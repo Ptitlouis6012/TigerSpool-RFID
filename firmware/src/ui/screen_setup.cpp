@@ -1,6 +1,7 @@
 #include "screen_setup.h"
 #include "fonts.h"
 #include "theme.h"
+#include "icons.h"
 #include "i18n.h"
 #include <Arduino.h>
 
@@ -125,17 +126,21 @@ lv_obj_t* frame(const char* title, bool withBack = false) {
         lv_obj_set_size(b, 56, theme::HEADER_H);
         lv_obj_align(b, LV_ALIGN_LEFT_MID, 0, 0);
         lv_obj_add_event_cb(b, onBack, LV_EVENT_PRESSED, nullptr);
+        // The same chevron and title as frame::build in Settings - white, 24 px,
+        // a bold title - so a setup screen reached from Settings does not look
+        // like it belongs to another product.
         lv_obj_t* g = lv_label_create(b);
         lv_label_set_text(g, LV_SYMBOL_LEFT);
-        lv_obj_set_style_text_font(g, &font_ui_20, 0);
-        lv_obj_set_style_text_color(g, lv_color_hex(theme::TEXT_DIM), 0);
+        lv_obj_set_style_text_font(g, &font_ui_24, 0);
+        lv_obj_set_style_text_color(g, lv_color_hex(theme::TEXT), 0);
         lv_obj_center(g);
         titleX = 56;
     }
 
     lv_obj_t* t = lv_label_create(header);
     lv_label_set_text(t, title);
-    lv_obj_set_style_text_font(t, &font_ui_16, 0);
+    lv_obj_set_style_text_font(t, &font_ui_bold_16, 0);
+    lv_obj_set_style_text_color(t, lv_color_hex(theme::TEXT), 0);
     lv_obj_align(t, LV_ALIGN_LEFT_MID, titleX, 0);
 
     s_body = lv_obj_create(s_screen);
@@ -303,8 +308,16 @@ void showLanguage(bool force, bool withBack) {
 
 int takeLanguage() { int v = s_lang; s_lang = -1; return v; }
 
-void showWifi(const char* apSsid, const char* apPass) {
-    frame(nullptr);            // no header: the QR explains itself
+void showWifi(const char* apSsid, const char* apPass, bool withBack) {
+    // No header on a first boot: the QR explains itself, and there is nowhere
+    // to go back to. Reached from Settings > Wi-Fi > Change network there is -
+    // the saved network is still there - and a screen with no way out left
+    // the device stuck in setup for someone who only wanted to look. The
+    // header costs 44 px, taken back from the air around the square.
+    frame(withBack ? "Wi-Fi" : nullptr, withBack);
+    const lv_coord_t airAbove = withBack ? 4 : 20;
+    const lv_coord_t airBelow = withBack ? 6 : 22;
+    const lv_coord_t qrSize   = withBack ? 112 : 132;
 
     // Two instructions, one per route, each sitting with the thing it describes:
     // the scan line above the QR, the join line above the network name. Reading
@@ -319,7 +332,7 @@ void showWifi(const char* apSsid, const char* apPass) {
     lv_obj_set_style_text_align(scan, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_style_text_font(scan, &font_ui_16, 0);
     lv_obj_set_style_text_color(scan, lv_color_hex(theme::TEXT), 0);
-    lv_obj_set_style_pad_bottom(scan, 20, 0);   // air before the square
+    lv_obj_set_style_pad_bottom(scan, airAbove, 0);   // air before the square
 
     // The standard Wi-Fi join format, which both phone cameras recognise
     // natively - no app, and no SSID read off a small screen and typed.
@@ -328,11 +341,11 @@ void showWifi(const char* apSsid, const char* apPass) {
     // needs it printed, which is why it is on the screen as well.
     char payload[128];
     snprintf(payload, sizeof(payload), "WIFI:T:WPA;S:%s;P:%s;;", apSsid, apPass);
-    qr(payload);
+    qr(payload, qrSize);
 
     // The fallback route, for a camera that will not scan.
     lv_obj_t* orJoin = lv_label_create(s_body);
-    lv_obj_set_style_pad_top(orJoin, 22, 0);    // and after it
+    lv_obj_set_style_pad_top(orJoin, airBelow, 0);    // and after it
     lv_label_set_text(orJoin, i18n::T(S_OR_JOIN));
     lv_obj_set_style_text_font(orJoin, &font_ui_14, 0);
     lv_obj_set_style_text_color(orJoin, lv_color_hex(theme::TEXT_DIM), 0);
@@ -347,8 +360,19 @@ void showWifi(const char* apSsid, const char* apPass) {
     // read by someone whose camera would not scan - but that someone has no
     // other way in, and an access point they cannot join is worse than an open
     // one.
-    lv_obj_t* pass = lv_label_create(s_body);
-    lv_obj_set_style_pad_top(pass, 2, 0);
+    // The padlock says which of the two lines is the password: two accent
+    // lines one under the other read as a name in two parts.
+    lv_obj_t* passRow = lv_obj_create(s_body);
+    lv_obj_remove_style_all(passRow);
+    lv_obj_set_size(passRow, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(passRow, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(passRow, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(passRow, 6, 0);
+    lv_obj_set_style_pad_top(passRow, 2, 0);
+    lv_obj_clear_flag(passRow, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_clear_flag(passRow, LV_OBJ_FLAG_CLICKABLE);
+    icons::build(passRow, icons::LOCK, theme::ACCENT, 80);
+    lv_obj_t* pass = lv_label_create(passRow);
     lv_label_set_text(pass, apPass);
     lv_obj_set_style_text_font(pass, &font_ui_16, 0);
     lv_obj_set_style_text_color(pass, lv_color_hex(theme::ACCENT), 0);
@@ -467,8 +491,10 @@ void showSignInChoice() {
 
 int takeSignInChoice() { int v = s_choice; s_choice = -1; return v; }
 
-void showPortalReady(const char* url) {
-    frame(nullptr);            // no header: the QR explains itself
+void showPortalReady(const char* url, bool withBack) {
+    frame(withBack ? "Wi-Fi" : nullptr, withBack);   // see showWifi()
+    const lv_coord_t airAbove = withBack ? 8 : 20;
+    const lv_coord_t airBelow = withBack ? 10 : 22;
 
     lv_obj_t* scan = lv_label_create(s_body);
     lv_label_set_text(scan, i18n::T(S_AP_JOIN));
@@ -477,12 +503,12 @@ void showPortalReady(const char* url) {
     lv_obj_set_style_text_align(scan, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_style_text_font(scan, &font_ui_16, 0);
     lv_obj_set_style_text_color(scan, lv_color_hex(theme::TEXT), 0);
-    lv_obj_set_style_pad_bottom(scan, 20, 0);
+    lv_obj_set_style_pad_bottom(scan, airAbove, 0);
 
     qr(url, 132);
 
     lv_obj_t* orOpen = lv_label_create(s_body);
-    lv_obj_set_style_pad_top(orOpen, 22, 0);
+    lv_obj_set_style_pad_top(orOpen, airBelow, 0);
     lv_label_set_text(orOpen, i18n::T(S_OR_OPEN));
     lv_obj_set_style_text_font(orOpen, &font_ui_14, 0);
     lv_obj_set_style_text_color(orOpen, lv_color_hex(theme::TEXT_DIM), 0);

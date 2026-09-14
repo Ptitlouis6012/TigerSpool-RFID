@@ -270,6 +270,16 @@ lv_obj_t* build(lv_obj_t* parent, Id id, uint32_t c, int scale) {
         disc(box, S(2), S(13), S(17), c);
         break;
 
+    case LOCK:
+        // A padlock: the shackle an outline, the body a solid block drawn over
+        // its lower half, and a keyhole cut back to the ground. Beside a
+        // password it is the one sign every phone uses for "this is the key".
+        outline(box, S(6), S(1), S(10), S(13), S(5), c);
+        bar(box, S(3), S(9), S(16), S(12), S(3), c);
+        disc(box, S(10), S(12), S(3), theme::BG);
+        bar(box, S(10) + 1, S(14), 2, S(4), 0, theme::BG);
+        break;
+
     case GLOBE:
         // Three strokes: the sphere, the equator, one meridian. That is enough
         // for the eye to finish it as a globe. These are the TigerScale's own

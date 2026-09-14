@@ -608,6 +608,11 @@ static State afterWifi() {
 // it a second time. Encoding the QR is the most expensive thing on that screen.
 static bool apScreenDrawn = false;
 
+// The portal was opened from Settings > Wi-Fi, so there is a saved network to
+// go back to and its screens carry a back arrow.
+static bool s_apFromSettings = false;
+static int  s_apShown = -1;               // -1 nothing, 0 join, 1 portal - see ST_AP
+
 static void startConfigAP() {
     // The QR goes up FIRST, and the radio work happens behind it.
     //
@@ -616,9 +621,10 @@ static void startConfigAP() {
     // while the access point comes up. Drawn the other way round, choosing a
     // language on a new device was followed by seconds of nothing, which reads
     // as a device that has crashed rather than one that is working.
-    screen_setup::showWifi(webcfg::apName(), webcfg::apPass());
+    screen_setup::showWifi(webcfg::apName(), webcfg::apPass(), s_apFromSettings);
     lvgl_port::loop();
     apScreenDrawn = true;
+    s_apShown = 0;
 
     webcfg::beginAP();
     state = ST_AP;
@@ -633,7 +639,7 @@ static void goAfterLang() {
         return;
     }
     if (wifiConnect()) { onWifiUp(); state = afterWifi(); stateSince = millis(); }
-    else startConfigAP();                 // no usable network -> open the setup portal
+    else { s_apFromSettings = false; startConfigAP(); }   // no usable network -> open the setup portal
 }
 static void backToPrinters() {
     screen_home::leave();            // force a full LVGL repaint on re-entry
@@ -1715,6 +1721,7 @@ void loop() {
     }
 
     case ST_WIFI:
+        s_apFromSettings = false;
         startConfigAP();                      // Wi-Fi failed -> AP portal
         return;
 
@@ -1727,6 +1734,7 @@ void loop() {
             loadCfg();                    // the portal wrote new credentials
             onWifiUp();
             screen_setup::hide();
+            s_apFromSettings = false;
             Serial.printf("[wifi] portal joined '%s' as %s\n",
                           WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
             state = afterWifi(); stateSince = millis();
@@ -1746,12 +1754,28 @@ void loop() {
         //
         // Drawn on the transition, never every pass: encoding a QR is the most
         // expensive thing on either screen.
-        static int apShown = -1;                 // -1 nothing, 0 join, 1 portal
+        // Back, when there is somewhere to go back to: close the access point,
+        // rejoin the network that was saved all along, and return to the Wi-Fi
+        // screen it was opened from.
+        if (s_apFromSettings && screen_setup::takeBack()) {
+            webcfg::endAP();
+            WiFi.persistent(true);
+            WiFi.setAutoReconnect(true);
+            staBegin();
+            s_apFromSettings = false;
+            s_apShown = -1;
+            screen_setup::hide();
+            screen_settings::invalidate();
+            Serial.printf("[wifi] setup left from its back arrow - rejoining '%s'\n",
+                          wifiSsid.c_str());
+            state = ST_SET_WIFI; stateSince = millis();
+            break;
+        }
         int want = webcfg::apClients() > 0 ? 1 : 0;
-        if (apShown != want) {
-            if (want) screen_setup::showPortalReady(webcfg::url().c_str());
-            else      screen_setup::showWifi(webcfg::apName(), webcfg::apPass());
-            apShown = want;
+        if (s_apShown != want) {
+            if (want) screen_setup::showPortalReady(webcfg::url().c_str(), s_apFromSettings);
+            else      screen_setup::showWifi(webcfg::apName(), webcfg::apPass(), s_apFromSettings);
+            s_apShown = want;
             apScreenDrawn = true;
         }
         lvgl_port::loop();
@@ -2046,6 +2070,7 @@ void loop() {
             WiFi.isConnected() ? WiFi.localIP().toString().c_str() : "-",
             WiFi.macAddress().c_str(),
             WiFi.isConnected(),
+            WiFi.isConnected() ? WiFi.channel() : 0,
             WiFi.isConnected() ? WiFi.RSSI() : 0);
         lvgl_port::loop();
         BACK_TO_SETTINGS();
@@ -2053,6 +2078,8 @@ void loop() {
             // Straight to the portal, without wiping the saved network: if the
             // user changes their mind the old one is still there.
             screen_setup::hide();
+            screen_setup::takeBack();        // a stale press must not leave at once
+            s_apFromSettings = true;
             startConfigAP();
         }
         break;

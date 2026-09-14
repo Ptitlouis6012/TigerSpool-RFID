@@ -1313,3 +1313,43 @@ ten, not by memory.
   change every truncated label in the product. Bench: "Duramic 3D" under the
   Ender-3's 1C and 1D reads "Durami.".
 
+## 2026-09-14 - the Wi-Fi screen, redesigned
+
+### Changed
+
+- `screen_settings::showWifi()`: a network card (the header's wave via
+  icons::wifiWave/setSignal, SSID in font_ui_bold_16, the level as a word in
+  its colour - Excellent/Good OK green, Fair orange, Weak red, from the same
+  -60/-70/-80 thresholds - with the dBm at 12 px beside it) and a details card
+  (IP, MAC, channel at 14 px, dim name / white value). The wave, the word and
+  the dBm update in place; the screen rebuilds only when the network, address,
+  connection or channel changes. New parameter `channel`
+  (WiFi.channel()); strings S_SIG_EXCELLENT/GOOD/FAIR/WEAK and S_CHANNEL in all
+  eight languages. Previews `setwifi`, `setwifi-fair`, `setwifi-none`.
+
+### Verified
+
+- Bench: the three previews and the live screen (Stargate, Excellent,
+  -47 dBm, channel 11) captured over /screen.bmp; nothing clipped.
+- Details card rows (IP, MAC, channel) in font_ui_bold_16, name and value -
+  Benoit's request. MAC fits with ~20 px to spare.
+- The portal screens opened from Settings > Wi-Fi > Change network had no
+  header and no exit. `screen_setup::showWifi()` / `showPortalReady()` take
+  `withBack`; main.cpp passes it only when the portal was opened from Settings
+  (`s_apFromSettings`), since a first boot has nowhere to go back to. Back
+  calls the new `webcfg::endAP()` (captive DNS off, softAP down, STA mode),
+  restores persistence and auto-reconnect that beginAP() turned off,
+  `staBegin()` to rejoin the saved network, and returns to ST_SET_WIFI. The
+  join screen's QR is 112 px instead of 132 and its spacing tighter under the
+  header, or the password ran off the bottom. The setup header's chevron and
+  title now match frame::build (white 24 px, bold title) on every titled setup
+  screen. Previews `apwifi`, `apportal`.
+- Verified: the three previews fit (captured). The back arrow itself is NOT
+  verified from here: opening the portal takes the bench off the network the
+  capture and tap API are reached over.
+- A drawn padlock (icons::LOCK, added at the end of the enum so no existing
+  value moves - FontAwesome's lock is not in the compiled symbol set) before
+  the setup access point's password, on first boot and from Settings alike.
+  Benoit's point: two accent lines under each other read as one name.
+  Captured on the bench.
+

@@ -389,8 +389,14 @@ namespace {
         else if (preview == "waiting") screen_setup::showPreparing();
         else if (preview == "email")   screen_setup::showEmailPairing("http://192.168.20.170");
         else if (preview == "settings") screen_settings::showMenu({"Atelier", "benoit@atome3d.com", 3, 6, true, true, true, "1.6.0"});
+        else if (preview == "apwifi")  { buildNames(); screen_setup::hide(); screen_setup::showWifi(AP_SSID, AP_PASS, true); }
+        else if (preview == "apportal") { screen_setup::hide(); screen_setup::showPortalReady("http://192.168.4.1", true); }
         else if (preview == "setwifi")  screen_settings::showWifi("Atelier", "192.168.20.170",
-                                                                  WiFi.macAddress().c_str(), true, -55);
+                                                                  WiFi.macAddress().c_str(), true, 11, -55);
+        else if (preview == "setwifi-fair") screen_settings::showWifi("Stargate", "192.168.20.170",
+                                                                  WiFi.macAddress().c_str(), true, 6, -76);
+        else if (preview == "setwifi-none") screen_settings::showWifi("", "-",
+                                                                  WiFi.macAddress().c_str(), false, 0, 0);
         else if (preview == "setacct")  screen_settings::showAccount("benoit@atome3d.com", 6, true);
         else if (preview == "setscreen") screen_settings::showScreen(80, 60, 2, false);
         // The state that cannot be reached on demand - the device is only ever
@@ -1351,6 +1357,19 @@ void webcfg::loop() {
         WiFi.mode(WIFI_STA);
         Serial.println("[webcfg] setup access point down, station up");
     }
+}
+
+// Leaving setup without a new network: the way back from a portal opened
+// from Settings. The station comes back up; joining the saved network is the
+// caller's job (main.cpp, staBegin), as is putting auto-reconnect back.
+void webcfg::endAP() {
+    if (!apMode) return;
+    apTeardownAt = 0;
+    apMode = false;
+    captive_dns::end();
+    WiFi.softAPdisconnect(true);
+    WiFi.mode(WIFI_STA);
+    Serial.println("[webcfg] setup access point closed without a new network");
 }
 
 bool webcfg::apActive()   { return apMode; }
