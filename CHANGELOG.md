@@ -7,6 +7,10 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **The languages in the language picker are written in bold.**
+
 ## [1.51.0] - 2026-09-15
 
 ### Added

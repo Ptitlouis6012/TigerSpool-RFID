@@ -1390,3 +1390,15 @@ ten, not by memory.
   its own words follow too. Bench, from the home screen without a restart:
   打印机 -> Imprimantes -> 打印机.
 
+## 2026-09-15 - language names in bold
+
+### Changed
+
+- screen_setup::showLanguage(): each language's own name in font_ui_bold_16,
+  up from font_ui_14 - Benoit's request. The bold face carries the Chinese
+  subset like every UI face (gen-font-range.py fails otherwise), so 中文 draws
+  bold too. Captured on the bench: English to Italiano in bold.
+- Seen in the same capture, not changed: on the first-boot picker the French
+  title "Choisissez votre langue" runs into the rotate button at the right of
+  the header.
+

@@ -301,7 +301,9 @@ void showLanguage(bool force, bool withBack) {
         // Every language is written in itself. A user looking for Portugues
         // should not have to recognise the English word "Portuguese" first.
         lv_label_set_text(l, i18n::name((Lang)i));
-        lv_obj_set_style_text_font(l, &font_ui_14, 0);
+        // Bold, like every other list of choices on the device - a language is
+        // picked at arm's length, on a new device, by someone reading it cold.
+        lv_obj_set_style_text_font(l, &font_ui_bold_16, 0);
         lv_obj_center(l);
     }
 }
