@@ -7,6 +7,8 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.49.0] - 2026-09-14
+
 ### Fixed
 
 - **A Creality printer recognises the filament a TigerSpool writes.** The slot

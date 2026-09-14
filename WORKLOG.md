@@ -1098,7 +1098,7 @@ ten, not by memory.
   so a device that has done either keeps its value; one that never did gets
   100% after updating.
 
-## 2026-09-14 - what a Creality slot is sent, and from where
+## 2026-09-14 - what a Creality slot is sent, and from where (released in 1.49.0)
 
 ### Fixed
 
@@ -1204,7 +1204,7 @@ ten, not by memory.
   and no profile applies. Whether the printer's own screen shows the sent
   window is the one check left, and it needs someone at the printer.
 
-## 2026-09-14 - slot screen text in white
+## 2026-09-14 - slot screen text in white (released in 1.49.0)
 
 ### Changed
 
@@ -1212,7 +1212,7 @@ ten, not by memory.
   it are theme::TEXT, not TEXT_DIM - Benoit's request; at 12 px on black the
   grey read poorly.
 
-## 2026-09-14 - a Creality type is the material family
+## 2026-09-14 - a Creality type is the material family (released in 1.49.0)
 
 ### Changed
 
