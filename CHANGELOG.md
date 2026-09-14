@@ -7,6 +7,8 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.49.2] - 2026-09-14
+
 ### Fixed
 
 - **A Creality slot keeps the nozzle temperatures it is sent.** The printer

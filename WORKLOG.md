@@ -1264,7 +1264,7 @@ ten, not by memory.
   firmware does not read. Still `filled: true` without a filled_type: PES,
   PETG-PTFE, PEI-9085, PAHT, PETG-ESD, PLA-ESD. Header regenerated.
 
-## 2026-09-14 - temperatures need a decimal point
+## 2026-09-14 - temperatures need a decimal point (released in 1.49.2)
 
 ### Fixed
 
