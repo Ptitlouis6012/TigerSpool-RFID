@@ -516,9 +516,9 @@ static void loadScreenPrefs() {
     screenBrightness = (uint8_t)nvs.getInt("bright", BRIGHTNESS_DEFAULT);
     screenSleepSec   = nvs.getInt("sleep", 60);
     // A device that has never been told which way up it is asks the
-    // accelerometer, once. Anything the user does afterwards - the button on
-    // the language screen, or the Display setting - overwrites this and it
-    // never runs again, because the key now exists.
+    // accelerometer, once. Anything the user does afterwards in the Display
+    // setting overwrites this, and it never runs again because the key now
+    // exists.
     screenRotation = nvs.getInt("rot", -1);
     screenAutoRot  = nvs.getInt("autorot", 0) != 0;
     if (screenRotation < 0) {
@@ -1683,19 +1683,6 @@ void loop() {
     case ST_LANG: {
         screen_setup::showLanguage(false, langFromSettings);
         lvgl_port::loop();
-
-        // The rotate button on the first-boot header. Flipping by hand is a
-        // decision, so it also settles the question the accelerometer was
-        // answering: automatic following goes off, and stays off unless the
-        // user turns it on themselves under Display.
-        if (screen_setup::takeRotate()) {
-            screenRotation = (screenRotation == 0) ? 2 : 0;
-            screenAutoRot  = false;
-            saveScreenPrefs();
-            lvgl_port::setRotation(screenRotation);
-            screen_setup::showLanguage(true, langFromSettings);   // rebuild the right way up
-            lvgl_port::loop();
-        }
 
         // Opened from Settings to see which language is set, and closed again
         // without touching it. Without this the only way out was to pick one.

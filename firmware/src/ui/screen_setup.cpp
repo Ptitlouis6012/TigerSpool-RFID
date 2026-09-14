@@ -246,8 +246,6 @@ lv_obj_t* qr(const char* payload, lv_coord_t size = 132) {
 namespace screen_setup {
 
 static bool s_langBuilt = false;
-bool s_rotate = false;
-void onRotatePress(lv_event_t*) { s_rotate = true; }
 
 void showLanguage(bool force, bool withBack) {
     if (force) { s_active = false; }
@@ -262,26 +260,15 @@ void showLanguage(bool force, bool withBack) {
     if (s_langBuilt && s_active) return;
     s_langBuilt = true;
 
-    // From Settings the title is the row that opened it, not the first-boot
-    // question: "Language" matches what the user tapped, and the long form does
-    // not fit beside a back chevron - it was clipped mid-word.
-    lv_obj_t* body = frame(i18n::T(withBack ? S_LANGUAGE : S_CHOOSE_LANG), withBack);
+    // One word, first boot or not. "Choose your language" did not fit the
+    // header in French, and the list of languages below already says what to
+    // do.
+    lv_obj_t* body = frame(i18n::T(S_LANGUAGE), withBack);
 
-    // First boot only. Reached from Settings there is a proper control under
-    // Display, and a second way to do the same thing on a screen that already
-    // has a back chevron is clutter.
-    if (!withBack && s_setupHeader) {
-        lv_obj_t* r = lv_btn_create(s_setupHeader);
-        lv_obj_remove_style_all(r);
-        lv_obj_set_size(r, 52, theme::HEADER_H);
-        lv_obj_align(r, LV_ALIGN_RIGHT_MID, 0, 0);
-        lv_obj_add_event_cb(r, onRotatePress, LV_EVENT_CLICKED, nullptr);
-        lv_obj_t* g = lv_label_create(r);
-        lv_label_set_text(g, LV_SYMBOL_LOOP);
-        lv_obj_set_style_text_font(g, &font_ui_20, 0);
-        lv_obj_set_style_text_color(g, lv_color_hex(theme::TEXT_DIM), 0);
-        lv_obj_center(g);
-    }
+    // No rotate button. There was one on the first-boot header, and it read as
+    // a refresh button: the accelerometer already chooses the orientation on a
+    // first boot (loadScreenPrefs in main.cpp), and Display is where it is
+    // changed afterwards.
 
     lv_obj_set_flex_align(body, LV_FLEX_ALIGN_START,
                           LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
@@ -726,6 +713,5 @@ bool takeBack()          { bool v = s_back; s_back = false; return v; }
 void hide()   { s_active = false; }   // next show() rebuilds
 bool active() { return s_active; }
 
-bool takeRotate() { bool v = s_rotate; s_rotate = false; return v; }
 
 }  // namespace screen_setup

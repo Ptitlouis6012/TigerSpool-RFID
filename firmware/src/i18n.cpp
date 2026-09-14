@@ -37,7 +37,6 @@ static const Row STR[S_COUNT] = {
 /* S_PRINTER_OFF    */ {{ "Printer unreachable", "Imprimante injoignable", "Drucker nicht erreichbar", "Impresora inaccesible", "Stampante irraggiungibile", "Drukarka niedostepna", "Impressora inacessivel", "Impressora inacessivel", "无法连接打印机" }},
 /* S_SEND_FAIL      */ {{ "Could not send", "Envoi impossible", "Senden fehlgeschlagen", "No se pudo enviar", "Invio non riuscito", "Nie mozna wyslac", "Nao foi possivel enviar", "Nao foi possivel enviar", "发送失败" }},
 /* S_HOLDER         */ {{ "Ext.", "Ext.", "Ext.", "Ext.", "Est.", "Zew.", "Ext.", "Ext.", "外置" }},
-/* S_CHOOSE_LANG    */ {{ "Choose your language", "Choisissez votre langue", "Sprache wahlen", "Elige tu idioma", "Scegli la lingua", "Wybierz jezyk", "Escolha o idioma", "Escolha o idioma", "选择语言" }},
 /* S_READ_UNSTABLE  */ {{ "Move the spool closer", "Rapprochez la bobine", "Spule naher halten", "Acerca mas la bobina", "Avvicina di piu la bobina", "Przysun szpule blizej", "Aproxime mais a bobina", "Aproxime mais a bobine", "请将料盘靠近" }},
 /* S_BLANK_TAG      */ {{ "Tag is empty", "Étiquette vierge", "Tag ist leer", "Etiqueta vacia", "Tag vuoto", "Pusty tag", "Etiqueta vazia", "Etiqueta vazia", "标签为空" }},
 /* S_PRINTER        */ {{ "Printers", "Imprimantes", "Drucker", "Impresoras", "Stampanti", "Drukarki", "Impressoras", "Impressoras", "打印机" }},

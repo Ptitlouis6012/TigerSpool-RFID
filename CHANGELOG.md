@@ -7,6 +7,19 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The language screen's title no longer runs into the rotate button.** At
+  first start it read "Choose your language", which in French touched the
+  button beside it; it is now the one word "Language", as when the screen is
+  opened from Settings.
+
+### Removed
+
+- **The rotate button on the first-start language screen.** It looked like a
+  refresh button, and the accelerometer already sets the orientation on first
+  start; it can still be changed under Settings > Display.
+
 ## [1.51.1] - 2026-09-15
 
 ### Changed

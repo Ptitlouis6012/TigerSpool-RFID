@@ -48,7 +48,6 @@ enum StrId : uint8_t {
     S_PRINTER_OFF,
     S_SEND_FAIL,
     S_HOLDER,
-    S_CHOOSE_LANG,
     S_READ_UNSTABLE,
     S_BLANK_TAG,
     S_PRINTER,

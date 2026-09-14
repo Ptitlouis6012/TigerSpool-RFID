@@ -1402,3 +1402,29 @@ ten, not by memory.
   title "Choisissez votre langue" runs into the rotate button at the right of
   the header.
 
+## 2026-09-15 - a one-word language title
+
+### Fixed
+
+- The first-boot language screen's title was S_CHOOSE_LANG, which in French
+  ("Choisissez votre langue") ended 2 px from the rotate button. Benoit chose
+  the one-word title: S_LANGUAGE on both paths, S_CHOOSE_LANG removed (its
+  Chinese characters stay in use elsewhere, so the faces did not change).
+  Bench, first-boot preview: titles end by x 77 in fr, it, pt-PT, pl, de, zh;
+  the button starts at x 201.
+
+### Noted
+
+- Issue #5 opened at Benoit's request: with several access points on one SSID
+  the device does not reliably pick or keep the strongest - staBegin()'s sort
+  applies only at association and nothing roams afterwards. To study later.
+
+### Removed
+
+- The rotate button on the first-boot language header, at Benoit's call: it
+  read as refresh, and loadScreenPrefs() already takes the orientation from
+  the accelerometer on a first boot. screen_setup::takeRotate(), its press
+  handler and the ST_LANG code that flipped the rotation went with it. Display
+  still sets orientation and auto-rotation. Captured on the bench: header with
+  the title alone.
+
