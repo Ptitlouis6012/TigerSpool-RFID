@@ -7,6 +7,8 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.50.0] - 2026-09-14
+
 ### Changed
 
 - **The Wi-Fi settings screen is clearer.** The network gets a card of its

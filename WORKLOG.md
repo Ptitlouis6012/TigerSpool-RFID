@@ -1313,7 +1313,7 @@ ten, not by memory.
   change every truncated label in the product. Bench: "Duramic 3D" under the
   Ender-3's 1C and 1D reads "Durami.".
 
-## 2026-09-14 - the Wi-Fi screen, redesigned
+## 2026-09-14 - the Wi-Fi screen, redesigned (released in 1.50.0)
 
 ### Changed
 
