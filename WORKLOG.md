@@ -1236,3 +1236,31 @@ ten, not by memory.
   rfid "0", as expected with vendor R3D (the library match needs Generic).
   1D put back to its original values.
 
+## 2026-09-14 - a filled material's type carries its filler
+
+### Changed
+
+- Benoit: Creality's type is `material_type`, plus "-" and `filled_type` when
+  that is given - 425 ABS-CF is "ABS" + "CF" = "ABS-CF"; a null (or "", "-")
+  filled_type adds nothing. `filledType` is carried beside `materialType`
+  through `MaterialInfo`, the downloaded table, `TT_MATERIAL_INFO` (font-
+  validated) and the resolver, which composes it.
+- The rule reads `filled_type` only, not the `filled` flag, and the two
+  disagree for eight materials today: PES, PETG-PTFE, PEI-9085, PAHT, PA11-GF,
+  PETG-ESD and PLA-ESD are `filled: true` with no filled_type (sent as the bare
+  family - PA11-GF as "PA"), and PC-PTFE is `filled: false` with filled_type
+  "PTFE" (sent as "PC-PTFE"). Upstream data, for the TigerTag database.
+
+### Verified
+
+- Host test: 425 -> ABS-CF, 10738 -> PC-PTFE, 6605 -> PA, 38219 and 24629 ->
+  PLA, a "-" filled_type -> no suffix; all earlier cases still pass.
+- Device, downloaded table, `/api/resolve`: 425 ABS-CF (db) rfid 00004
+  240/280; 38219 PLA; 24629 PLA; 10738 PC-PTFE; 6605 PA.
+- Benoit corrected the source in Xano; `db_update.py` pulled it
+  (filament_materials 1781878743554 -> 1789347116788). Changed: PA11-GF
+  filled_type null -> "GF" (now "PA-GF"), PC-PTFE filled false -> true (type
+  unchanged, "PC-PTFE"); density null -> 0 on PEI-9085, PAHT and PES, which the
+  firmware does not read. Still `filled: true` without a filled_type: PES,
+  PETG-PTFE, PEI-9085, PAHT, PETG-ESD, PLA-ESD. Header regenerated.
+

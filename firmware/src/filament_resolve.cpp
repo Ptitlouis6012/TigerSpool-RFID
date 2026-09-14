@@ -128,9 +128,15 @@ ResolvedFilament resolve(const ChipFacts& chip, const ProductData* api, const Ma
 
     // The material FAMILY, which is what a Creality slot's type means: "PLA"
     // for a spool whose material is "PLA High Speed". The table has it as
-    // material_type; without it, the material's own label, as before.
+    // material_type, and a filled material carries its filler beside it -
+    // "ABS" and "CF" make "ABS-CF"; an unfilled one has no filled_type and no
+    // suffix. Without a material_type, the material's own label, as before.
     if (d && given(d->materialType)) {
-        snprintf(r.materialType, sizeof(r.materialType), "%s", d->materialType); r.typeSrc = SRC_DB;
+        if (given(d->filledType))
+            snprintf(r.materialType, sizeof(r.materialType), "%s-%s", d->materialType, d->filledType);
+        else
+            snprintf(r.materialType, sizeof(r.materialType), "%s", d->materialType);
+        r.typeSrc = SRC_DB;
     } else {
         snprintf(r.materialType, sizeof(r.materialType), "%s", chip.material ? chip.material : "");
         r.typeSrc = SRC_DEFAULT;

@@ -182,7 +182,8 @@ def main():
     for e in load("id_material.json"):
         meta = e.get("metadata") or {}
         rec = e.get("recommended") or {}
-        material_info.append((int(e["id"]), given(e.get("material_type")), creality_id(meta),
+        material_info.append((int(e["id"]), given(e.get("material_type")),
+                              given(e.get("filled_type")), creality_id(meta),
                               float(positive(meta.get("crealityPressureAdvance"))),
                               temp(rec.get("nozzleTempMin")), temp(rec.get("nozzleTempMax"))))
     material_info.sort()
@@ -198,6 +199,7 @@ def main():
     # drawn on the slot screen, so it has to be drawable like a label.
     problems = (validate(materials, "id_material.json")
                 + validate([(i, t) for i, t, *_ in material_info if t], "id_material.json material_type")
+                + validate([(i, f) for i, _, f, *_ in material_info if f], "id_material.json filled_type")
                 + validate(brands, "id_brand.json")
                 + validate(aspects, "id_aspect.json")
                 + validate(types, "id_type.json")
@@ -255,11 +257,11 @@ def main():
 
         f.write("// Per material, beside TT_MATERIALS: what a printer is sent when the\n")
         f.write("// spool's own product answer does not say. \"\" and 0 are absent.\n")
-        f.write("struct TTMaterialInfo { uint16_t id; const char* materialType; const char* crealityId;"
-                " double pressure; uint16_t nozMin; uint16_t nozMax; };\n")
+        f.write("struct TTMaterialInfo { uint16_t id; const char* materialType; const char* filledType;"
+                " const char* crealityId; double pressure; uint16_t nozMin; uint16_t nozMax; };\n")
         f.write("static const TTMaterialInfo TT_MATERIAL_INFO[] = {\n")
-        for ident, mtype, cid, pa, mn, mx in material_info:
-            f.write(f'  {{ {ident}, "{esc(mtype)}", "{esc(cid)}", {pa!r}, {mn}, {mx} }},\n')
+        for ident, mtype, ftype, cid, pa, mn, mx in material_info:
+            f.write(f'  {{ {ident}, "{esc(mtype)}", "{esc(ftype)}", "{esc(cid)}", {pa!r}, {mn}, {mx} }},\n')
         f.write("};\n")
         f.write(f"static const size_t TT_MATERIAL_INFO_N = {len(material_info)};\n\n")
 

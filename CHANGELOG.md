@@ -7,18 +7,34 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **A filled material keeps its filler in a Creality slot's type.** An ABS-CF
+  spool is sent as "ABS-CF", not "ABS": the type is the material family plus
+  its filler when the material has one, from the TigerTag material table.
+- **The material table built into the device is current**: PA11-GF is now
+  known as a glass-filled material and PC-PTFE as a filled one.
+- **The 1.49.0 notes said a Creality printer recognises the filament.** It
+  does not always: the notes under 1.49.0 now say what the printer keeps.
+
 ## [1.49.0] - 2026-09-14
 
 ### Fixed
 
-- **A Creality printer recognises the filament a TigerSpool writes.** The slot
-  used to receive a material id of "0", which no Creality firmware knows, and
-  fixed default temperatures. It now receives Creality's own material id, the
-  real nozzle temperatures and pressure advance, in the same frame the TigerTag
-  Connect app sends. For a TigerTag+ spool they come from TigerTag's product
-  page when the device can reach it; otherwise, and for every TigerTag, from
-  the chip and the material table built into the device - so a device with no
-  internet still sends a material id the printer knows.
+- **A Creality slot is sent the filament's real values.** It used to receive a
+  material id of "0" and fixed default temperatures. It now receives
+  Creality's material id, the nozzle temperatures and the pressure advance, in
+  the same frame the TigerTag Connect app sends. For a TigerTag+ spool they
+  come from TigerTag's product page when the device can reach it; otherwise,
+  and for every TigerTag, from the chip and the material table built into the
+  device, so this works offline too.
+
+  What the printer keeps, measured on an Ender-3 V4 with a CFS: the type,
+  brand, name, colour and pressure advance land in the slot. The material id
+  is kept only when brand, type and name match the printer's own material
+  library - "Generic PLA" does, a spool sent under its own brand does not - and
+  the printer reports no per-slot temperatures at all, so the temperatures it
+  applies are those of the library profile the id points to.
 - **A Creality slot's material type is the material family.** A "PLA High
   Speed" spool is sent as type "PLA", taken from the TigerTag material table,
   because that is what the printer's type field means.

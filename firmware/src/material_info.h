@@ -13,6 +13,8 @@ struct MaterialInfo {
     uint16_t    id = 0;
     const char* materialType = nullptr; // material_type, the family: "PLA" for
                                         // "PLA High Speed"
+    const char* filledType = nullptr;   // filled_type, the filler: "CF" for
+                                        // "ABS-CF"; null when unfilled
     const char* crealityId = nullptr;   // metadata.crealityID, e.g. "00001"
     double      pressure = 0;           // metadata.crealityPressureAdvance
     uint16_t    nozMin = 0, nozMax = 0; // recommended.nozzleTempMin / Max
