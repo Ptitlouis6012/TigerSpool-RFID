@@ -32,29 +32,69 @@ const Dataset SETS[] = {
 };
 const int SET_N = sizeof(SETS) / sizeof(SETS[0]);
 
+// The material table keeps more than a label: what a printer is sent when a
+// spool's own product answer does not say (filament_resolve.cpp). Only that
+// table - the others have nothing a printer needs.
+struct MatExtra {
+    const char* materialType;      // into the blob; "" when absent
+    const char* crealityId;        // into the blob; "" when absent
+    double      pressure;          // 0 when absent
+    uint16_t    nozMin, nozMax;    // 0 when absent
+};
+const int MATERIAL_SET = 0;        // SETS[0]
+
 // One loaded table. Ids and labels live in PSRAM: there is 8 MB of it and none
 // of it is contended, while internal RAM is what LVGL's draw buffers and every
 // TLS session compete for.
 struct Table {
     uint32_t* ids = nullptr;
     char**    labels = nullptr;
+    MatExtra* extra = nullptr;     // materials only
     char*     blob = nullptr;      // one allocation holding every string
     int       n = 0;
 
     void clear() {
-        free(ids); free(labels); free(blob);
-        ids = nullptr; labels = nullptr; blob = nullptr; n = 0;
+        free(ids); free(labels); free(extra); free(blob);
+        ids = nullptr; labels = nullptr; extra = nullptr; blob = nullptr; n = 0;
     }
-    const char* find(uint32_t id) const {
+    int indexOf(uint32_t id) const {
         int lo = 0, hi = n;
         while (lo < hi) {
             int mid = (lo + hi) / 2;
-            if (ids[mid] == id) return labels[mid];
+            if (ids[mid] == id) return mid;
             if (ids[mid] < id) lo = mid + 1; else hi = mid;
         }
-        return nullptr;
+        return -1;
+    }
+    const char* find(uint32_t id) const {
+        const int i = indexOf(id);
+        return i >= 0 ? labels[i] : nullptr;
     }
 };
+
+// The same rules the generator writes the compiled table by: a Creality id
+// that is null, "" or "-" is absent, and so is a number that is not above zero
+// - including the pressure advance, which may arrive as a string.
+const char* givenString(JsonVariantConst v) {
+    if (!v.is<const char*>()) return "";
+    const char* s = v.as<const char*>();
+    return (s && *s && strcmp(s, "-") != 0) ? s : "";
+}
+double positive(JsonVariantConst v) {
+    double d = 0;
+    if (v.is<double>()) d = v.as<double>();
+    else if (v.is<const char*>()) {
+        const char* s = v.as<const char*>();
+        char* end = nullptr;
+        d = (s && *s) ? strtod(s, &end) : 0;
+        if (!end || *end) d = 0;
+    }
+    return d > 0 ? d : 0;
+}
+uint16_t temp(JsonVariantConst v) {
+    const double d = positive(v);
+    return (d >= 1 && d <= 65535) ? (uint16_t)d : 0;
+}
 
 Table g_tables[SET_N];
 bool  g_mounted = false;
@@ -80,10 +120,18 @@ bool loadFile(int idx, Table& out) {
     File f = LittleFS.open(path, "r");
     if (!f) return false;
 
+    const bool isMaterial = (idx == MATERIAL_SET);
     JsonDocument filter;
     JsonObject row = filter.add<JsonObject>();
     row["id"] = true;
     row[d.labelKey] = true;
+    if (isMaterial) {
+        row["material_type"] = true;
+        row["metadata"]["crealityID"] = true;
+        row["metadata"]["crealityPressureAdvance"] = true;
+        row["recommended"]["nozzleTempMin"] = true;
+        row["recommended"]["nozzleTempMax"] = true;
+    }
 
     JsonDocument doc;
     DeserializationError err =
@@ -108,6 +156,8 @@ bool loadFile(int idx, Table& out) {
         const char* lab = e[d.labelKey];
         if (!e["id"].is<long long>() || !lab || !*lab) continue;
         bytes += strlen(lab) + 1;
+        if (isMaterial) bytes += strlen(givenString(e["metadata"]["crealityID"])) + 1
+                              + strlen(givenString(e["material_type"])) + 1;
         count++;
     }
     if (!count) return false;
@@ -116,7 +166,8 @@ bool loadFile(int idx, Table& out) {
     t.ids    = (uint32_t*)psAlloc(sizeof(uint32_t) * count);
     t.labels = (char**)   psAlloc(sizeof(char*) * count);
     t.blob   = (char*)    psAlloc(bytes);
-    if (!t.ids || !t.labels || !t.blob) { t.clear(); return false; }
+    if (isMaterial) t.extra = (MatExtra*)psAlloc(sizeof(MatExtra) * count);
+    if (!t.ids || !t.labels || !t.blob || (isMaterial && !t.extra)) { t.clear(); return false; }
 
     char* w = t.blob;
     for (JsonObjectConst e : arr) {
@@ -127,6 +178,22 @@ bool loadFile(int idx, Table& out) {
         size_t len = strlen(lab);
         memcpy(w, lab, len + 1);
         w += len + 1;
+        if (isMaterial) {
+            MatExtra& x = t.extra[t.n];
+            const char* mt = givenString(e["material_type"]);
+            const size_t ml = strlen(mt);
+            memcpy(w, mt, ml + 1);
+            x.materialType = w;
+            w += ml + 1;
+            const char* cid = givenString(e["metadata"]["crealityID"]);
+            const size_t cl = strlen(cid);
+            memcpy(w, cid, cl + 1);
+            x.crealityId = w;
+            w += cl + 1;
+            x.pressure = positive(e["metadata"]["crealityPressureAdvance"]);
+            x.nozMin   = temp(e["recommended"]["nozzleTempMin"]);
+            x.nozMax   = temp(e["recommended"]["nozzleTempMax"]);
+        }
         t.n++;
     }
 
@@ -134,11 +201,15 @@ bool loadFile(int idx, Table& out) {
     // few hundred entries and already nearly ordered, and it costs no stack.
     for (int i = 1; i < t.n; i++) {
         uint32_t id = t.ids[i]; char* lab = t.labels[i];
+        MatExtra x = t.extra ? t.extra[i] : MatExtra{};
         int j = i - 1;
         while (j >= 0 && t.ids[j] > id) {
-            t.ids[j + 1] = t.ids[j]; t.labels[j + 1] = t.labels[j]; j--;
+            t.ids[j + 1] = t.ids[j]; t.labels[j + 1] = t.labels[j];
+            if (t.extra) t.extra[j + 1] = t.extra[j];
+            j--;
         }
         t.ids[j + 1] = id; t.labels[j + 1] = lab;
+        if (t.extra) t.extra[j + 1] = x;
     }
 
     out.clear();
@@ -327,6 +398,31 @@ bool updateAsync() {
 // table's worth of freshness and nothing else.
 const char* material(uint16_t id) {
     const char* v = g_tables[0].find(id); return v ? v : tt_material(id);
+}
+bool materialInfo(uint16_t id, MaterialInfo& out) {
+    out = MaterialInfo{};
+    out.id = id;
+    // The same layer material() answers from: a downloaded table that has the
+    // id answers for it, whatever it holds; otherwise the compiled one.
+    const Table& t = g_tables[MATERIAL_SET];
+    const int i = t.extra ? t.indexOf(id) : -1;
+    if (i >= 0) {
+        out.materialType = t.extra[i].materialType;
+        out.crealityId = t.extra[i].crealityId;
+        out.pressure   = t.extra[i].pressure;
+        out.nozMin     = t.extra[i].nozMin;
+        out.nozMax     = t.extra[i].nozMax;
+        return true;
+    }
+    if (const TTMaterialInfo* c = tt_material_info(id)) {
+        out.materialType = c->materialType;
+        out.crealityId = c->crealityId;
+        out.pressure   = c->pressure;
+        out.nozMin     = c->nozMin;
+        out.nozMax     = c->nozMax;
+        return true;
+    }
+    return false;
 }
 const char* brand(uint16_t id) {
     const char* v = g_tables[1].find(id); return v ? v : tt_brand(id);

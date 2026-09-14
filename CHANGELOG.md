@@ -7,6 +7,27 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **A Creality printer recognises the filament a TigerSpool writes.** The slot
+  used to receive a material id of "0", which no Creality firmware knows, and
+  fixed default temperatures. It now receives Creality's own material id, the
+  real nozzle temperatures and pressure advance, in the same frame the TigerTag
+  Connect app sends. For a TigerTag+ spool they come from TigerTag's product
+  page when the device can reach it; otherwise, and for every TigerTag, from
+  the chip and the material table built into the device - so a device with no
+  internet still sends a material id the printer knows.
+- **A Creality slot's material type is the material family.** A "PLA High
+  Speed" spool is sent as type "PLA", taken from the TigerTag material table,
+  because that is what the printer's type field means.
+- **A slot no longer flickers back to its old spool right after a write** on
+  a Creality: the device waits a moment before reading the slot again.
+
+### Changed
+
+- **Slot names and brands on a printer's slot screen are white**, not grey, so
+  they read at a glance.
+
 ## [1.48.1] - 2026-09-11
 
 ### Changed

@@ -319,7 +319,10 @@ void show(const char* printerName, PrinterBackend* backend,
         lv_obj_t* label = lv_label_create(cell);
         lv_label_set_text(label, backend->slotLabel(i));
         lv_obj_set_style_text_font(label, &font_ui_12, 0);
-        lv_obj_set_style_text_color(label, lv_color_hex(theme::TEXT_DIM), 0);
+        // White, like the brand below: at 12 px on black the dim grey was
+        // hard to read, and the slot name is what someone matches against the
+        // machine in front of them.
+        lv_obj_set_style_text_color(label, lv_color_hex(theme::TEXT), 0);
 
         lv_obj_t* block = lv_obj_create(cell);
         lv_obj_remove_style_all(block);
@@ -367,7 +370,7 @@ void show(const char* printerName, PrinterBackend* backend,
         // row with it. With the height pinned, LONG_DOT ellipsises instead.
         lv_obj_set_height(brand, 14);
         lv_obj_set_style_text_align(brand, LV_TEXT_ALIGN_CENTER, 0);
-        lv_obj_set_style_text_color(brand, lv_color_hex(theme::TEXT_DIM), 0);
+        lv_obj_set_style_text_color(brand, lv_color_hex(theme::TEXT), 0);
         lv_obj_set_style_text_font(brand, &font_ui_12, 0);
     }
 

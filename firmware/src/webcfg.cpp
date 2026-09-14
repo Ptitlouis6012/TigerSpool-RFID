@@ -18,6 +18,9 @@
 #include "ui/theme.h"
 #include "ui/fonts.h"
 #include "net/portal_page.h"
+#include "product_api.h"
+#include "tt_db.h"
+#include <ArduinoJson.h>
 #include "version.h"
 #include "web_assets.h"
 #include "net/ota.h"
@@ -1219,6 +1222,38 @@ namespace {
             g_memtestAll = server.hasArg("all");
             g_memtestRequested = true;
             server.send(200, "text/plain", "memtest started - see the serial console");
+        });
+        // Diagnostic: what a spool would be sent as, without a spool and
+        // without sending anything. Builds a chip from the query - protocol,
+        // product, uid (hex), material (id), nozmin, nozmax - asks the product
+        // endpoint the way a scan does, and answers with the resolution as it
+        // stands at that moment. Ask again after a few seconds to see the
+        // endpoint's answer used.
+        server.on("/api/resolve", []() {
+            TagInfo t;
+            t.protocol   = server.hasArg("protocol")
+                         ? (uint32_t)strtoul(server.arg("protocol").c_str(), nullptr, 10)
+                         : filament::PROTOCOL_TIGERTAG_PLUS;
+            t.idProduct  = (uint32_t)strtoul(server.arg("product").c_str(), nullptr, 10);
+            t.uid        = server.arg("uid");
+            t.idMaterial = (uint16_t)server.arg("material").toInt();
+            t.nozMin     = (uint16_t)server.arg("nozmin").toInt();
+            t.nozMax     = (uint16_t)server.arg("nozmax").toInt();
+            const char* label = tt_db::material(t.idMaterial);
+            t.material   = label ? String(label) : (String("MAT#") + t.idMaterial);
+            const bool started = product_api::request(t);
+            const filament::ResolvedFilament f = product_api::resolveFor(t);
+            JsonDocument d;
+            d["requested"] = started;
+            d["waiting"]   = product_api::waiting(t.idProduct);
+            d["type"]      = f.materialType; d["typeSrc"]    = filament::sourceName(f.typeSrc);
+            d["minTemp"]   = f.nozMin;      d["tempSrc"]     = filament::sourceName(f.tempSrc);
+            d["rfid"]      = f.crealityId;  d["rfidSrc"]     = filament::sourceName(f.idSrc);
+            d["pressure"]  = f.pressure;    d["pressureSrc"] = filament::sourceName(f.pressureSrc);
+            d["name"]      = f.crealityName; d["nameSrc"]    = filament::sourceName(f.nameSrc);
+            d["maxTemp"]   = f.nozMax;
+            String out; serializeJson(d, out);
+            server.send(200, "application/json", out);
         });
         server.on("/login",    handleLogin);
         server.on("/tiger-icon.svg", handleIcon);

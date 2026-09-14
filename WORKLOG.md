@@ -1098,3 +1098,141 @@ ten, not by memory.
   so a device that has done either keeps its value; one that never did gets
   100% after updating.
 
+## 2026-09-14 - what a Creality slot is sent, and from where
+
+### Fixed
+
+- `CrealityBackend::assign()` sent `rfid "0"` (never a Creality material id),
+  the chip's temperatures or 190/230, the raw material as the name, and no
+  pressure/selected/percent/editStatus/state. It now sends the TigerTag Connect
+  app's frame with every value resolved by `filament::resolve()`:
+  temperatures (as a pair) endpoint -> chip -> table -> 190/240; `rfid` and
+  pressure endpoint -> table -> "0"/0.04; name endpoint `crealityLabel` ->
+  "Generic <material>". The endpoint counts only for a TigerTag+
+  (protocol 3155151767) and only for its own product id. Invalid values fall
+  through: a pair with a 0 or min > max, a string null/""/"-", a pressure that
+  is not a positive number or numeric string (the endpoint sends it as "").
+- The endpoint (`product/get?uid=<uid as decimal>&product_id=`) is asked by
+  `product_api` on a core-0 task the moment a TigerTag+ is read for a Creality,
+  so the answer is normally in before Send; Send waits only while that fetch is
+  inside 3 s, and a late answer is cached for the next time, never sent.
+- The material table keeps `metadata.crealityID`,
+  `metadata.crealityPressureAdvance`, `recommended.nozzleTempMin/Max`: in the
+  downloaded file (PSRAM, beside the labels) and in the compiled header
+  (`TT_MATERIAL_INFO`, emitted by gen_db.py). `tt_db::materialInfo()` answers
+  from the same layer as `material()`. db_update.py needed no change - it
+  already stores the API's JSON whole; gen_db.py is what compiles it.
+- The immediate re-read after a write is deferred 1.5 s on Creality: the
+  printer answers boxsInfo with the old slot for about a second. main.cpp's
+  generic refresh() after Send lands in that window, so refresh() itself
+  reschedules rather than assign() just not calling it.
+
+### Changed
+
+- The TLS stand-down is split: every TLS request still holds new links back,
+  but the product fetch stands links DOWN only if the largest free block was
+  under 48 KB when it started. Measured with a temporary loop timer: during a
+  fetch the worst loop pass stayed at 115-117 ms (baseline ~100); in the three
+  seconds AFTER it, 776-952 ms - the five stood-down links dialling back, the
+  Anycubic's TLS connect blocking the loop - landing exactly on Send. The
+  stand-down itself takes 7-10 ms and now says so in its log line.
+
+### Added
+
+- `/api/resolve?protocol=&product=&uid=<hex>&material=&nozmin=&nozmax=`: the
+  whole resolution from query parameters, without a spool and without sending.
+
+### Verified
+
+- Host test (clang, ArduinoJson from .pio/libdeps, the generated header with a
+  stub Arduino.h), with the real endpoint answer and injected variants: all
+  eight scenarios of the brief plus nine validity cases pass. One difference
+  from the brief's table: `id_material[38219]` carries
+  `crealityPressureAdvance: 0.04`, so pressure resolves `0.04(db)`, not
+  `0.04(default)` - same value, the source the rules give.
+- Device, `/api/resolve`: plain TigerTag -> `requested:false`, no network;
+  TigerTag+ -> handler answers in 40-109 ms while the fetch runs (861-1000 ms),
+  then `215/230(api) 00001(api) Generic PLA(api)` from the cache; material not
+  in the table -> `0(default)`, `190/240(default)`.
+- Ender-3 V4 + CFS at 192.168.40.103, a real TigerTag+ spool (product
+  1127944810, R3D PLA High Speed, chip 215-230): fetch 861 ms at read, Send
+  resolved `rfid=00001(api) temp=215/230(api) pa=0.04(db) name="Generic
+  PLA"(api)` and sent the frame field for field. Read back over the printer's
+  own WebSocket from the Mac: slot 1D took type, vendor, name and colour.
+  It reported `rfid "0"`, `editStatus 0`, `state 0` - 1D holds no spool, and
+  every empty slot on that CFS reads back the same way - and minTemp/maxTemp
+  0, which boxsInfo reports for every slot including one with rfid "00004".
+  Whether a slot holding a spool keeps the rfid is not verified yet.
+- Then every slot (Ext, 1A-1D, three of them holding spools), through the
+  TigerSpool with the same spool: type, vendor, name, colour and pressure
+  landed everywhere; `rfid` read back "0" everywhere - 1A's previous "00004"
+  included, so the printer does write that field and is refusing ours.
+- Why, found by sending variants straight from the Mac to slot 1C and reading
+  back: the printer keeps an rfid ONLY when vendor, type and name match its own
+  entry for that id.
+  `00001` + PLA + R3D + "Generic PLA"            -> rfid "0"
+  `00001` + PLA + Generic + "Generic PLA"        -> rfid "00001" kept
+  `00001` + PLA + Generic + "R3D PLA High Speed" -> rfid "0"
+  `01001` + PLA + R3D + "Hyper PLA"              -> rfid "0"
+  `01001` + PLA + Creality + "Hyper PLA"         -> rfid "01001" kept
+  Pressure advance is stored either way (0.055 and 0.066 read back as sent).
+  minTemp/maxTemp read back 0/0 in every case, kept rfid or not - boxsInfo does
+  not report them, so whether the printer stores them cannot be seen from here.
+- So the brief's frame - vendor = the tag's brand, type = the material label -
+  can never keep a Creality id for a spool that is not Generic. Open, for
+  Benoit: send vendor "Generic" / type = material family / name =
+  crealityLabel when a Creality id is resolved (the printer then shows
+  "Generic PLA", not R3D), or keep the brand and label and lose the id.
+- Every slot was put back to its values from before the tests and read back
+  identical, 1A's "00004" included.
+- Where a Creality printer keeps temperatures, looked for rather than assumed:
+  - boxsInfo reports minTemp/maxTemp 0 for every slot an application wrote,
+    rfid kept or not. Tiger Studio's RETRO.md has the one non-zero case: a
+    slot the CFS read from a Creality spool's own tag, 01001, 190/240.
+  - `reqMaterials` on this Ender-3 V4 returns its material library: 18
+    profiles, each an id with a brand, a name, a type and a temperature window
+    (00001 Generic / Generic PLA / PLA 190-240; 01001 Creality / Hyper PLA /
+    PLA 190-240; 00004 Generic ABS 240-280; ...). That library is what the
+    vendor+type+name check above is checked against.
+  - Klipper's own state over Moonraker (`box`, `filament_rack`) holds, per
+    slot, `material_type` (the id, "000004"), `color_value` and `vender` - and
+    no temperature field at all.
+  So on this printer a slot's temperatures exist only as the library profile
+  its id points to. The minTemp/maxTemp in modifyMaterial are sent (the log
+  shows 215/230) and nothing on the printer that can be read back holds them.
+  Benoit's call for now: keep the tag's brand and label, so the id is dropped
+  and no profile applies. Whether the printer's own screen shows the sent
+  window is the one check left, and it needs someone at the printer.
+
+## 2026-09-14 - slot screen text in white
+
+### Changed
+
+- screen_slots.cpp: the slot name above each colour block and the brand under
+  it are theme::TEXT, not TEXT_DIM - Benoit's request; at 12 px on black the
+  grey read poorly.
+
+## 2026-09-14 - a Creality type is the material family
+
+### Changed
+
+- Benoit's call after reading the printer by hand: the frame's `type` is the
+  material table's `material_type` for the chip's idMaterial ("PLA" for 24629
+  "PLA High Speed"), falling back to the label when the table has none (four
+  materials carry "" today). Carried like the other fields: `MaterialInfo`,
+  the downloaded table, `TT_MATERIAL_INFO` (gen_db.py validates it against the
+  UI font, since the printer echoes it back and the slot screen draws it), the
+  resolver (`typeSrc`), the `[creality]` log line and `/api/resolve`. Vendor
+  and name unchanged: the tag's brand and the endpoint's label, for now.
+
+### Verified
+
+- Host test: five type cases added (24629 -> PLA db, 38219 -> PLA db, 425
+  ABS-CF -> ABS db, 51007 empty type -> label, unknown id -> label); all pass
+  with the earlier ones.
+- Ender-3 V4, the same R3D spool to 1D through the TigerSpool:
+  `type=PLA(db) rfid=00001(api) temp=215/230(api) pa=0.04(db) name="Generic
+  PLA"(api)`; read back type "PLA", vendor R3D, name, colour, pressure - and
+  rfid "0", as expected with vendor R3D (the library match needs Generic).
+  1D put back to its original values.
+

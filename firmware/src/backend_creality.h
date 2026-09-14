@@ -29,4 +29,7 @@ private:
     String    status_ = "K2: connecting...";
     SlotState slots_[5];
     uint32_t  lastReq_ = 0;
+    // When the last modifyMaterial went out, for refresh() - see there.
+    uint32_t  assignedAt_ = 0;
+    static constexpr uint32_t REREAD_AFTER_ASSIGN_MS = 1500;
 };

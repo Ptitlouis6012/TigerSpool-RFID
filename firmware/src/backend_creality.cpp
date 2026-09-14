@@ -1,5 +1,6 @@
 #include "backend_creality.h"
 #include "i18n.h"
+#include "product_api.h"
 #include <WebSocketsClient.h>
 #include <ArduinoJson.h>
 
@@ -106,6 +107,16 @@ const char* CrealityBackend::slotLabel(int i) {
 const SlotState& CrealityBackend::slot(int i) { return slots_[i < 5 ? i : 0]; }
 
 void CrealityBackend::refresh() {
+    // Not straight after a write. The printer answers boxsInfo with the slot's
+    // OLD contents for about a second after modifyMaterial, so an immediate
+    // re-read paints the old spool back and the slot flickers - the TigerTag
+    // Connect app leaves the same gap on purpose. The request is moved to a
+    // second and a half after the write instead of dropped: loop() polls when
+    // lastReq_ is five seconds old.
+    if (assignedAt_ && millis() - assignedAt_ < REREAD_AFTER_ASSIGN_MS) {
+        lastReq_ = assignedAt_ + REREAD_AFTER_ASSIGN_MS - 5000;
+        return;
+    }
     JsonDocument d;
     d["method"] = "get";
     d["params"]["boxsInfo"] = 1;
@@ -114,23 +125,48 @@ void CrealityBackend::refresh() {
 
 bool CrealityBackend::assign(int idx, const TagInfo& t) {
     if (idx < 0 || idx >= 5) return false;
+
+    // Temperatures, the printer's own material id, pressure advance and the
+    // name, each from the first source that has it: the TigerTag+ product
+    // endpoint, the chip, the material table, a default. The endpoint was
+    // asked when the spool was read; this only reads what came back.
+    const filament::ResolvedFilament f = product_api::resolveFor(t);
+    Serial.printf("[creality] %s type=%s(%s) rfid=%s(%s) temp=%u/%u(%s) pa=%g(%s) name=\"%s\"(%s)\n",
+                  slotLabel(idx), f.materialType, filament::sourceName(f.typeSrc),
+                  f.crealityId, filament::sourceName(f.idSrc),
+                  f.nozMin, f.nozMax, filament::sourceName(f.tempSrc),
+                  f.pressure, filament::sourceName(f.pressureSrc),
+                  f.crealityName, filament::sourceName(f.nameSrc));
+
+    // The frame the TigerTag Connect app sends, field for field.
+    //
+    // rfid is the printer's material id, and "0" is not one: sent that way the
+    // printer never recognised the filament. editStatus 1 marks the write as an
+    // application's - without it some firmware overwrites the slot again.
     JsonDocument d;
     d["method"] = "set";
     JsonObject m = d["params"]["modifyMaterial"].to<JsonObject>();
-    m["boxId"]   = CREALITY_SLOTS[idx].box;
-    m["id"]      = CREALITY_SLOTS[idx].slot;
-    m["rfid"]    = "0";
-    m["type"]    = t.material;
-    m["vendor"]  = t.brand;
-    m["name"]    = t.material;
-    m["color"]   = t.colorHexCreality();
-    m["minTemp"] = t.nozMin ? t.nozMin : 190;
-    m["maxTemp"] = t.nozMax ? t.nozMax : 230;
+    m["id"]         = CREALITY_SLOTS[idx].slot;
+    m["boxId"]      = CREALITY_SLOTS[idx].box;
+    m["rfid"]       = f.crealityId;
+    // The material family from the table ("PLA" for "PLA High Speed"): a
+    // Creality slot's type is a family, and the label is not one.
+    m["type"]       = f.materialType;
+    m["vendor"]     = t.brand;
+    m["name"]       = f.crealityName;
+    m["color"]      = t.colorHexCreality();
+    m["minTemp"]    = f.nozMin;
+    m["maxTemp"]    = f.nozMax;
+    m["pressure"]   = f.pressure;
+    m["selected"]   = 1;
+    m["percent"]    = 100;
+    m["editStatus"] = 1;
+    m["state"]      = 1;
     bool ok = sendDoc(d);
     // slotLabel, not the raw name: slot 0 is the external holder and its name
     // is deliberately null, so concatenating it here produced a String that
     // Arduino invalidates - an empty status line where a report should be.
     status_ = ok ? (String("sent -> ") + slotLabel(idx)) : "send failed";
-    if (ok) refresh();
+    if (ok) assignedAt_ = millis();
     return ok;
 }

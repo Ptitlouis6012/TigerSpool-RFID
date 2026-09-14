@@ -35,6 +35,7 @@
 #include "net/ota.h"
 #include "bambu_cloud.h"
 #include "printer_budget.h"
+#include "product_api.h"
 #include <esp_task_wdt.h>
 #include "imu.h"
 #include "tigertag_cloud.h"
@@ -66,6 +67,9 @@ Preferences nvs;
 String  wifiSsid, wifiPass;
 PrinterCfg printers[MAX_PRINTERS];
 int     selectedPrinter = 0;
+// Send was pressed on the review screen and is waiting, briefly, for the
+// TigerTag+ product answer - see ST_REVIEW.
+static bool sendWaiting = false;
 
 PrinterBackend* backend = nullptr;
 
@@ -1026,12 +1030,27 @@ static void tickLink(Link& l) {
 // at, and one connection is not what stands between the heap and a handshake.
 static bool needsTheNetwork() {
     const ota::State o = ota::state();
-    return ttcloud::asyncBusy() || o == ota::CHECKING || o == ota::DOWNLOADING;
+    return ttcloud::asyncBusy() || o == ota::CHECKING || o == ota::DOWNLOADING
+        || product_api::busy();
+}
+
+// Which of those actually needs the links to step aside.
+//
+// The product lookup is the exception: it asks only when the largest free
+// block is already too small for a handshake. Standing five links down for
+// it cost nothing during the request - the loop's worst pass stayed at 115 ms
+// - and then 800-900 ms AFTER it, while they dialled back in, which is exactly
+// when someone is pressing Send. With room to spare it only holds new links
+// back until it is done.
+static bool needsTheRoom() {
+    const ota::State o = ota::state();
+    return ttcloud::asyncBusy() || o == ota::CHECKING || o == ota::DOWNLOADING
+        || product_api::needsRoom();
 }
 
 static void standDownForTls() {
     static bool wasQuiet = false;
-    const bool quiet = needsTheNetwork();
+    const bool quiet = needsTheRoom();
     if (quiet && !wasQuiet) {
         // A cloud Bambu frees nothing by leaving while the shared session stays
         // open - and it stays open as long as the selected printer is a cloud
@@ -1041,6 +1060,7 @@ static void standDownForTls() {
         const PrinterCfg* sel = (selectedPrinter >= 0) ? &printers[selectedPrinter] : nullptr;
         const bool sessionStays = sel && sel->type == PT_BAMBU && sel->cloud;
         int freed = 0;
+        const uint32_t t0 = millis();
         for (int i = 0; i < MAX_LINKS; i++) {
             if (links[i].printer < 0 || links[i].printer == selectedPrinter) continue;
             const PrinterCfg& p = printers[links[i].printer];
@@ -1050,8 +1070,8 @@ static void standDownForTls() {
         }
         if (freed)
             Serial.printf("[link] %d link(s) stood down for a TLS session"
-                          " (largest block was %u)\n",
-                          freed, (unsigned)ESP.getMaxAllocHeap());
+                          " in %lu ms (largest block was %u)\n",
+                          freed, (unsigned long)(millis() - t0), (unsigned)ESP.getMaxAllocHeap());
     }
     if (!quiet && wasQuiet)
         Serial.printf("[link] network free again, largest block %u\n",
@@ -2363,7 +2383,14 @@ void loop() {
         if (millis() - lastScanPoll > 300) {
             lastScanPoll = millis();
             if (reader::present()) {
-                if (reader::read(tag) && tag.ok) { state = ST_REVIEW; stateSince = millis(); }
+                if (reader::read(tag) && tag.ok) {
+                    // A TigerTag+ going to a Creality: ask TigerTag about the
+                    // product now, while the review is on screen, so the answer
+                    // is usually in before Send. Only Creality reads it today.
+                    if (printers[selectedPrinter].type == PT_CREALITY) product_api::request(tag);
+                    sendWaiting = false;
+                    state = ST_REVIEW; stateSince = millis();
+                }
                 else resultMsg = reader::lastError();
             }
         }
@@ -2375,10 +2402,22 @@ void loop() {
         lvgl_port::loop();
 
         if (screen_scan::takeCancel()) {
+            sendWaiting = false;
             selSlot = -1; screen_slots::invalidate();
             state = ST_GRID; break;
         }
-        if (screen_scan::takeSend()) {
+        // Send waits for the product endpoint only while its fetch for THIS
+        // spool is still inside its budget, and the screen keeps drawing
+        // meanwhile. Past the budget the send goes ahead without it - once:
+        // an answer that turns up later is kept for next time, never sent.
+        if (screen_scan::takeSend() && !sendWaiting) {
+            sendWaiting = true;
+            if (product_api::waiting(tag.idProduct))
+                Serial.printf("[product] %lu: Send is waiting for the answer\n",
+                              (unsigned long)tag.idProduct);
+        }
+        if (sendWaiting && !product_api::waiting(tag.idProduct)) {
+            sendWaiting = false;
             sendOk = backend && backend->connected() && backend->assign(selSlot, tag);
             char m[48];
             if (sendOk) snprintf(m, sizeof(m), i18n::T(S_UPDATED), backend->slotLabel(selSlot));

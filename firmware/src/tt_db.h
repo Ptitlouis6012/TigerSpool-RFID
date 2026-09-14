@@ -1,5 +1,6 @@
 #pragma once
 #include <Arduino.h>
+#include "material_info.h"
 
 // The TigerTag reference tables, in two layers.
 //
@@ -43,6 +44,10 @@ int  loadedCount();          // downloaded entries in use, across all tables
 String summary();            // one line, English, for the serial log
 
 const char* material(uint16_t id);
+// Creality id, pressure advance and recommended nozzle window for a material,
+// from the same layer material() answers from. False when neither table has
+// the id. The strings stay valid until the next table load.
+bool materialInfo(uint16_t id, MaterialInfo& out);
 const char* brand(uint16_t id);
 const char* aspect(uint16_t id);
 const char* type(uint16_t id);

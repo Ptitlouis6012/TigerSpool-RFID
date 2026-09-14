@@ -146,6 +146,47 @@ def main():
                      if int(e.get("color_count") or 1) > 1]
     aspect_colors.sort()
 
+    # What a printer needs to know about a material beyond its name: Creality's
+    # own material id and pressure advance, and the recommended nozzle window.
+    # filament_resolve.cpp falls back to these when a spool's product answer
+    # does not have them - and a device that is brand new and offline has
+    # nothing else, so they are compiled in rather than left to the download.
+    #
+    # Absent is written as "" and 0, the same way the resolver reads absent: a
+    # string that is null, "" or "-", a number that is not above zero.
+    def creality_id(meta):
+        v = meta.get("crealityID")
+        return v if isinstance(v, str) and v not in ("", "-") else ""
+
+    def positive(v):
+        if isinstance(v, bool):
+            return 0
+        if isinstance(v, (int, float)):
+            return v if v > 0 else 0
+        if isinstance(v, str):
+            try:
+                f = float(v)
+            except ValueError:
+                return 0
+            return f if f > 0 else 0
+        return 0
+
+    def temp(v):
+        t = positive(v)
+        return int(t) if 1 <= t <= 65535 else 0
+
+    def given(v):
+        return v if isinstance(v, str) and v not in ("", "-") else ""
+
+    material_info = []
+    for e in load("id_material.json"):
+        meta = e.get("metadata") or {}
+        rec = e.get("recommended") or {}
+        material_info.append((int(e["id"]), given(e.get("material_type")), creality_id(meta),
+                              float(positive(meta.get("crealityPressureAdvance"))),
+                              temp(rec.get("nozzleTempMin")), temp(rec.get("nozzleTempMax"))))
+    material_info.sort()
+
     if repaired:
         print("note: reference labels rewritten for the panel:", file=sys.stderr)
         print("\n".join(repaired), file=sys.stderr)
@@ -153,7 +194,10 @@ def main():
               "  the TigerTag database; a flattened superscript is this panel's\n"
               "  font and nothing to fix.", file=sys.stderr)
 
+    # A material type comes back from the printer as the slot's type and is
+    # drawn on the slot screen, so it has to be drawable like a label.
     problems = (validate(materials, "id_material.json")
+                + validate([(i, t) for i, t, *_ in material_info if t], "id_material.json material_type")
                 + validate(brands, "id_brand.json")
                 + validate(aspects, "id_aspect.json")
                 + validate(types, "id_type.json")
@@ -209,6 +253,16 @@ def main():
             f.write("};\n")
             f.write(f"static const size_t {name}_N = {len(rows)};\n\n")
 
+        f.write("// Per material, beside TT_MATERIALS: what a printer is sent when the\n")
+        f.write("// spool's own product answer does not say. \"\" and 0 are absent.\n")
+        f.write("struct TTMaterialInfo { uint16_t id; const char* materialType; const char* crealityId;"
+                " double pressure; uint16_t nozMin; uint16_t nozMax; };\n")
+        f.write("static const TTMaterialInfo TT_MATERIAL_INFO[] = {\n")
+        for ident, mtype, cid, pa, mn, mx in material_info:
+            f.write(f'  {{ {ident}, "{esc(mtype)}", "{esc(cid)}", {pa!r}, {mn}, {mx} }},\n')
+        f.write("};\n")
+        f.write(f"static const size_t TT_MATERIAL_INFO_N = {len(material_info)};\n\n")
+
         # Only the aspects that carry more than one colour, so the table is two
         # rows rather than two hundred.
         f.write("// Aspects whose spool carries more than one colour, and how many.\n")
@@ -238,6 +292,15 @@ static inline const char* tt_lookup32(const TTEntry32* t, size_t n, uint32_t id)
   return nullptr;
 }
 static inline const char* tt_material(uint16_t id) { return tt_lookup(TT_MATERIALS,  TT_MATERIALS_N,  id); }
+static inline const TTMaterialInfo* tt_material_info(uint16_t id) {
+  size_t lo = 0, hi = TT_MATERIAL_INFO_N;
+  while (lo < hi) {
+    size_t mid = (lo + hi) / 2;
+    if (TT_MATERIAL_INFO[mid].id == id) return &TT_MATERIAL_INFO[mid];
+    if (TT_MATERIAL_INFO[mid].id < id) lo = mid + 1; else hi = mid;
+  }
+  return nullptr;
+}
 static inline const char* tt_brand(uint16_t id)    { return tt_lookup(TT_BRANDS,     TT_BRANDS_N,     id); }
 static inline const char* tt_aspect(uint16_t id)   { return tt_lookup(TT_ASPECTS,    TT_ASPECTS_N,    id); }
 // How many colours this aspect implies: 1 unless the database says otherwise.
@@ -259,7 +322,7 @@ static inline const char* tt_version(uint32_t id)  { return tt_lookup32(TT_VERSI
     print(f"OK -> {OUT}   ({len(materials)} materials, {len(brands)} brands, "
           f"{len(aspects)} aspects, {len(types)} types, "
           f"{len(diameters)} diameters, {len(units)} units, "
-          f"{len(versions)} versions)")
+          f"{len(versions)} versions, {len(material_info)} material infos)")
     return 0
 
 
