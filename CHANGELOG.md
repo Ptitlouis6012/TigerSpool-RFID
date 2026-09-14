@@ -7,6 +7,8 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.49.1] - 2026-09-14
+
 ### Fixed
 
 - **A filled material keeps its filler in a Creality slot's type.** An ABS-CF

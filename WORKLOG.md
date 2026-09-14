@@ -1236,7 +1236,7 @@ ten, not by memory.
   rfid "0", as expected with vendor R3D (the library match needs Generic).
   1D put back to its original values.
 
-## 2026-09-14 - a filled material's type carries its filler
+## 2026-09-14 - a filled material's type carries its filler (released in 1.49.1)
 
 ### Changed
 
