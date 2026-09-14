@@ -1390,7 +1390,7 @@ ten, not by memory.
   its own words follow too. Bench, from the home screen without a restart:
   打印机 -> Imprimantes -> 打印机.
 
-## 2026-09-15 - language names in bold
+## 2026-09-15 - language names in bold (released in 1.51.1)
 
 ### Changed
 
