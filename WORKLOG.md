@@ -1402,7 +1402,7 @@ ten, not by memory.
   title "Choisissez votre langue" runs into the rotate button at the right of
   the header.
 
-## 2026-09-15 - a one-word language title
+## 2026-09-15 - a one-word language title (released in 1.51.2)
 
 ### Fixed
 

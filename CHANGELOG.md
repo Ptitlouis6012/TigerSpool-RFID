@@ -7,6 +7,8 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.51.2] - 2026-09-15
+
 ### Fixed
 
 - **The language screen's title no longer runs into the rotate button.** At
