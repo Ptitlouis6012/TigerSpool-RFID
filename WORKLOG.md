@@ -1353,7 +1353,7 @@ ten, not by memory.
   Benoit's point: two accent lines under each other read as one name.
   Captured on the bench.
 
-## 2026-09-15 - Chinese
+## 2026-09-15 - Chinese (released in 1.51.0)
 
 ### Added
 

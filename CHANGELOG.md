@@ -7,6 +7,8 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.51.0] - 2026-09-15
+
 ### Added
 
 - **Chinese.** The TigerSpool now speaks simplified Chinese - 中文 is the last
