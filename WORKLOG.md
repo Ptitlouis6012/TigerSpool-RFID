@@ -1264,3 +1264,31 @@ ten, not by memory.
   firmware does not read. Still `filled: true` without a filled_type: PES,
   PETG-PTFE, PEI-9085, PAHT, PETG-ESD, PLA-ESD. Header regenerated.
 
+## 2026-09-14 - temperatures need a decimal point
+
+### Fixed
+
+- Benoit reported the TigerTag RFID Connect app's temperatures are kept by a
+  Creality and the TigerSpool's are not. Slot 1C, written from his iPhone,
+  read back minTemp 190 / maxTemp 240 with rfid "0" - so the printer DOES store
+  per-slot temperatures, and the earlier conclusion in this file ("nothing on
+  the printer holds them", "only the library profile") was wrong.
+- The app's code (tigertag_connect1, creality_websocket_page.dart) builds the
+  temperatures as Dart doubles, which jsonEncode writes as "190.0". The
+  TigerSpool wrote integers. Sent straight to slot 1D from the Mac, the same
+  frame otherwise: 215.0/230.0 -> read back 215/230; 216/231 -> 0/0;
+  217.0/232.0 -> 217/232. The printer keeps a temperature only when the JSON
+  number has a decimal point.
+- `withPoint()` in backend_creality.cpp writes minTemp, maxTemp and pressure
+  with one ("215.0", "0.04") and hands them to ArduinoJson as serialized text,
+  since ArduinoJson writes the double 215.0 as "215".
+- Tiger Studio has the same trap: PROTOCOL.md's table says float but its
+  example writes 190, and renderer/printers/creality/index.js sends a JS number
+  that JSON.stringify writes as 190. Not tested from Studio.
+
+### Verified
+
+- Ender-3 V4, the Duramic 3D PLA chip the iPhone wrote to 1C, through the
+  TigerSpool to 1D: frame `"minTemp":190.0,"maxTemp":240.0`; read back 190/240,
+  same as the app's write to 1C.
+

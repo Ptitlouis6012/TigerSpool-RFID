@@ -14,6 +14,22 @@ namespace {
         { nullptr, 0, 0 }, { "1A", 1, 0 }, { "1B", 1, 1 }, { "1C", 1, 2 }, { "1D", 1, 3 },
     };
 
+    // A number that is written WITH a decimal point, always.
+    //
+    // A Creality printer stores a slot's minTemp/maxTemp only when the JSON
+    // number has one: sent as 215.0 it reads back 215, sent as 215 it reads
+    // back 0 - measured on an Ender-3 V4 with a CFS, three times over, the
+    // only difference in the frame. The TigerTag Connect app got it right by
+    // accident: Dart writes a double as "215.0". ArduinoJson writes the same
+    // double as "215", so the text is built here and handed over verbatim.
+    String withPoint(double v) {
+        char buf[24];
+        snprintf(buf, sizeof(buf), "%.3f", v);          // "215.000", "0.040"
+        char* end = buf + strlen(buf) - 1;
+        while (*end == '0' && *(end - 1) != '.') *end-- = '\0';
+        return String(buf);                             // "215.0", "0.04"
+    }
+
     int slotIndex(int box, int mat) {
         for (int i = 0; i < 5; i++)
             if (CREALITY_SLOTS[i].box == box && CREALITY_SLOTS[i].slot == mat) return i;
@@ -155,9 +171,10 @@ bool CrealityBackend::assign(int idx, const TagInfo& t) {
     m["vendor"]     = t.brand;
     m["name"]       = f.crealityName;
     m["color"]      = t.colorHexCreality();
-    m["minTemp"]    = f.nozMin;
-    m["maxTemp"]    = f.nozMax;
-    m["pressure"]   = f.pressure;
+    // With a decimal point, or the printer drops them - see withPoint().
+    m["minTemp"]    = serialized(withPoint(f.nozMin));
+    m["maxTemp"]    = serialized(withPoint(f.nozMax));
+    m["pressure"]   = serialized(withPoint(f.pressure));
     m["selected"]   = 1;
     m["percent"]    = 100;
     m["editStatus"] = 1;

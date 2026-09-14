@@ -7,6 +7,15 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **A Creality slot keeps the nozzle temperatures it is sent.** The printer
+  stores them only when they are written as decimal numbers - 215.0, not 215 -
+  and the TigerSpool sent whole numbers, so every slot it wrote read back 0/0.
+  Measured on an Ender-3 V4: the same frame with 215.0 is kept, with 215 it is
+  dropped. The TigerTag RFID Connect app always wrote them with a decimal
+  point, which is why its writes kept their temperatures.
+
 ## [1.49.1] - 2026-09-14
 
 ### Fixed
@@ -34,9 +43,8 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   What the printer keeps, measured on an Ender-3 V4 with a CFS: the type,
   brand, name, colour and pressure advance land in the slot. The material id
   is kept only when brand, type and name match the printer's own material
-  library - "Generic PLA" does, a spool sent under its own brand does not - and
-  the printer reports no per-slot temperatures at all, so the temperatures it
-  applies are those of the library profile the id points to.
+  library - "Generic PLA" does, a spool sent under its own brand does not.
+  The temperatures in this release did NOT land: see 1.49.2.
 - **A Creality slot's material type is the material family.** A "PLA High
   Speed" spool is sent as type "PLA", taken from the TigerTag material table,
   because that is what the printer's type field means.
