@@ -7,6 +7,8 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.49.3] - 2026-09-14
+
 ### Changed
 
 - **Slot names are bold and larger** on a printer's slot screen - Ext., 1A,

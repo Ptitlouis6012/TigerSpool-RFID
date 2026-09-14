@@ -1292,7 +1292,7 @@ ten, not by memory.
   TigerSpool to 1D: frame `"minTemp":190.0,"maxTemp":240.0`; read back 190/240,
   same as the app's write to 1C.
 
-## 2026-09-14 - slot names in bold
+## 2026-09-14 - slot names in bold (released in 1.49.3)
 
 ### Changed
 
