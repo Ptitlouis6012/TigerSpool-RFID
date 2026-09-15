@@ -1428,7 +1428,7 @@ ten, not by memory.
   still sets orientation and auto-rotation. Captured on the bench: header with
   the title alone.
 
-## 2026-09-15 - bambuID, and the external spool Bambu actually accepts
+## 2026-09-15 - bambuID, and the external spool Bambu actually accepts (released in 1.52.0)
 
 ### Changed
 

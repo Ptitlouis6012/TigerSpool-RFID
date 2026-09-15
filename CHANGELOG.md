@@ -7,6 +7,8 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.52.0] - 2026-09-15
+
 ### Fixed
 
 - **Writing the external spool on a Bambu Lab printer works on current
