@@ -68,13 +68,14 @@ bool parseProduct(const char* json, size_t len, uint32_t expectedId, ProductData
     out = ProductData{};
     if (!json || !len) return false;
 
-    // Only the six fields used. The full answer carries descriptions, image
+    // Only the seven fields used. The full answer carries descriptions, image
     // lists and links that have no business in RAM on this device.
     JsonDocument filter;
     filter["id"] = true;
     filter["nozzle"]["temp_min"] = true;
     filter["nozzle"]["temp_max"] = true;
     filter["metadata"]["crealityID"] = true;
+    filter["metadata"]["bambuID"] = true;
     filter["metadata"]["crealityLabel"] = true;
     filter["metadata"]["crealityPressureAdvance"] = true;
 
@@ -99,6 +100,7 @@ bool parseProduct(const char* json, size_t len, uint32_t expectedId, ProductData
     out.nozMin = temperature(doc["nozzle"]["temp_min"]);
     out.nozMax = temperature(doc["nozzle"]["temp_max"]);
     copyGiven(out.crealityId, sizeof(out.crealityId), doc["metadata"]["crealityID"]);
+    copyGiven(out.bambuId, sizeof(out.bambuId), doc["metadata"]["bambuID"]);
     copyGiven(out.crealityLabel, sizeof(out.crealityLabel), doc["metadata"]["crealityLabel"]);
     out.pressure = positiveNumber(doc["metadata"]["crealityPressureAdvance"]);
     return true;
@@ -150,6 +152,14 @@ ResolvedFilament resolve(const ChipFacts& chip, const ProductData* api, const Ma
         snprintf(r.crealityId, sizeof(r.crealityId), "%s", d->crealityId); r.idSrc = SRC_DB;
     } else {
         snprintf(r.crealityId, sizeof(r.crealityId), "%s", DEFAULT_CREALITY_ID); r.idSrc = SRC_DEFAULT;
+    }
+
+    // Bambu's filament id: the same order as Creality's - endpoint, table - and
+    // no default here: the generic fallback is a Bambu fact, in its backend.
+    if (a && given(a->bambuId)) {
+        snprintf(r.bambuId, sizeof(r.bambuId), "%s", a->bambuId); r.bambuSrc = SRC_API;
+    } else if (d && given(d->bambuId)) {
+        snprintf(r.bambuId, sizeof(r.bambuId), "%s", d->bambuId); r.bambuSrc = SRC_DB;
     }
 
     // Pressure advance: the same order as the id.

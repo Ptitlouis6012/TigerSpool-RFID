@@ -16,6 +16,7 @@ struct MaterialInfo {
     const char* filledType = nullptr;   // filled_type, the filler: "CF" for
                                         // "ABS-CF"; null when unfilled
     const char* crealityId = nullptr;   // metadata.crealityID, e.g. "00001"
+    const char* bambuId = nullptr;      // metadata.bambuID, e.g. "GFL99"
     double      pressure = 0;           // metadata.crealityPressureAdvance
     uint16_t    nozMin = 0, nozMax = 0; // recommended.nozzleTempMin / Max
 };

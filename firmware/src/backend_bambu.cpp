@@ -1,4 +1,5 @@
 #include "backend_bambu.h"
+#include "product_api.h"
 #include "i18n.h"
 #include "tigertag_cloud.h"
 #include "bambu_cloud.h"
@@ -34,7 +35,11 @@ void BambuBackend::setDefaultMap() {
 }
 
 namespace {
-    // TigerTag material -> Bambu's generic { tray_info_idx, tray_type }
+    // TigerTag material -> Bambu's generic { tray_info_idx, tray_type }.
+    //
+    // The FALLBACK now, not the source: a filament's Bambu id comes from the
+    // TigerTag+ product endpoint or the material table (filament_resolve.cpp),
+    // and this keyword guess only answers for a material neither knows.
     struct BMat { const char* idx; const char* type; };
     BMat bambuMat(const String& in) {
         String s = in; s.toUpperCase();
@@ -334,24 +339,51 @@ bool BambuBackend::assign(int idx, const TagInfo& t) {
     // never claims a write that the service was always going to drop.
     if (cloud_) { status_ = "Bambu: cloud is read only"; return false; }
     if (idx < 0 || idx >= nSlots_ || !connected_) return false;
-    BMat m = bambuMat(t.material);
+
+    // The same resolution as a Creality slot: temperatures from the TigerTag+
+    // product endpoint, the chip, the material table or a default; Bambu's
+    // filament id from the endpoint or the table; the type from the table's
+    // material family. Only what nobody knows falls back to the keyword guess.
+    const filament::ResolvedFilament f = product_api::resolveFor(t);
+    const BMat guess = bambuMat(t.material);
+    const bool idKnown = f.bambuId[0] != '\0';
+    const char* trayIdx  = idKnown ? f.bambuId : guess.idx;
+    const bool typeKnown = f.typeSrc == filament::SRC_DB;
+    const char* trayType = typeKnown ? f.materialType : guess.type;
     char col[9]; snprintf(col, sizeof(col), "%02X%02X%02XFF", t.r, t.g, t.b);   // RRGGBBAA
+
+    const char* label = map_[idx].name[0] ? map_[idx].name : "Ext";
+    Serial.printf("[bambu] %s type=%s(%s) id=%s(%s) temp=%u/%u(%s)\n", label,
+                  trayType, typeKnown ? "db" : "guess",
+                  trayIdx, idKnown ? filament::sourceName(f.bambuSrc) : "guess",
+                  f.nozMin, f.nozMax, filament::sourceName(f.tempSrc));
 
     JsonDocument d;
     JsonObject p = d["print"].to<JsonObject>();
     p["sequence_id"]    = String(seq_++);
     p["command"]        = "ams_filament_setting";
+    // The external spool is addressed as ams 255, tray 0, slot 0 - not by the
+    // 254 it is reported under. Measured on an X1C on firmware 01.12.00.00:
+    // ams_filament_setting with tray_id 254 is accepted and IGNORED - the tray
+    // kept its old filament for minutes, seen on this device's own session and
+    // on a second client - while the same values with tray_id 0 and slot_id 0
+    // land within seconds and hold. That is the addressing current Bambu
+    // Studio sends. slot_id goes on AMS trays too, as Studio sends it; it
+    // repeats tray_id there. The slot map keeps 255/254, which is what the
+    // report uses to say which tray is the external one.
+    const bool external = map_[idx].ams == 255;
     p["ams_id"]         = map_[idx].ams;
-    p["tray_id"]        = map_[idx].tray;
-    p["tray_info_idx"]  = m.idx;
+    p["tray_id"]        = external ? 0 : map_[idx].tray;
+    p["slot_id"]        = external ? 0 : map_[idx].tray;
+    p["tray_info_idx"]  = trayIdx;
     p["tray_color"]     = col;
-    p["nozzle_temp_min"] = t.nozMin ? t.nozMin : 190;
-    p["nozzle_temp_max"] = t.nozMax ? t.nozMax : 240;
-    p["tray_type"]      = m.type;
+    p["nozzle_temp_min"] = f.nozMin;
+    p["nozzle_temp_max"] = f.nozMax;
+    p["tray_type"]      = trayType;
     String b; serializeJson(d, b);
     pubRequest(b);
 
-    status_ = String("sent -> ") + map_[idx].name + " " + m.type;
+    status_ = String("sent -> ") + label + " " + trayType;
     delay(200);
     refresh();
     return true;

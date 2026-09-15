@@ -39,6 +39,7 @@ struct MatExtra {
     const char* materialType;      // into the blob; "" when absent
     const char* filledType;        // into the blob; "" when unfilled
     const char* crealityId;        // into the blob; "" when absent
+    const char* bambuId;           // into the blob; "" when absent
     double      pressure;          // 0 when absent
     uint16_t    nozMin, nozMax;    // 0 when absent
 };
@@ -130,6 +131,7 @@ bool loadFile(int idx, Table& out) {
         row["material_type"] = true;
         row["filled_type"] = true;
         row["metadata"]["crealityID"] = true;
+        row["metadata"]["bambuID"] = true;
         row["metadata"]["crealityPressureAdvance"] = true;
         row["recommended"]["nozzleTempMin"] = true;
         row["recommended"]["nozzleTempMax"] = true;
@@ -160,7 +162,8 @@ bool loadFile(int idx, Table& out) {
         bytes += strlen(lab) + 1;
         if (isMaterial) bytes += strlen(givenString(e["metadata"]["crealityID"])) + 1
                               + strlen(givenString(e["material_type"])) + 1
-                              + strlen(givenString(e["filled_type"])) + 1;
+                              + strlen(givenString(e["filled_type"])) + 1
+                              + strlen(givenString(e["metadata"]["bambuID"])) + 1;
         count++;
     }
     if (!count) return false;
@@ -198,6 +201,11 @@ bool loadFile(int idx, Table& out) {
             memcpy(w, cid, cl + 1);
             x.crealityId = w;
             w += cl + 1;
+            const char* bid = givenString(e["metadata"]["bambuID"]);
+            const size_t bl = strlen(bid);
+            memcpy(w, bid, bl + 1);
+            x.bambuId = w;
+            w += bl + 1;
             x.pressure = positive(e["metadata"]["crealityPressureAdvance"]);
             x.nozMin   = temp(e["recommended"]["nozzleTempMin"]);
             x.nozMax   = temp(e["recommended"]["nozzleTempMax"]);
@@ -418,6 +426,7 @@ bool materialInfo(uint16_t id, MaterialInfo& out) {
         out.materialType = t.extra[i].materialType;
         out.filledType   = t.extra[i].filledType;
         out.crealityId = t.extra[i].crealityId;
+        out.bambuId    = t.extra[i].bambuId;
         out.pressure   = t.extra[i].pressure;
         out.nozMin     = t.extra[i].nozMin;
         out.nozMax     = t.extra[i].nozMax;
@@ -427,6 +436,7 @@ bool materialInfo(uint16_t id, MaterialInfo& out) {
         out.materialType = c->materialType;
         out.filledType   = c->filledType;
         out.crealityId = c->crealityId;
+        out.bambuId    = c->bambuId;
         out.pressure   = c->pressure;
         out.nozMin     = c->nozMin;
         out.nozMax     = c->nozMax;

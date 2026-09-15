@@ -1255,6 +1255,7 @@ namespace {
             d["type"]      = f.materialType; d["typeSrc"]    = filament::sourceName(f.typeSrc);
             d["minTemp"]   = f.nozMin;      d["tempSrc"]     = filament::sourceName(f.tempSrc);
             d["rfid"]      = f.crealityId;  d["rfidSrc"]     = filament::sourceName(f.idSrc);
+            d["bambuId"]   = f.bambuId;     d["bambuSrc"]    = f.bambuId[0] ? filament::sourceName(f.bambuSrc) : "none";
             d["pressure"]  = f.pressure;    d["pressureSrc"] = filament::sourceName(f.pressureSrc);
             d["name"]      = f.crealityName; d["nameSrc"]    = filament::sourceName(f.nameSrc);
             d["maxTemp"]   = f.nozMax;

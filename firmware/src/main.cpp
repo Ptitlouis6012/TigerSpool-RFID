@@ -2398,10 +2398,13 @@ void loop() {
             lastScanPoll = millis();
             if (reader::present()) {
                 if (reader::read(tag) && tag.ok) {
-                    // A TigerTag+ going to a Creality: ask TigerTag about the
-                    // product now, while the review is on screen, so the answer
-                    // is usually in before Send. Only Creality reads it today.
-                    if (printers[selectedPrinter].type == PT_CREALITY) product_api::request(tag);
+                    // A TigerTag+ going to a printer that uses the product
+                    // answer - a Creality, or a Bambu it can write to: ask
+                    // TigerTag about the product now, while the review is on
+                    // screen, so the answer is usually in before Send.
+                    const PrinterCfg& to = printers[selectedPrinter];
+                    if (to.type == PT_CREALITY || (to.type == PT_BAMBU && !to.cloud))
+                        product_api::request(tag);
                     sendWaiting = false;
                     state = ST_REVIEW; stateSince = millis();
                 }

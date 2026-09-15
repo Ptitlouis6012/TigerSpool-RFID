@@ -7,6 +7,23 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Writing the external spool on a Bambu Lab printer works on current
+  firmware.** The device addressed the external spool the old way, which an
+  X1C on firmware 01.12 accepts and silently ignores - the slot kept its old
+  filament. It now uses the addressing current Bambu Studio sends.
+
+### Changed
+
+- **A Bambu Lab slot is sent the filament's own Bambu filament id and
+  temperatures.** The filament id comes from TigerTag's product page for a
+  TigerTag+ spool, otherwise from the material table built into the device -
+  instead of a guess from the material's name, which is now only the fallback.
+  The type is the material family (a filled material keeps its filler), and the
+  nozzle temperatures follow the same order as on a Creality: product page,
+  chip, material table, default.
+
 ## [1.51.2] - 2026-09-15
 
 ### Fixed

@@ -1428,3 +1428,53 @@ ten, not by memory.
   still sets orientation and auto-rotation. Captured on the bench: header with
   the title alone.
 
+## 2026-09-15 - bambuID, and the external spool Bambu actually accepts
+
+### Changed
+
+- Bambu uses the resolver: `tray_info_idx` from the TigerTag+ endpoint's
+  metadata.bambuID, then the table's metadata.bambuID (80 of 113 materials
+  carry one), then the old keyword guess (`bambuMat`, now the fallback only);
+  `tray_type` from the table's material family (+ filled_type), else the
+  guess; nozzle temperatures by the Creality order. bambuId added to
+  ProductData, MaterialInfo, the downloaded table, TT_MATERIAL_INFO and
+  `/api/resolve`; the resolver leaves it empty rather than guessing, since the
+  generic fallback is a Bambu fact. The product lookup now also starts for a
+  TigerTag+ read for a Bambu in LAN mode. Log line
+  `[bambu] Ext type=PLA(db) id=GFL99(api) temp=215/230(api)`.
+- Note on this spool: the endpoint gives GFL99 (Generic PLA) while the table
+  gives 24629 PLA High Speed GFL95 - the endpoint wins, by the rule.
+
+### Fixed
+
+- The external spool was sent as ams_id 255 / tray_id 254 - the ids the report
+  uses. On the X1C (firmware 01.12.00.00, LAN mode) that command is accepted
+  and IGNORED: after the TigerSpool's send the tray stayed grey for minutes on
+  the device's own session. ams_id 255 / tray_id 0 / slot_id 0 - what current
+  Bambu Studio sends - lands within seconds. slot_id also goes on AMS trays,
+  equal to tray_id. The slot map keeps 255/254 for reading the report.
+
+### Verified
+
+- Host test: seven bambuID cases (endpoint wins; endpoint without id -> table;
+  no answer -> table; plain TigerTag ignores the endpoint; table without id ->
+  none; "-" and null absent) pass.
+- X1C at 192.168.20.181, LAN mode, the R3D PLA High Speed TigerTag+ spool,
+  through the TigerSpool to Ext with the new addressing: read back from the
+  Mac over the printer's own MQTT, 28 consecutive reports GFL99 / PLA /
+  DC123FFF / 215-230; the device's session saw grey -> red. Ext put back to
+  its original GFL99 / PLA / 808080FF / 190-240 and confirmed.
+- How the old addressing was found to be ignored took a wrong turn worth
+  keeping: the FIRST report after a new MQTT connection carries an empty
+  vt_tray (color 00000000, temps 0) before the real one, so reading only the
+  first report looked like "the command cleared the tray". The device's own
+  log shows the same empty report periodically ("Ext: - #000000" followed
+  immediately by the real tray) - the slot grid can flicker empty for a
+  moment. Not fixed here.
+
+### Not verified
+
+- An AMS tray write with slot_id, and the new external-spool addressing on
+  other models (A1, P1P, P2S) or older firmware: none was in LAN mode on the
+  bench.
+

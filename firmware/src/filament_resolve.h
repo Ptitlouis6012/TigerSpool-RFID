@@ -35,6 +35,7 @@ struct ProductData {
     uint32_t id = 0;
     uint16_t nozMin = 0, nozMax = 0;     // nozzle.temp_min / temp_max
     char     crealityId[16] = {0};       // metadata.crealityID
+    char     bambuId[16] = {0};          // metadata.bambuID
     char     crealityLabel[48] = {0};    // metadata.crealityLabel
     double   pressure = 0;               // metadata.crealityPressureAdvance
 };
@@ -57,6 +58,10 @@ struct ResolvedFilament {
     uint16_t nozMin = 0, nozMax = 0;  Source tempSrc = SRC_DEFAULT;
     char     materialType[32] = {0};  Source typeSrc = SRC_DEFAULT;
     char     crealityId[16] = {0};    Source idSrc = SRC_DEFAULT;
+    // Bambu's tray_info_idx. Empty with SRC_DEFAULT when neither the endpoint
+    // nor the table has one: the Bambu backend then falls back to its own
+    // generic id for the material family, which only it knows.
+    char     bambuId[16] = {0};       Source bambuSrc = SRC_DEFAULT;
     char     crealityName[64] = {0};  Source nameSrc = SRC_DEFAULT;
     double   pressure = 0;            Source pressureSrc = SRC_DEFAULT;
 };
