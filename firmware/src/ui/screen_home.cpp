@@ -2,6 +2,7 @@
 #include "fonts.h"
 #include "icons.h"
 #include "theme.h"
+#include "frame.h"
 #include "../i18n.h"
 #include "i18n.h"
 #include <lvgl.h>
@@ -23,6 +24,7 @@ lv_obj_t* s_wifi     = nullptr;
 bool      s_active   = false;
 int       s_tapped   = -1;
 bool      s_settings = false;
+bool      s_pick     = false;
 
 void onRow(lv_event_t* e)      { s_tapped   = (int)(intptr_t)lv_event_get_user_data(e); }
 void onSettings(lv_event_t*)   { s_settings = true; }
@@ -208,17 +210,28 @@ void show(const PrinterCfg* printers, int count,
     }
 
     if (!shown) {
-        // Two different situations that look identical on an empty list: the
-        // account has no printers, or they are all hidden. Sending someone to
-        // Tiger Studio when the answer is one tap away in Settings is the kind
-        // of wrong advice that costs an evening.
-        lv_obj_t* empty = lv_label_create(s_list);
-        lv_label_set_text(empty, configured ? i18n::T(S_ALL_HIDDEN)
-                                            : i18n::T(S_NO_PRINTERS));
-        lv_label_set_long_mode(empty, LV_LABEL_LONG_WRAP);
-        lv_obj_set_width(empty, theme::SCREEN_W - 2 * theme::PAD - 6);
-        lv_obj_set_style_text_color(empty, lv_color_hex(theme::TEXT_DIM), 0);
-        lv_obj_set_style_text_align(empty, LV_TEXT_ALIGN_CENTER, 0);
+        // Nothing but the way out of it.
+        //
+        // Two situations look identical on an empty list - the account has no
+        // printers, or they are all hidden - and both are answered on the
+        // same screen, so saying which one it is buys nothing: it was a line
+        // of text ("All printers hidden. Settings > Printers") that a person
+        // had to translate into taps. The button does the translating.
+        lv_obj_t* pad = lv_obj_create(s_list);
+        lv_obj_remove_style_all(pad);
+        lv_obj_set_size(pad, 1, theme::GAP);
+
+        lv_obj_t* b = frame::button(s_list, i18n::T(S_SELECT_PRINTERS), 0,
+                                    []() { s_pick = true; });
+        // Two lines, and the height to hold them: the label names what it
+        // opens, and in French, Portuguese and Italian that is over twenty
+        // characters - on one line it ran out of both ends of the button.
+        lv_obj_set_height(b, theme::BUTTON_H + 24);
+        lv_obj_t* l = lv_obj_get_child(b, 0);
+        lv_label_set_long_mode(l, LV_LABEL_LONG_WRAP);
+        lv_obj_set_width(l, LV_PCT(85));
+        lv_obj_set_style_text_align(l, LV_TEXT_ALIGN_CENTER, 0);
+        lv_obj_center(l);
     }
 
     // Green reachable, orange signed in but unreachable - which on this device
@@ -254,6 +267,7 @@ bool active() { return s_active; }
 void leave()  { s_active = false; }
 
 int  takeTappedPrinter() { int v = s_tapped; s_tapped = -1; return v; }
+bool takePickTap()       { bool v = s_pick; s_pick = false; return v; }
 bool takeSettingsTap()   { bool v = s_settings; s_settings = false; return v; }
 
 }  // namespace screen_home

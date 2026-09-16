@@ -382,7 +382,7 @@ namespace {
         else if (preview == "wifi") { buildNames(); screen_setup::showWifi(AP_SSID, AP_PASS); }
         else if (preview == "portal") screen_setup::showPortalReady("http://192.168.4.1");
         else if (preview == "pair") screen_setup::showPairing(
-                     "https://tigersystem.io/pair?c=K7QF3M2P", "K7QF-3M2P", 587);
+                     "https://tigersystem.io/pair/K7QF-3M2P", "K7QF-3M2P", 587);
         else if (preview == "pairfail") screen_setup::showPairFailed("Code expired");
         else if (preview == "account") screen_setup::showAccountIntro();
         else if (preview == "signin")  screen_setup::showSignInChoice();
@@ -1297,9 +1297,19 @@ void webcfg::begin() {
     Serial.printf("[webcfg] http://%s  http://%s.local\n", WiFi.localIP().toString().c_str(), HOSTNAME);
 }
 
-void webcfg::beginAP() {
-    apMode = true;
+// The radio half of bringing the access point up, on a task of its own.
+//
+// It takes about 900 ms - the station stop, the mode change and softAP() itself
+// wait on the Wi-Fi driver - and it runs just after the QR has been drawn.
+// Done on the loop, those 900 ms were a screen that looked ready and ignored
+// every touch: the back arrow to the language screen was pressed, the press was
+// never read, and going back took two or three tries. Nothing here touches
+// LVGL or the web server, so nothing here needs the loop.
+static volatile bool apRadioBusy = false;
+static volatile bool apRadioUp = false;   // radio done, server not yet started
+static bool apServed = false;             // DNS and web server running
 
+static void apRadioSteps() {
     // Stop the station interface retrying an association: it makes the radio
     // hop channels, and the access point appears to drop every few seconds.
     WiFi.persistent(false);
@@ -1313,32 +1323,64 @@ void webcfg::beginAP() {
     // Idle, it costs nothing.
     WiFi.mode(WIFI_AP_STA);
     WiFi.setSleep(false);                 // AP without modem-sleep = stable connections
-    buildNames();
     WiFi.softAPConfig(AP_IP, AP_IP, IPAddress(255, 255, 255, 0));
     WiFi.softAP(AP_SSID, AP_PASS, 1, 0, 4);   // WPA2, channel 1, max 4 clients
     delay(300);
 
+    // The scan goes here, asynchronously. It is the only moment it can usefully
+    // happen - once a phone is associated the radio is committed to it and a
+    // scan comes back empty - and async means the QR is already on the panel
+    // and nothing waits on it. Removing it altogether was a mistake once: the
+    // networks used to be ready before anyone had finished scanning the QR.
+    startBackgroundScan();
+    apRadioUp = true;
+}
+static void apRadioBringUp(void*) {
+    apRadioSteps();
+    apRadioBusy = false;
+    vTaskDelete(nullptr);
+}
+
+// Blocks until the radio task is finished, if one is running. Every other
+// radio call waits behind it: two tasks changing the Wi-Fi mode at once is
+// not something the driver is written for.
+static void waitApRadio() {
+    while (apRadioBusy) delay(10);
+}
+
+void webcfg::beginAP() {
+    waitApRadio();
+    apMode = true;
+    apServed = false;
+    apRadioUp = false;
+    buildNames();
     // No scan here. It used to run synchronously at this point, and it is the
     // reason picking a language on a new device was followed by four seconds of
-    // a frozen screen before the QR code appeared: a scan takes seconds, and
-    // the whole of setup was queued behind it for a list nobody had asked for
-    // yet. The portal fetches the list itself when it is opened, and starts a
-    // background scan when its page is served.
+    // a frozen screen before the QR code appeared.
+    // Busy is set before the task exists, so a wait can never miss it.
+    apRadioBusy = true;
+    if (xTaskCreatePinnedToCore(apRadioBringUp, "ap_radio", 6144, nullptr, 1,
+                                nullptr, 0) != pdPASS) {
+        apRadioBusy = false;
+        apRadioSteps();                   // no room for a task: the old, blocking way
+    }
+}
+
+// The half that needs the loop: the DNS responder and the web server are
+// served from it, so they start from it once the radio is up.
+static void apServeWhenReady() {
+    if (apServed || !apRadioUp) return;
+    apServed = true;
     captive_dns::begin(AP_IP);
     routes();
     server.begin();
     Serial.printf("[webcfg] AP '%s' (channel 1)  http://192.168.4.1/\n", AP_SSID);
-    // The scan goes here, asynchronously. It is the only moment it can usefully
-    // happen - once a phone is associated the radio is committed to it and a
-    // scan comes back empty - and async means the QR is already on the panel
-    // and nothing waits on it, which was the point of taking the BLOCKING scan
-    // off this path. Removing it altogether was the mistake: the networks used
-    // to be ready before anyone had finished scanning the QR.
-    startBackgroundScan();
 }
 
 void webcfg::loop() {
     if (apMode) {
+        apServeWhenReady();
+        if (!apServed) return;
         captive_dns::loop();
         // Collect the scan the moment it lands, rather than waiting for a
         // browser to ask. By the time anyone asks, a phone is associated and
@@ -1353,6 +1395,8 @@ void webcfg::loop() {
     if (apTeardownAt && millis() >= apTeardownAt) {
         apTeardownAt = 0;
         apMode = false;
+        apServed = false;
+        apRadioUp = false;
         captive_dns::end();
         WiFi.softAPdisconnect(true);
         WiFi.mode(WIFI_STA);
@@ -1365,9 +1409,12 @@ void webcfg::loop() {
 // caller's job (main.cpp, staBegin), as is putting auto-reconnect back.
 void webcfg::endAP() {
     if (!apMode) return;
+    waitApRadio();
     apTeardownAt = 0;
     apMode = false;
-    captive_dns::end();
+    if (apServed) captive_dns::end();
+    apServed = false;
+    apRadioUp = false;
     WiFi.softAPdisconnect(true);
     WiFi.mode(WIFI_STA);
     Serial.println("[webcfg] setup access point closed without a new network");
@@ -1376,7 +1423,7 @@ void webcfg::endAP() {
 bool webcfg::apActive()   { return apMode; }
 const char* webcfg::apName() { buildNames(); return AP_SSID; }
 const char* webcfg::apPass() { buildNames(); return AP_PASS; }
-int webcfg::apClients()    { return apMode ? WiFi.softAPgetStationNum() : 0; }
+int webcfg::apClients()    { return apServed ? WiFi.softAPgetStationNum() : 0; }
 void webcfg::pairTick() { pairTick_(); }
 bool webcfg::webPairing(String& url, String& code, int& secondsLeft) {
     return webPairing_(url, code, secondsLeft);

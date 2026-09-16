@@ -1478,3 +1478,115 @@ ten, not by memory.
   other models (A1, P1P, P2S) or older firmware: none was in LAN mode on the
   bench.
 
+## 2026-09-15 - a way back from a wrong language, and the language scrollbar (released in 1.53.0)
+
+### Fixed
+
+- Benoit, installing a new board: a mis-tap picked Español and nothing led back
+  to the language list. main.cpp `s_apFromLang`: set when goAfterLang() opens
+  the portal on a device with no saved network; the portal screens then get
+  the Wi-Fi header with a back arrow, and back calls webcfg::endAP() and
+  returns to ST_LANG. Picking a language opens the portal again. A device
+  whose saved network merely failed at boot keeps the header-less QR.
+- Benoit, same board: after picking a language, going back was "very hard".
+  The back arrow worked (every press that was read reached ST_LANG in the
+  log), but webcfg::beginAP() ran on the loop right after the QR was drawn and
+  held it for 861-891 ms (measured: station stop and mode change 117-145 ms,
+  softAP() about 360 ms, then fixed delays of 100 and 300 ms). A press in that
+  window is never read - the CST816S reports only the current state. endAP()
+  measured 2 ms, so the way back itself was never slow. The radio half of
+  beginAP() (disconnect, mode, softAPConfig, softAP, the async scan) now runs
+  on a one-shot task, core 0; webcfg::loop() starts the captive DNS and the web
+  server once it is done. endAP() and beginAP() wait for a running bring-up
+  before touching the radio, and apClients() reads nothing until the server is
+  up.
+- Benoit, on the pairing screen: it did not fit. showPairing() was headerless
+  with the 56 px back strip, a 124 px QR, S_SCAN_TO_LINK wrapping as
+  "tigersystem." / "io/pair" and the countdown clipped (captured). It now uses
+  frame(S_TT_ACCOUNT, true) like the Wi-Fi screen, a 112 px QR, S_OR_GO_TO
+  over the address in bold - taken from verify_url without scheme and query,
+  so no literal URL is drawn - and the code and countdown share a row.
+  S_SCAN_TO_LINK is gone.
+- Benoit, on the live screen: the address still did not fit. The preview uses
+  a made-up short URL; the real verify_url is
+  https://tigertag-cdn.web.app/pair.html?c=..., thirty characters once the
+  scheme and the code are off it, and it was clipped at both ends. The "Or go
+  to" caption is gone with it - the line it took is what makes the address
+  fit - and the address is drawn on one line at the largest of three faces
+  that fits it, measured with lv_txt_get_size rather than guessed from the
+  length. Captured on the device: the live one,
+  tigertag-cdn.web.app/pair.html, at 12 px; the preview's
+  tigersystem.io/pair in bold 16.
+- Benoit: at the end of the countdown, go back to the sign-in choice on its
+  own. ST_ACCOUNT POLLING with left <= 0 set FAILED with a generic message and
+  waited for a tap; it now hides the screen and returns to CHOICE. Verified on
+  the battery board with the window cut to 20 s for the test: the log shows
+  "pairing code expired - back to the sign-in choice" and the capture taken
+  after it shows the two buttons. The 600 s window is back in the source.
+- Worth knowing: the address the screen used to print, tigersystem.io/pair,
+  answers 307 to /en/pair and then 404 (checked). Nobody following it reached
+  a pairing page. docs/ACCOUNT-PAIRING.md carried it as the example
+  verify_url; corrected to what the backend actually returns. Benoit had it
+  fixed the same day: https://tigersystem.io/pair and
+  https://tigersystem.io/pair?c=... both answer 200 with no redirect, and
+  https://tigertag-cdn.web.app/pair.html?c=... still answers 200 (checked).
+  The short link then became https://tigersystem.io/pair/K7QF-3M2P - the code
+  in the path, not a parameter - so the printed line drops a last path segment
+  equal to the code as well as a query, compared without its dash. Captured
+  with the preview on the new format: the QR carries the code, the line reads
+  tigersystem.io/pair in bold 16. The backend still hands out the long link;
+  the day pair/start returns the short one nothing needs rebuilding.
+- Three leftovers from the prototype, in Portuguese, found while reading
+  tigertag_cloud.cpp: the error "pairStart vazio" (empty), which is not only
+  logged but shown on the pairing failure screen, and two comments. Now in
+  English. The Portuguese column of webcfg's portal table is a translation and
+  stays.
+- Benoit: with nothing selected, put a button on the home screen that opens
+  the printer picker - and no sentence above it. screen_home draws one
+  full-width button on the empty list, S_SELECT_PRINTERS, wrapped over two
+  lines in a button 24 px taller than the standard one (French "Choisir les
+  imprimantes" is 23 characters and would not fit on one), and takePickTap()
+  sends ST_PRINTER to ST_PICK. S_ALL_HIDDEN is gone - the distinction it drew
+  between "hidden" and "none" was answered on the same screen either way.
+  Verified on the device in French and English, and the button opens the
+  picker (captured).
+- Benoit, on the live screen: the printer choice was cut. The body sets
+  pad_row = theme::GAP and spaces its children itself, and both lists were
+  sized as though it did not: showChoosePrinters added three explicit spacers
+  on top of five automatic gaps and overflowed the body by 30 px - centred, so
+  15 came off the gauge and 15 off the Confirm button - and showPrinters
+  overflowed by 12. The spacers are gone and the heights now subtract the gaps
+  the body adds. Measured on the device after the fix: the button spans rows
+  261-310 of 320, and nothing on either screen passes row 311.
+- Benoit: the countdown under the code, not beside it - next to it, it read as
+  part of the code. Captured.
+- S_AP_JOIN shortened to "Scan the QR code" at Benoit's request (FR as he
+  wrote it, "Scanner le QR Code"). Three new Chinese characters, fonts
+  regenerated.
+- The language list called no scrollbar style: frame() strips the theme's, so
+  LV_SCROLLBAR_MODE_AUTO drew nothing. It now uses theme::scrollbar() like
+  every other list.
+
+### Verified
+
+- Language scrollbar: captured on the bench (preview=lang), bar on the right,
+  rows narrowed to leave its gap.
+- First-boot back arrow, with the radio bring-up on its task: pressed by
+  Benoit nine times in a row on the battery board, each read and each back on
+  ST_LANG in the log. The longest loop pass in ST_AP was 159 ms (a temporary
+  gap log, removed), the screen rebuild; before, 861-891 ms.
+- Pairing screen: captured in French (preview=pair) - everything inside the
+  panel. Chinese and German captured on the Wi-Fi QR screen with the new
+  instruction; the pairing preview did not redraw after a language change
+  (showPairing skips a rebuild with the same code and seconds), so those two
+  languages were not captured on it.
+- Benoit, on the battery board with no PN532 wired: the language list did not
+  scroll smoothly and taps were slow. The loop retried reader::begin() every
+  2 s; with nothing connected begin() runs five attempts with 200 ms between
+  them and took 1 430 ms (measured) - the loop was blocked for 1.4 s of every
+  3.4. reader::probe() - one wake-up and one firmware query, 32 ms with no
+  module (measured) - now gates the retry; begin() runs only when something
+  answers. The boot-time begin() is unchanged: it runs behind the splash.
+  Not verified: a reader plugged in while running being picked up through the
+  probe - the board had none to plug.
+

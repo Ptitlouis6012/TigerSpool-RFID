@@ -556,7 +556,7 @@ static void saveSel(int i) {
 }
 
 // ---- Wi-Fi / startup -------------------------------------------------------
-static const uint32_t WIFI_TIMEOUT_MS = 30000;   // 30 s por tentativa; se falhar -> portal AP
+static const uint32_t WIFI_TIMEOUT_MS = 30000;   // 30 s per attempt; on failure -> the setup AP
 
 static bool wifiConnect() {
     if (wifiSsid.isEmpty()) return false;      // no network saved -> setup portal
@@ -611,6 +611,11 @@ static bool apScreenDrawn = false;
 // The portal was opened from Settings > Wi-Fi, so there is a saved network to
 // go back to and its screens carry a back arrow.
 static bool s_apFromSettings = false;
+// The portal was opened straight after the language was picked on a first
+// boot. Its screens then carry a back arrow to the language screen: a wrong
+// tap there - Español for Français, a row apart - otherwise left the whole
+// setup in a language nobody at the device reads, with no way back to it.
+static bool s_apFromLang = false;
 static int  s_apShown = -1;               // -1 nothing, 0 join, 1 portal - see ST_AP
 
 static void startConfigAP() {
@@ -621,7 +626,7 @@ static void startConfigAP() {
     // while the access point comes up. Drawn the other way round, choosing a
     // language on a new device was followed by seconds of nothing, which reads
     // as a device that has crashed rather than one that is working.
-    screen_setup::showWifi(webcfg::apName(), webcfg::apPass(), s_apFromSettings);
+    screen_setup::showWifi(webcfg::apName(), webcfg::apPass(), s_apFromSettings || s_apFromLang);
     lvgl_port::loop();
     apScreenDrawn = true;
     s_apShown = 0;
@@ -639,7 +644,15 @@ static void goAfterLang() {
         return;
     }
     if (wifiConnect()) { onWifiUp(); state = afterWifi(); stateSince = millis(); }
-    else { s_apFromSettings = false; startConfigAP(); }   // no usable network -> open the setup portal
+    else {
+        // No usable network -> open the setup portal. The way back to the
+        // language is only for a device that has never had a network: one whose
+        // saved network simply did not answer is not being set up, and a back
+        // arrow to the language list would be an odd thing to offer it.
+        s_apFromSettings = false;
+        s_apFromLang = wifiSsid.isEmpty();
+        startConfigAP();
+    }
 }
 static void backToPrinters() {
     screen_home::leave();            // force a full LVGL repaint on re-entry
@@ -1674,7 +1687,13 @@ void loop() {
 
     if (!nfcReady && millis() - nfcLastTry > 2000) {
         nfcLastTry = millis();
-        nfcReady = reader::begin();
+        // A quick probe first, and the full start only when something answers.
+        // Retried the full way, a board with no reader - one not wired yet, on a
+        // first setup - blocked this loop 1 430 ms in every 3 400: the
+        // language list stuttered as it scrolled and a tap took a second to
+        // land. Measured on a board without a PN532.
+        // The probe costs 32 ms on that board; the full start, 1 430.
+        if (reader::probe()) nfcReady = reader::begin();
         if (nfcReady) Serial.println("[reader] PN532 OK (retry)");
     }
 
@@ -1709,6 +1728,7 @@ void loop() {
 
     case ST_WIFI:
         s_apFromSettings = false;
+        s_apFromLang = false;
         startConfigAP();                      // Wi-Fi failed -> AP portal
         return;
 
@@ -1722,6 +1742,7 @@ void loop() {
             onWifiUp();
             screen_setup::hide();
             s_apFromSettings = false;
+            s_apFromLang = false;
             Serial.printf("[wifi] portal joined '%s' as %s\n",
                           WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
             state = afterWifi(); stateSince = millis();
@@ -1758,10 +1779,23 @@ void loop() {
             state = ST_SET_WIFI; stateSince = millis();
             break;
         }
+        // Back on a first boot: close the access point and pick the language
+        // again. Choosing one opens the portal afresh.
+        if (s_apFromLang && screen_setup::takeBack()) {
+            webcfg::endAP();
+            s_apFromLang = false;
+            s_apShown = -1;
+            screen_setup::hide();
+            langFromSettings = false;
+            Serial.println("[wifi] setup left from its back arrow - choosing the language again");
+            state = ST_LANG; stateSince = millis();
+            break;
+        }
         int want = webcfg::apClients() > 0 ? 1 : 0;
         if (s_apShown != want) {
-            if (want) screen_setup::showPortalReady(webcfg::url().c_str(), s_apFromSettings);
-            else      screen_setup::showWifi(webcfg::apName(), webcfg::apPass(), s_apFromSettings);
+            const bool back = s_apFromSettings || s_apFromLang;
+            if (want) screen_setup::showPortalReady(webcfg::url().c_str(), back);
+            else      screen_setup::showWifi(webcfg::apName(), webcfg::apPass(), back);
             s_apShown = want;
             apScreenDrawn = true;
         }
@@ -1846,7 +1880,17 @@ void loop() {
 
         if (step == POLLING) {
             int left = 600 - (int)((millis() - startedAt) / 1000);
-            if (left <= 0) { failReason = i18n::T(S_ERR); step = FAILED; break; }
+            // Expired. Straight back to the sign-in choice, not to an error
+            // screen waiting for a tap: a code that ran out is not a failure,
+            // it is a device nobody got to in ten minutes, and what it should
+            // offer is the same choice as before. Starting Google again from
+            // there fetches a fresh code.
+            if (left <= 0) {
+                Serial.println("[account] pairing code expired - back to the sign-in choice");
+                screen_setup::hide();
+                step = CHOICE;
+                break;
+            }
             screen_setup::showPairing(verifyUrl.c_str(), code.c_str(), left);
             lvgl_port::loop();
             if (screen_setup::takeBack()) { screen_setup::hide(); step = CHOICE; break; }
@@ -1930,6 +1974,15 @@ void loop() {
         {
             int tapped = screen_home::takeTappedPrinter();
             if (tapped >= 0) { screen_home::leave(); selectPrinter(tapped); }
+            else if (screen_home::takePickTap()) {
+                // The empty list's own button. Straight to the picker: the
+                // list is empty either because everything is hidden or
+                // because the account has not been read yet, and that screen
+                // answers both.
+                screen_home::leave();
+                screen_settings::invalidate();
+                state = ST_PICK; stateSince = millis();
+            }
             else if (screen_home::takeSettingsTap()) {
                 screen_home::leave();
                 screen_settings::invalidate();
@@ -2067,6 +2120,7 @@ void loop() {
             screen_setup::hide();
             screen_setup::takeBack();        // a stale press must not leave at once
             s_apFromSettings = true;
+            s_apFromLang = false;
             startConfigAP();
         }
         break;

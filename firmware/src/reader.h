@@ -88,6 +88,12 @@ namespace reader {
     // is normal on the first attempt - the caller retries every two seconds.
     bool begin();
 
+    // One question - is a PN532 there at all - answered in a few tens of
+    // milliseconds whether it is or not. For retrying from the main loop:
+    // begin() spends 1.4 s finding out that nothing is connected, and calling
+    // it every two seconds froze the interface for most of every three.
+    bool probe();
+
     // Is a tag in the field? Fills `uid`/`len` when they are given, so a caller
     // can tell "the same spool is still there" from "a different one arrived"
     // without paying for a full read - which is 575 ms and the reason the test

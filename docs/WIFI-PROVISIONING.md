@@ -46,7 +46,7 @@ developer affordances; the device has to recover on its own.
         │      ████ ██ ███  █        │   the setup network
         │      ██  ████ █████        │
         │                            │
-        │  Scan with your phone      │
+        │  Scan the QR code          │
         │  camera, or join           │
         │                            │
         │   TigerSpool-Setup-XXXX    │

@@ -38,5 +38,8 @@ void leave();
 // Set by the screen when the user taps something. -1 means nothing pending.
 int  takeTappedPrinter();   // index into printers[], or -1
 bool takeSettingsTap();
+// The button on the empty list: take me to the printer picker. It is the only
+// way out of an empty home screen that does not start with "open Settings".
+bool takePickTap();
 
 }  // namespace screen_home

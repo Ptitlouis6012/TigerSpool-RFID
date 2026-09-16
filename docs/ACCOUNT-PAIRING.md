@@ -122,9 +122,10 @@ vulnerability.
 | Screen | Shows |
 |---|---|
 | **Account** | Signed-in email, or an invitation to link an account. |
-| **Pairing** | The QR code, large. The short code in plain text beneath it, for any phone that will not scan. A countdown to expiry. |
+| **Pairing** | The QR code, large. Under it the address from `verify_url` - scheme, query and code stripped off, drawn at the largest face that fits it on one line - then the short code, then a countdown to expiry. Nothing here is written into the firmware: change `verify_url` and the screen follows. |
 | **Approved** | Confirmation and the account's email, then straight to importing printers. |
-| **Denied / expired** | Says which of the two it was, and offers a fresh code. Never a bare error. |
+| **Denied** | Says so, and offers a fresh code. Never a bare error. |
+| **Expired** | No screen: the countdown runs out and the device returns to the sign-in choice on its own. Ten minutes of nobody approving is not a failure to report, and choosing Google again fetches a fresh code. |
 
 The pairing flow **must be reachable from the device screen**, not only from the
 web page. A user standing in front of the box with a phone in their hand should
@@ -167,7 +168,7 @@ Response:
 ```json
 {
   "code":       "K7QF-3M2P",
-  "verify_url": "https://tigersystem.io/pair?c=K7QF3M2P",
+  "verify_url": "https://tigersystem.io/pair/K7QF-3M2P",
   "poll_token": "<32 bytes, base64url>",
   "expires_in": 600,
   "interval":   5
@@ -185,13 +186,18 @@ Response:
 | `{"status":"pending"}` | Nobody has approved yet. Poll again after `interval` seconds. |
 | `{"status":"approved","custom_token":"<jwt>","email":"…"}` | Sign in with it. Single use — the record is consumed. |
 | `{"status":"denied"}` | The owner refused. Stop and say so on screen. |
-| `{"status":"expired"}` | Older than `expires_in`. Start again with a fresh code. |
+| `{"status":"expired"}` | Older than `expires_in`. Start again with a fresh code. The device does not wait for this: it stops polling and leaves the screen when its own countdown reaches zero. |
 
 ### Requirements on the cloud side
 
 - Rate-limit `start` per IP and `poll` per token; reject a poll faster than
   `interval` with the same back-off the OAuth device flow uses.
-- Codes are single-use and expire in ten minutes.
+- Codes are single-use and expire in ten minutes - the same ten the device
+  counts down on screen.
+- `verify_url` is what the QR carries and what the screen prints, so it must be
+  an address a person can also type. `https://tigersystem.io/pair/<CODE>` and
+  `https://tigertag-cdn.web.app/pair.html?c=<CODE>` both answer today; the
+  device strips the code either way and prints the address alone.
 - Store the pending record keyed by a **hash** of the poll token, not the token.
 
 ---

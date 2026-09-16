@@ -7,6 +7,47 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.53.0] - 2026-09-16
+
+### Fixed
+
+- **A wrong language picked at first start can be changed back.** The Wi-Fi
+  setup screen that follows the language choice now has a back arrow to the
+  language list; there was no way back before. The arrow answers from the
+  moment the screen appears: for almost a second after it was drawn, the
+  device was starting its setup network and every touch was ignored.
+- **The account pairing screen fits on the screen.** The instruction ran edge
+  to edge, the address broke in two and the countdown was cut off at the
+  bottom. The screen now has the same header as the Wi-Fi one, the address on
+  a line of its own, the code under it and the countdown under that.
+- **The address under the QR is the one the QR points at.** It read
+  `tigersystem.io/pair`, which was written into the translations and answers
+  404; it is now taken from the pairing link itself, so the two can never
+  disagree again, and it is drawn at the largest size that fits it on one
+  line. The pairing code is taken off it, whether the link carries it as a
+  parameter or as the last part of the address, so the line is the address
+  and nothing else.
+- **An empty printer list offers a button, not an instruction.** It used to
+  say "All printers hidden. Settings > Printers" and leave the rest to the
+  reader; the home screen now carries a Select printers button that opens the
+  picker.
+- **The printer lists no longer run off the screen.** On the first-boot
+  printer choice the Confirm button was sliced along the bottom bezel and the
+  gauge clipped at the top; on the Settings printer list the last row was cut.
+  Both lists were measured without the space the screen puts between its own
+  rows.
+- **An expired pairing code returns to the sign-in choice by itself.** It used
+  to stop on an error screen that had to be tapped; a code nobody got to in
+  ten minutes is not a failure, and choosing Google again fetches a fresh one.
+- **"Scan the QR code"**: a shorter instruction above the QR codes, in every
+  language.
+- **The language list shows its scrollbar**, like every other list - nine
+  languages do not fit on one screen and nothing said there were more.
+- **The screen stays smooth when no NFC reader is connected.** The device kept
+  retrying the reader in a way that froze the interface for more than a second
+  in every three - scrolling stuttered and a tap took a moment to land, which
+  showed on first setup before the reader is wired.
+
 ## [1.52.0] - 2026-09-15
 
 ### Fixed

@@ -329,7 +329,7 @@ bool ttcloud::pairStart(String& code, String& verifyUrl, String& pollToken,
     verifyUrl = String(r["verify_url"] | "");
     pollToken = String(r["poll_token"] | "");
     intervalS = r["interval"] | 5;
-    if (verifyUrl.isEmpty() || pollToken.isEmpty()) { err = "pairStart vazio"; return false; }
+    if (verifyUrl.isEmpty() || pollToken.isEmpty()) { err = "pairStart empty response"; return false; }
     Serial.printf("[account] pairStart ok code=%s\n", code.c_str());
     return true;
 }
@@ -370,7 +370,7 @@ bool ttcloud::signInWithCustomToken(const String& customToken, const String& ema
     }
     g_idToken = String(r["idToken"]      | "");
     g_refresh = String(r["refreshToken"] | "");
-    g_uid     = String(r["localId"]      | "");        // costuma vir vazio
+    g_uid     = String(r["localId"]      | "");        // usually comes back empty
     if (g_uid.isEmpty()) g_uid = uidFromIdToken(g_idToken);
     g_email   = emailHint;
     g_tokenAt = millis();

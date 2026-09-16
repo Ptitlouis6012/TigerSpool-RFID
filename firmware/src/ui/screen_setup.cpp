@@ -274,7 +274,11 @@ void showLanguage(bool force, bool withBack) {
                           LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_add_flag(body, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_scroll_dir(body, LV_DIR_VER);
-    lv_obj_set_scrollbar_mode(body, LV_SCROLLBAR_MODE_AUTO);
+    // The same scrollbar as every other list. Nine languages do not fit on one
+    // screen, and this list had none visible: frame() strips the theme's
+    // styles, so AUTO had no bar to draw and the list looked like it ended at
+    // Italiano.
+    theme::scrollbar(body);
 
     for (int i = 0; i < LANG_N; i++) {
         lv_obj_t* row = lv_btn_create(body);
@@ -298,10 +302,11 @@ void showLanguage(bool force, bool withBack) {
 int takeLanguage() { int v = s_lang; s_lang = -1; return v; }
 
 void showWifi(const char* apSsid, const char* apPass, bool withBack) {
-    // No header on a first boot: the QR explains itself, and there is nowhere
-    // to go back to. Reached from Settings > Wi-Fi > Change network there is -
-    // the saved network is still there - and a screen with no way out left
-    // the device stuck in setup for someone who only wanted to look. The
+    // A header with a back arrow whenever there is somewhere to go back to:
+    // Settings > Wi-Fi when the portal was opened from Change network, the
+    // language screen when it follows a first-boot language choice (a wrong
+    // tap there had no way back). Without one - the device fell to the portal
+    // because its saved network did not answer - the QR explains itself. The
     // header costs 44 px, taken back from the air around the square.
     frame(withBack ? "Wi-Fi" : nullptr, withBack);
     const lv_coord_t airAbove = withBack ? 4 : 20;
@@ -638,45 +643,93 @@ void showPairing(const char* verifyUrl, const char* code, int secondsLeft) {
     if (s_active && secondsLeft == lastShown && lastCode == code) return;
     lastShown = secondsLeft; lastCode = code;
 
-    // Same shape as the Wi-Fi screen: no header, the instruction above the
-    // square, the fallback below it. Someone who has just scanned one QR to get
-    // onto the network meets the same page twice, which is the point.
-    frame(nullptr);
-    addBack();
+    // Same shape as the Wi-Fi screen reached with a back arrow: a header, the
+    // instruction above the square, the fallback below it. Someone who has just
+    // scanned one QR to get onto the network meets the same page twice.
+    //
+    // It used to be headerless with the back strip over the top 56 px, and a
+    // 124 px square: the instruction ran edge to edge, the address wrapped as
+    // "tigersystem." / "io/pair" and the countdown fell off the bottom. The
+    // address is now a line of its own and the countdown shares the
+    // code's row.
+    frame(i18n::T(S_TT_ACCOUNT), true);
 
     lv_obj_t* scan = lv_label_create(s_body);
     lv_label_set_text(scan, i18n::T(S_AP_JOIN));
+    lv_label_set_long_mode(scan, LV_LABEL_LONG_WRAP);
+    lv_obj_set_width(scan, theme::SCREEN_W - 2 * theme::PAD - 6);
+    lv_obj_set_style_text_align(scan, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_style_text_font(scan, &font_ui_16, 0);
     lv_obj_set_style_text_color(scan, lv_color_hex(theme::TEXT), 0);
-    lv_obj_set_style_pad_bottom(scan, 20, 0);
+    lv_obj_set_style_pad_bottom(scan, 4, 0);
 
-    qr(verifyUrl, 124);
+    qr(verifyUrl, 112);
 
-    // The fallback route: where to go, then what to type when you get there.
+    // The fallback route, for a camera that will not scan: the address, and
+    // then the code to type when you get there.
+    //
+    // No "or go to" above it: the caption cost the line that lets the address
+    // sit on one, and a web address read off a screen is useless if one
+    // character of it is missing. The text is whatever the server sent, never
+    // a written one - the line used to read tigersystem.io/pair while the QR
+    // pointed somewhere else entirely.
+    //
+    // The face is the largest of three that fits on one line, because the
+    // address is not ours to keep short: tigersystem.io/pair is nineteen
+    // characters and reads well in bold; tigertag-cdn.web.app/pair.html is
+    // thirty and needs the small face. Measured rather than guessed from the
+    // length - the faces are proportional.
+    String site = verifyUrl;
+    int at = site.indexOf("://");
+    if (at >= 0) site.remove(0, at + 3);
+    at = site.indexOf('?');
+    if (at >= 0) site.remove(at);       // ?c=CODE - the code is on the screen
+    if (site.endsWith("/")) site.remove(site.length() - 1);
+    // ...and the same when the code is the last path segment rather than a
+    // parameter: tigersystem.io/pair/K7QF-3M2P is printed tigersystem.io/pair.
+    // Compared without its dash, because the two spellings of a code are the
+    // same code.
+    {
+        String bare = code, tail = site.substring(site.lastIndexOf('/') + 1);
+        bare.replace("-", "");
+        tail.replace("-", "");
+        if (bare.length() && tail.equalsIgnoreCase(bare))
+            site.remove(site.lastIndexOf('/'));
+    }
+
+    const lv_coord_t urlW = theme::SCREEN_W - 2 * theme::PAD - 6;
+    const lv_font_t* faces[] = { &font_ui_bold_16, &font_ui_14, &font_ui_12 };
+    const lv_font_t* face = faces[2];
+    for (const lv_font_t* f : faces) {
+        lv_point_t sz;
+        lv_txt_get_size(&sz, site.c_str(), f, 0, 0, LV_COORD_MAX, LV_TEXT_FLAG_NONE);
+        if (sz.x <= urlW) { face = f; break; }
+    }
+
     lv_obj_t* url = lv_label_create(s_body);
-    lv_obj_set_style_pad_top(url, 22, 0);
-    lv_label_set_text(url, i18n::T(S_SCAN_TO_LINK));
+    lv_obj_set_style_pad_top(url, 8, 0);
+    lv_label_set_text(url, site.c_str());
     lv_label_set_long_mode(url, LV_LABEL_LONG_WRAP);
-    lv_obj_set_width(url, theme::SCREEN_W - 2 * theme::PAD - 6);
+    lv_obj_set_width(url, urlW);
     lv_obj_set_style_text_align(url, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_set_style_text_font(url, &font_ui_14, 0);
-    lv_obj_set_style_text_color(url, lv_color_hex(theme::TEXT_DIM), 0);
+    lv_obj_set_style_text_font(url, face, 0);
+    lv_obj_set_style_text_color(url, lv_color_hex(theme::TEXT), 0);
 
     lv_obj_t* c = lv_label_create(s_body);
-    lv_obj_set_style_pad_top(c, 4, 0);
+    lv_obj_set_style_pad_top(c, 6, 0);
     lv_label_set_text(c, code);
     lv_obj_set_style_text_font(c, &font_ui_20, 0);
     lv_obj_set_style_text_color(c, lv_color_hex(theme::ACCENT), 0);
     lv_obj_set_style_text_letter_space(c, 2, 0);
 
-    // The code expires. Small, at the bottom, because it only matters if you
-    // have been standing there a while.
+    // The code expires. Under it, small: it only matters if you have been
+    // standing there a while, and beside the code it read as part of it.
     char t[16];
     snprintf(t, sizeof(t), "%d:%02d", secondsLeft / 60, secondsLeft % 60);
     lv_obj_t* left = lv_label_create(s_body);
-    lv_obj_set_style_pad_top(left, 10, 0);
+    lv_obj_set_style_pad_top(left, 4, 0);
     lv_label_set_text(left, t);
-    lv_obj_set_style_text_font(left, &font_ui_12, 0);
+    lv_obj_set_style_text_font(left, &font_ui_14, 0);
     lv_obj_set_style_text_color(left, lv_color_hex(theme::TEXT_DIM), 0);
 }
 

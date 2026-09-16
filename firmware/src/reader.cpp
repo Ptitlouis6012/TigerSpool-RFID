@@ -68,6 +68,14 @@ bool reader::begin() {
     return false;
 }
 
+bool reader::probe() {
+    pn532hsu.wakeup();
+    delay(10);
+    // No module: the command's ACK wait (PN532_ACK_WAIT_TIME, 10 ms) runs out
+    // and this returns 0. A module: its firmware version.
+    return nfc.getFirmwareVersion() != 0;
+}
+
 bool reader::present(uint8_t* uidOut, uint8_t* lenOut) {
     uint8_t uid[7] = {0}; uint8_t ul = 0;
     if (!nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &ul, 120)) return false;

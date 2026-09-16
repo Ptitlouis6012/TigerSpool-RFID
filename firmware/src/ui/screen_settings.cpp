@@ -426,13 +426,17 @@ void showPrinters(const PrinterCfg* printers, int count, bool syncing,
     // see at the top of a long list is one you cannot see at the moment you
     // flip the switch at the bottom of it.
     gauge(body);
-    gap(body, 6);
 
     lv_obj_t* list = lv_obj_create(body);
     lv_obj_remove_style_all(list);
     lv_obj_set_width(list, LV_PCT(100));
+    // The body spaces its own children by theme::GAP, so the height left for
+    // the list is what the body holds inside its padding, minus the gauge and
+    // the one gap between the two. Counting the gauge but not the gap is how
+    // this list came to be 12 px taller than its room, and a body that clips
+    // simply cut that much off the bottom row.
     lv_obj_set_height(list, theme::SCREEN_H - theme::HEADER_H - 2 * theme::PAD
-                            - GAUGE_H - 6);
+                            - GAUGE_H - theme::GAP);
     lv_obj_set_flex_flow(list, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(list, LV_FLEX_ALIGN_START,
                           LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
@@ -479,7 +483,6 @@ void showChoosePrinters(const PrinterCfg* printers, int count, bool syncing,
 
     // The budget is part of the choice being made here, so it sits above it.
     gauge(body);
-    gap(body, 6);
 
     lv_obj_t* list = lv_obj_create(body);
     lv_obj_remove_style_all(list);
@@ -492,9 +495,15 @@ void showChoosePrinters(const PrinterCfg* printers, int count, bool syncing,
     // The height the list may have is what the screen has minus the header,
     // the button, and the padding around them; that is a number, so it is
     // written as one.
+    // Three things on the body - the gauge, this list and the button - and the
+    // body puts theme::GAP between each pair. The spacers that used to be in
+    // between counted double, and the sum overflowed the body by 30 px; since
+    // the body centres its children, it took 15 off the top of the gauge and
+    // 15 off the bottom of the button, which is how a confirm button came to
+    // be sliced along the bezel.
     lv_obj_set_height(list, theme::SCREEN_H - theme::HEADER_H
-                            - 2 * theme::PAD - theme::BUTTON_H - theme::GAP - 8
-                            - GAUGE_H - 6);
+                            - 2 * theme::PAD - GAUGE_H - theme::BUTTON_H
+                            - 2 * theme::GAP);
     lv_obj_set_flex_flow(list, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(list, LV_FLEX_ALIGN_START,
                           LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
@@ -515,13 +524,9 @@ void showChoosePrinters(const PrinterCfg* printers, int count, bool syncing,
         printerRows(list, printers, count);
     }
 
-    gap(body, 8);
     frame::button(body, i18n::T(S_CONFIRM), 1, []() { s_chosen = true; });
     syncSwitches(printers, count);
     updateGauge(used, refused);
-    // The button is the last thing on the screen; without this it sits on the
-    // bezel.
-    gap(body, 6);
 }
 
 int takeToggled() { int v = s_toggled; s_toggled = -1; return v; }

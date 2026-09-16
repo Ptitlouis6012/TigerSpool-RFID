@@ -67,7 +67,7 @@ in the language chosen here — including the error messages.
         │      ████ ██ ███  █        │
         │      ██  ████ █████        │
         │                            │
-        │  Scan with your phone      │
+        │  Scan the QR code          │
         │  camera, or join           │
         │                            │
         │   TigerSpool-Setup-XXXX    │
@@ -91,19 +91,16 @@ Full behaviour, including what happens when the password is wrong:
 
 ```
         ┌────────────────────────────┐
-        │  Link your account         │
-        │                            │
+        │ <  Account                 │
+        ├────────────────────────────┤
+        │      Scan the QR code      │
         │      ███ █  ████ ███       │
         │      █ ████████  ██        │
         │      ███ ██  ███████       │
         │      ██ ████ █  ███        │
-        │                            │
-        │       K7QF-3M2P            │
-        │                            │
-        │  Scan to link, or go to    │
-        │  tigersystem.io/pair       │
-        │                            │
-        │  Waiting…            9:47  │
+        │    tigersystem.io/pair     │
+        │         K7QF-3M2P          │
+        │            9:47            │
         └────────────────────────────┘
 ```
 
@@ -112,8 +109,11 @@ Full behaviour, including what happens when the password is wrong:
 3. They approve — usually already signed in, so it is one tap.
 4. The box is linked.
 
-The short code is printed under the QR for a phone that will not scan, and it is
-readable aloud over the phone if someone is helping remotely.
+The address and the short code are printed under the QR for a phone that will
+not scan, and the code is readable aloud if someone is helping remotely. Both
+come from what the cloud sent, never from the firmware. If nobody approves
+before the countdown runs out, the box goes back to the sign-in choice on its
+own.
 
 Users whose account has a password can instead sign in from the box's web page at
 `http://tigerspool-xxxx.local`, typing on their phone. Both paths:
