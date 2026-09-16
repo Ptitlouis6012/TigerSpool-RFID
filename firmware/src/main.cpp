@@ -23,6 +23,7 @@
 #include "config.h"
 #include "i18n.h"
 #include "reader.h"
+#include "battery.h"
 #include "tt_db.h"
 #include "printer.h"
 #include "backend_creality.h"
@@ -106,7 +107,7 @@ static void staBegin();            // likewise
 
 enum State { ST_LANG, ST_WIFI, ST_AP, ST_ACCOUNT, ST_SETTINGS, ST_PICK, ST_SET_WIFI, ST_SET_ACCOUNT, ST_SET_SCREEN,
              ST_SET_UPDATE, ST_SET_RESTART, ST_SET_FACTORY, ST_PRINTER, ST_GRID, ST_SCAN, ST_REVIEW, ST_RESULT,
-             ST_WEB_PAIR, ST_UPDATE_NOTICE, ST_SET_READER, ST_SYNCING, ST_CLOUD_SLOT, ST_CHOOSE_PRINTERS, ST_SET_READER_HEX };
+             ST_WEB_PAIR, ST_UPDATE_NOTICE, ST_SET_READER, ST_SET_BATTERY, ST_SYNCING, ST_CLOUD_SLOT, ST_CHOOSE_PRINTERS, ST_SET_READER_HEX };
 State   state = ST_LANG;
 // Whether the language screen was opened from Settings rather than reached on
 // first boot. It decides two things: that the screen offers a way back, and
@@ -1438,6 +1439,7 @@ void setup() {
     ttcloud::begin();
 
     tt_db::begin();
+    battery::begin();
     nfcReady = reader::begin();
     if (!nfcReady) Serial.printf("[reader] %s\n", reader::lastError().c_str());
 
@@ -1565,6 +1567,12 @@ void loop() {
                           (unsigned)ESP.getFreeHeap(), (unsigned)ESP.getMaxAllocHeap(),
                           (unsigned)ESP.getFreePsram(), (unsigned)ESP.getPsramSize(),
                           live, (int)WiFi.isConnected(), (int)WiFi.RSSI());
+            // On the same half-minute, and on one line, so a board that has
+            // been running for an hour can be read back rather than watched.
+            Serial.printf("[batt] %d mV at the pin, %.2f V at the cell, %d%%%s\n",
+                          battery::millivolts(), battery::volts(),
+                          battery::percent(),
+                          battery::present() ? "" : " (no battery)");
         }
     }
 
@@ -1599,6 +1607,7 @@ void loop() {
         if (l.be->connected() || i == s_dialer) l.be->loop();
     }
     linkTick();                  // keep the printer links up, everywhere
+    battery::loop();             // one ADC read every two seconds
     if (webStarted || webcfg::apActive()) webcfg::loop();
 
     // A Google pairing started from the phone puts the same QR on this screen
@@ -2014,6 +2023,10 @@ void loop() {
         menu.totalPrinters   = total;
         menu.updateWaiting   = (ota::state() == ota::AVAILABLE);
         menu.latest          = ota::latestVersion();
+        // -1 on a board with no cell on the connector, which is what takes the
+        // row off the menu rather than showing an empty one.
+        menu.batteryPct      = battery::present() ? battery::percent() : -1;
+        menu.batteryCharging = battery::present() && battery::charging();
         screen_settings::showMenu(menu);
         lvgl_port::loop();
 
@@ -2053,6 +2066,10 @@ void loop() {
             case screen_settings::E_READER:
                 screen_settings::invalidate();
                 state = ST_SET_READER; stateSince = millis();
+                break;
+            case screen_settings::E_BATTERY:
+                screen_settings::invalidate();
+                state = ST_SET_BATTERY; stateSince = millis();
                 break;
             case screen_settings::E_UPDATE:
                 screen_settings::invalidate();
@@ -2287,6 +2304,17 @@ void loop() {
         if (screen_settings::takeBack()) {
             screen_settings::invalidate();
             state = ST_SET_READER; stateSince = millis();
+        }
+        break;
+    }
+
+    case ST_SET_BATTERY: {
+        screen_settings::showBattery(battery::volts(), battery::percent(),
+                                     battery::charging(), battery::minutesLeft());
+        lvgl_port::loop();
+        if (screen_settings::takeBack()) {
+            screen_settings::invalidate();
+            state = ST_SETTINGS; stateSince = millis();
         }
         break;
     }

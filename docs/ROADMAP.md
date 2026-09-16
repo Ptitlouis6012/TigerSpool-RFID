@@ -20,6 +20,10 @@ battery, charging state, Wi-Fi signal, mDNS hostname — every 30 s with the
 screen lit, every 5 min with it dark, and forced immediately on an event a
 person causes and then watches.
 
+The TigerSpool now measures the same things locally (`battery.cpp`, and
+`/api/batt` returns them as JSON), so what is missing is the write path and the
+decision below, not the data.
+
 **Deferred on purpose.** It is not urgent, and it is the piece most likely to
 be built wrong in a hurry.
 

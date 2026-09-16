@@ -45,6 +45,8 @@ enum Id {
     NFC,         // drawn - a card and the field leaving it; FontAwesome 5 free
                  // has no NFC glyph, and the reader row was borrowing the sun
     LOCK,        // drawn - FontAwesome's lock is not in the compiled symbol set
+    BATTERY,     // drawn - the compiled symbol set has a battery per charge
+                 // level, and this one says "battery", not "how full"
 };
 
 // Builds the icon into a 22x22 box parented to `parent`. `colour` is applied to

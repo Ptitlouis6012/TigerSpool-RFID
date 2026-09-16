@@ -7,6 +7,23 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.54.0] - 2026-09-17
+
+### Added
+
+- **A battery entry in Settings, on the boards that have a battery.** A
+  battery that fills to the level, the charge as a percentage, the state in
+  words, the voltage it was all worked out from, and how long is left - to
+  empty on the cell, to full on the charger, from the first second and
+  corrected as the device watches its own rate. On a board with no cell the
+  entry is not there at all.
+- **The level reads the same with the cable in and out.** A charger holds the
+  voltage above the cell's own, and the device measures how much - at the
+  moment a cable moves, which is the only moment it can be measured - rather
+  than assuming it. It remembers the figure across restarts.
+- `/api/batt` returns the same numbers as JSON, for anyone watching a device
+  from a desk while the cable moves.
+
 ## [1.53.0] - 2026-09-16
 
 ### Fixed

@@ -15,6 +15,9 @@ enum Entry {
     E_SCREEN,
     E_LANGUAGE,
     E_READER,
+    // Only on a board with a battery plugged in - see battery.cpp. A row for
+    // hardware that is not there is a row that answers nothing.
+    E_BATTERY,
     E_UPDATE,
     E_RESTART,
     E_FACTORY,
@@ -37,6 +40,8 @@ struct MenuState {
     bool        signedIn;         // tints the Account icon
     bool        updateWaiting;
     const char* latest;
+    int         batteryPct;       // -1 hides the battery row entirely
+    bool        batteryCharging;  // the row says so instead of a percentage
 };
 void showMenu(const MenuState& st);
 Entry takeEntry();
@@ -75,6 +80,9 @@ void showWifi(const char* ssid, const char* ip, const char* mac, bool connected,
               int rssi);   // dBm, 0 when not connected
 void showAccount(const char* email, int printers, bool linked);
 void showScreen(uint8_t brightness, int sleepSeconds, int rotation, bool autoRot);
+// What the battery is doing. `volts` is the cell, `pct` the estimate from it.
+// Reached only from the row that exists only when there is a cell.
+void showBattery(float volts, int pct, bool charging, int minutesLeft);
 int  takeBrightness();       // new percentage, or -1
 int  takeSleep();            // new timeout in seconds, or -1
 // 0 or 2 for a fixed orientation, AUTO_ROT to follow the accelerometer, or

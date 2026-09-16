@@ -280,6 +280,15 @@ lv_obj_t* build(lv_obj_t* parent, Id id, uint32_t c, int scale) {
         bar(box, S(10) + 1, S(14), 2, S(4), 0, theme::BG);
         break;
 
+    case BATTERY:
+        // Lying down, with its cap on the right: a cell on its side reads as a
+        // battery at 22 px, where one standing up reads as a door. The body is
+        // an outline so the icon means "battery" whatever the charge - the
+        // number beside it on the row is what says how full.
+        outline(box, S(1), S(5), S(17), S(12), 2, c);
+        bar(box, S(18), S(9), S(3), S(4), 1, c);
+        break;
+
     case GLOBE:
         // Three strokes: the sphere, the equator, one meridian. That is enough
         // for the eye to finish it as a globe. These are the TigerScale's own

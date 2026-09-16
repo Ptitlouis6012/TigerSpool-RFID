@@ -167,6 +167,7 @@ printer brand — only the 3D-printed shell changes.
 | **A USB-C to USB-A cable that carries data** | Powers and flashes the board. A charge-only cable makes a working board look dead — no serial port ever appears. |
 | Four jumper wires | 3V3, GND, TX, RX. **Supplied with the PN532** — nothing to buy. |
 | A 3D-printed case | [models/](models/) — one per printer brand, plus a desktop stand |
+| *Optional:* a 3.7 V lithium cell on the board's MX1.25 header | The board charges it over USB. With one fitted, Settings gains a **Battery** entry — level, state, and how long is left. Without one, nothing changes and the entry is not there. |
 
 **About 40 €** in total, plus filament. Parts, links and prices:
 **[hardware/BOM.md](hardware/BOM.md)**.

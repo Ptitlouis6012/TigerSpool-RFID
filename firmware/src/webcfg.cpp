@@ -19,6 +19,7 @@
 #include "ui/fonts.h"
 #include "net/portal_page.h"
 #include "product_api.h"
+#include "battery.h"
 #include "tt_db.h"
 #include <ArduinoJson.h>
 #include "version.h"
@@ -388,7 +389,7 @@ namespace {
         else if (preview == "signin")  screen_setup::showSignInChoice();
         else if (preview == "waiting") screen_setup::showPreparing();
         else if (preview == "email")   screen_setup::showEmailPairing("http://192.168.20.170");
-        else if (preview == "settings") screen_settings::showMenu({"Atelier", "benoit@atome3d.com", 3, 6, true, true, true, "1.6.0"});
+        else if (preview == "settings") screen_settings::showMenu({"Atelier", "benoit@atome3d.com", 3, 6, true, true, true, "1.6.0", 64, false});
         else if (preview == "apwifi")  { buildNames(); screen_setup::hide(); screen_setup::showWifi(AP_SSID, AP_PASS, true); }
         else if (preview == "apportal") { screen_setup::hide(); screen_setup::showPortalReady("http://192.168.4.1", true); }
         else if (preview == "setwifi")  screen_settings::showWifi("Atelier", "192.168.20.170",
@@ -398,6 +399,9 @@ namespace {
         else if (preview == "setwifi-none") screen_settings::showWifi("", "-",
                                                                   WiFi.macAddress().c_str(), false, 0, 0);
         else if (preview == "setacct")  screen_settings::showAccount("benoit@atome3d.com", 6, true);
+        else if (preview == "setbatt")  screen_settings::showBattery(3.86f, 74, false, 270);
+        else if (preview == "setcharge") screen_settings::showBattery(3.76f, 42, true, 95);
+        else if (preview == "setbattlow") screen_settings::showBattery(3.45f, 8, false, 25);
         else if (preview == "setscreen") screen_settings::showScreen(80, 60, 2, false);
         // The state that cannot be reached on demand - the device is only ever
         // behind by accident - and the one whose layout is tightest.
@@ -664,6 +668,24 @@ namespace {
         netsJson = scanToJson(n);
         Serial.printf("[webcfg] scan cached: %d network(s)\n", n);
         WiFi.scanDelete();
+    }
+
+    // The battery, as numbers, for anyone watching it from a desk.
+    //
+    // The serial console is not an option for this one: the cable that carries
+    // it is the cable whose plugging and unplugging is the thing being
+    // watched. Over the network the measurement survives the event.
+    void handleApiBatt() {
+        JsonDocument d;
+        d["present"]  = battery::present();
+        d["mv"]       = battery::millivolts();      // at the pin
+        d["volts"]    = battery::volts();           // at the cell
+        d["percent"]  = battery::percent();
+        d["charging"] = battery::charging();
+        d["minutes"]  = battery::minutesLeft();
+        d["uptime_s"] = (uint32_t)(millis() / 1000);
+        String out; serializeJson(d, out);
+        server.send(200, "application/json", out);
     }
 
     void handleApiScan() {
@@ -1219,6 +1241,7 @@ namespace {
             server.send(302, "text/plain", "");
         });
         server.on("/api/scan", handleApiScan);
+        server.on("/api/batt", handleApiBatt);
         server.on("/api/join", HTTP_POST, handleApiJoin);
         server.on("/api/lang", handleApiLang);
         server.on("/api/tap",  handleApiTap);

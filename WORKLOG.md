@@ -1478,6 +1478,166 @@ ten, not by memory.
   other models (A1, P1P, P2S) or older firmware: none was in LAN mode on the
   bench.
 
+## 2026-09-16 - the battery (released in 1.54.0)
+
+### Added
+
+- Benoit asked for step 1 of the battery work - measure the pin - and for a
+  Settings entry that appears when a battery is detected.
+- First measurement said the hypothesis was wrong: GPIO5 read 1324 mV on the
+  board WITH a cell and 1398-1424 mV on the bench board WITHOUT one, and a
+  coefficient of 2.0 made that 2.65 V, which is not a working cell. A sweep of
+  every free ADC pin (2-10) on both boards found nothing that looked like a
+  battery either.
+- The board's schematic settled it: a 200K/100K divider, so the pin sees a
+  THIRD of the rail. 1324 mV x 3 = 3.97 V, a half-charged cell; 1424 x 3 =
+  4.27 V, which is the charger's own output on a board with nothing to charge.
+  Both boards were on USB, which is why neither read like a battery at rest.
+- battery.cpp: eight averaged reads every two seconds, a piecewise curve from
+  voltage to percent, and presence as a threshold - between 2.8 V and 4.24 V,
+  twice in a row. It cannot be more certain than that: the pin measures the
+  rail, the charger holds the rail up, and this board has no charge-status
+  line. Nothing here claims to know whether it is charging.
+- Settings: a battery row, with the charge on it, skipped entirely when there
+  is no cell (E_BATTERY, MenuState::batteryPct = -1). The row set is now part
+  of the menu's redraw signature, which it was not - the signature was a
+  constant. The view shows the percentage, a bar, the voltage, and says the
+  percentage is an estimate from the voltage.
+- A drawn battery icon: LVGL's symbols carry a battery per charge level, and
+  the row needs one that means "battery" whatever the charge.
+- Bug found and fixed while looking at it: padding on an lv_bar is taken off
+  its INDICATOR, so 14 px under a 10 px bar left nothing to draw and a full
+  battery read as empty. The air is a spacer object now.
+
+### Verified
+
+- Battery board: row shows 73%, the view shows 73% and 3.97 V, captured.
+- Bench board, no cell: no battery row in Settings, captured, and the log says
+  4.27 V (no battery).
+- On the cell alone, with the USB unplugged (Benoit, board reachable over
+  Wi-Fi the whole time): the device kept running - which is the presence test
+  no threshold can fake - and the voltage fell 3.97 -> 3.96 -> 3.94 V over two
+  minutes, 73% -> 69%. The reading follows the cell, and the divider of 3 puts
+  it where a part-charged LiPo belongs. The cell is a 3.7 V 1000 mAh LiPo with
+  a protection board (Benoit).
+- Benoit: the percentage jumps when the cable goes back in. It does, and it is
+  not a fault: the same cell read 69% / 3.94 V on its own and 82% / 4.04 V a
+  second after plugging in, because the pin measures the rail and the charger
+  owns the rail. Measured on both sides, so the screen now says what it knows.
+  battery::charging() reads the SHAPE of the curve, not its level: on the cell
+  the voltage falls about 15 mV a minute with the screen lit, on the charger it
+  is flat to a millivolt or two (both measured over several minutes). A fast
+  window of 30 s catches the 100 mV step of a cable going in or out; a slow one
+  of 5 minutes catches the drift of a cell in the flat part of its curve. While
+  charging, the row and the view say "Charging" and show the voltage, and the
+  bar is not drawn - no number is better than a number that moves for the wrong
+  reason. Verified on the board: row reads "En charge" on USB (captured).
+  Not verified: the switch back to a percentage within 30 s of unplugging.
+- The whole discharge, end to end, on Benoit's board over a day on its cell:
+  4.04 -> 3.97 -> 3.94 -> 3.26 -> 3.22 -> 3.21 V, 83% down to 0%. A normal LiPo
+  curve, which validates the divider of 3 across the range rather than at one
+  point, and the switch back from "Charging" to a percentage happened within
+  the 30 s window. I first read the 3.2 V as a weak cell, having compared two
+  readings hours apart as though they were minutes apart; Benoit said he had
+  left it discharging all day.
+- Benoit pointed at the TigerScale, which handles this well. It cannot be
+  copied: that board carries an AXP2101 PMIC on I2C 0x34 and READS presence
+  (STATUS1 bit 3), the cable (bit 5), the charger state machine (STATUS2) and
+  a coulometer percentage (0xA4). This board has none of it - a charger and a
+  200K/100K divider, nothing else - which is why charging here is inferred
+  from the shape of the curve. Worth borrowing from it later: its asymmetric
+  hysteresis on the charging flag (shown at once, withdrawn after 10 s of
+  quiet), which exists because a nearly full cell makes a charger oscillate.
+- Benoit asked for a mockup of the Battery view and took it as drawn, plus a
+  time to full. Built: a drawn battery filled to the level (LVGL objects, not
+  an icon - the fill and the colour change), the percentage under it, then
+  State / Runtime left or Full in / Voltage as value rows, and the note. Three
+  previews: setbatt, setcharge, setbattlow.
+- The charger's offset is taken off the level rather than hiding the level:
+  the device read 3.48 V with the cable in and 3.35 V with it out, moments
+  apart, so percent() subtracts 0.13 V while charging. That is what stops the
+  jump Benoit reported. Note what this is and is not: both numbers come from
+  the device's own ADC, so the DIFFERENCE is measured - it is the same chain
+  either way - but the absolute scale still is not. Nothing here has been
+  compared against a meter. I first wrote this up as a multimeter reading;
+  Benoit corrected it, he had read both values off the screen.
+- Time left is the observed slope of the LEVEL, smoothed, over five minutes,
+  and it is dropped entirely when the direction changes: the rate at which a
+  cell fills says nothing about how long it will then last. No estimate is
+  shown until there is one to make.
+- Two bench corrections along the way. The bolt was drawn in the background
+  colour and vanished into the empty half of the battery at 42%, which is
+  exactly when somebody looks; it now takes the background colour only once
+  the fill has passed the middle. And the charge/discharge window was 30 s,
+  then 60 s, and both were too short: this cell charges at 2.4 mV a minute at
+  the pin, so the row still said "On battery" with the cable in. Three minutes
+  catches it, and the step rule still catches a cable going in or out within
+  six seconds.
+- Verified on the board: the three previews, the live row reading "36% (bolt)"
+  and the live view reading "En charge / 3.86 V" on USB, and the percentage
+  moving from 53% to 36% the moment charging was detected, which is the offset
+  being applied.
+- Benoit recorded a plug-and-unplug session against a new /api/batt endpoint -
+  the serial console is no use for this, its cable being the one under test -
+  and it found a real fault. The step detector compared a reading against the
+  one from six seconds earlier, so a cable going in and out inside that window
+  compared two readings at the same level, saw nothing, and left "charging"
+  set: the level kept the charger's 0.13 V taken off it after the cable was
+  out, and the screen showed 23% for a cell reading 44%. It now compares
+  against the previous reading, one second: a cable is 40 mV, the drift
+  between two readings is one. Replayed over his recording the five bad
+  readings disappear; then verified live over three of his cycles, the state
+  flipping within two seconds each way and the level steady at 51-52%.
+  Recorded numbers, on this board: plugged 1298-1303 mV at the pin, unplugged
+  1256-1261, so the charger's contribution is 0.126 V at the cell.
+- The time estimate went through three faults of mine, all found on the bench.
+  It was measured on the LEVEL, which moves one point every seventy seconds -
+  far too coarse - so it is measured on the voltage and converted through the
+  slope of the curve at that point. A window that came back as exactly zero
+  millivolts, which is common late in a charge, was being read as "nothing
+  measured yet", so the estimate never started - a flag now says which. And
+  the threshold below which nothing was claimed erased the line for the last
+  third of a charge, where the charger tapers.
+- Benoit: a value is needed immediately, adjusted as it goes - "no answer for
+  two minutes" reads as broken. The first answer now comes from a nominal
+  model (1000 mAh, ~300 mA into the cell, ~200 mA out of it) and the measured
+  slope takes over once it means something. Verified: 70 minutes on the first
+  reading after a boot, "Charge pleine dans 1 h 10" on the screen.
+- The bolt is white. It was drawn in the background colour, then in whichever
+  colour the fill was not, and both vanish at the level where the fill edge
+  runs through the glyph - which is the level somebody is looking at. And at
+  Benoit's request the rows are bold with white labels: this screen is the
+  value, not a settings list with a value on the right.
+- Benoit, again on the level: 64% with the cable in against 75% with it out,
+  4.04 V and 3.98 V. The offset is not a constant - it is the charge current
+  through the cell's resistance, so it shrinks as the charger tapers, and a
+  fixed 0.13 V over-corrected by more than it corrected. The device now
+  MEASURES it, at the only moment it can be measured: the step in the reading
+  when a cable moves is the offset. It keeps the value in NVS (boffmv), and
+  until it has one it uses a prior scaled between 0.13 V on an empty cell and
+  0.01 V on a full one - a flat default put a nearly full cell at 60% against
+  the 74% it read a second after the cable moved, which is what Benoit saw
+  after every reboot.
+- And the step threshold came down from 8 mV at the pin to 5: the step shrinks
+  with the charge current, and he caught one at 20 mV (0.06 V at the cell).
+- The three-minute trend is asymmetric now, +3 mV to say charging and -6 to say
+  otherwise. A nearly full cell on a charger is FLAT, which at 3 mV read the
+  same as a discharge, so the row said "On battery" with the cable in.
+- The back arrow on the battery screen barely worked, and the cause is the one
+  the CODEMAP already warns about: the voltage was in the redraw signature, so
+  the screen - the arrow with it - was rebuilt once a second under the finger.
+  Signature is now the shape of the screen only (charging, whether there is a
+  time to show); the level, the fill width, the time and the voltage are
+  written into the widgets. Verified: three presses, three returns.
+- One trap, noted for the next session: /screen.bmp?preview=setbatt DRAWS the
+  fixture on the panel, so a capture taken right after it shows 3.97 V and 73%
+  whatever the battery is doing. Read the live view, not a preview, when the
+  value is the thing being measured.
+- Still not verified: the reading against a multimeter - the divider of 3
+  rests on the schematic (200K/100K) and on the readings being where a LiPo
+  belongs across a full discharge, which is evidence but not calibration - and
+  the 4.24 V presence threshold against a cell that has just come off charge.
+
 ## 2026-09-15 - a way back from a wrong language, and the language scrollbar (released in 1.53.0)
 
 ### Fixed

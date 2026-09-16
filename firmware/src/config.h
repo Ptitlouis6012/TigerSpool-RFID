@@ -7,6 +7,18 @@
 #define PN532_UART_TX    43      // ESP32 TX  -> PN532 RXD
 #define PN532_UART_BAUD  115200
 
+// ---- Battery -----------------------------------------------------------
+// The board's battery sits behind a divider on this pin. GPIO5 is what the
+// Waveshare schematic and MicroPythonOS both use for the ESP32-S3-Touch-LCD-2,
+// and it is measured against a multimeter before it is believed - see
+// battery.cpp. Nothing else on this device uses GPIO5.
+#define BATTERY_ADC_PIN  5
+// The divider ratio: what the pin reads, times this, is the cell. The board's
+// schematic puts 200K over 100K there, so the pin sees a third of the battery.
+// Checked on two boards: one with a cell read 1324 mV (3.97 V), one without
+// read 1424 mV, which is the charger's own output with nothing to charge.
+#define BATTERY_DIVIDER  3.0f
+
 // ---- Panel -------------------------------------------------------------
 #define SCR_W  240
 #define SCR_H  320

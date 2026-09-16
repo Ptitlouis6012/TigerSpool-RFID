@@ -46,6 +46,17 @@ inline bool sameView(const void* owner, uint32_t sig) {
 inline void claimView(const void* owner, uint32_t sig) {
     s_viewOwner = owner; s_viewSig = sig;
 }
+// The battery view's own widgets, so a voltage that moves every second does
+// not rebuild the screen under the user's finger - which is exactly what it
+// did, and why its back arrow could not be pressed: frame::build() destroys
+// the screen, arrow included, and the press went to an object that no longer
+// existed. Same rule as the Wi-Fi view above it.
+lv_obj_t* s_bFill  = nullptr;   // the battery's fill, resized as the level moves
+lv_obj_t* s_bBig   = nullptr;   // the percentage
+lv_obj_t* s_bTime  = nullptr;   // the remaining time, value half
+lv_obj_t* s_bVolts = nullptr;   // the measurement, value half
+lv_obj_t* s_bScreen = nullptr;  // the screen those four belong to
+
 uint32_t s_menuSig = 0;
 uint32_t s_pickSig = 0;
 uint32_t s_chooseSig = 0;
@@ -161,14 +172,33 @@ void showMenu(const MenuState& st) {
         st.updateWaiting ? theme::WARN : theme::TEXT,
     };
 
-    if (s_menuSig == 0x4D454E55u && s_menuScreen == frame::screen()) {
+    // The charge on the row, and the row itself only when there is a battery.
+    // The charge, with a bolt beside it while a cable is in. The percentage
+    // itself already has the charger's offset taken off it (battery.cpp), so
+    // it no longer jumps when the cable goes in - and the bolt is how someone
+    // knows which of the two states they are reading.
+    char battVal[24] = "";
+    if (st.batteryPct >= 0)
+        snprintf(battVal, sizeof(battVal), st.batteryCharging ? "%d%% " LV_SYMBOL_CHARGE : "%d%%",
+                 st.batteryPct);
+    const uint32_t battTint = st.batteryPct < 0    ? theme::TEXT
+                            : st.batteryCharging   ? theme::ACCENT
+                            : st.batteryPct <= 15  ? theme::DANGER
+                            : st.batteryPct <= 35  ? theme::WARN : theme::OK;
+    // A battery arriving or leaving changes which rows exist, so it is in the
+    // signature. Everything else on this menu is a value written into a row
+    // that is already there.
+    const uint32_t menuSig = 0x4D454E55u ^ (st.batteryPct >= 0 ? 0x55u : 0u)
+                                         ^ (st.batteryCharging ? 0xAAu : 0u);
+
+    if (s_menuSig == menuSig && s_menuScreen == frame::screen()) {
         for (int i = 0; i < 4; i++) {
             if (s_mVal[i])  lv_label_set_text(s_mVal[i], vals[i] ? vals[i] : "");
             if (s_mIcon[i]) icons::tint(s_mIcon[i], tints[i]);
         }
         return;
     }
-    s_menuSig = 0x4D454E55u;
+    s_menuSig = menuSig;
     for (int i = 0; i < 4; i++) s_mVal[i] = s_mIcon[i] = nullptr;
 
     lv_obj_t* body = frame::build(i18n::T(S_SETTINGS), onBack);
@@ -200,6 +230,10 @@ void showMenu(const MenuState& st) {
         { E_LANGUAGE, i18n::T(S_LANGUAGE),   i18n::name(i18n::current()),
           icons::GLOBE,   0 },
         { E_READER,   i18n::T(S_READER),   "",      icons::NFC,     0 },
+        // Battery: present only on a board that has one, and skipped below
+        // otherwise. Its value is the charge, which is the whole reason
+        // somebody opens it.
+        { E_BATTERY,  i18n::T(S_BATTERY),  battVal, icons::BATTERY, battTint },
         { E_UPDATE,   i18n::T(S_UPDATE),    vals[3], icons::UPDATE,  tints[3] },
         { E_RESTART,  i18n::T(S_RESTART),    "",
           icons::RESTART, theme::WARN },
@@ -207,6 +241,7 @@ void showMenu(const MenuState& st) {
           icons::ERASE,   theme::DANGER },
     };
     for (auto& r : rows) {
+        if (r.id == E_BATTERY && st.batteryPct < 0) continue;
         lv_obj_t* row = frame::row(body, r.label, r.value, true, onEntry,
                                    (void*)(intptr_t)r.id, r.icon, r.tint);
 
@@ -1153,6 +1188,183 @@ void showUpdateNotice(const char* current, const char* latest) {
 // calls them and what a reader log prints, so a line here sits beside a line
 // there without anybody counting. The sixteen pages after 0x17 are the ECDSA
 // signature - read separately, verified, and of no use as hex.
+// "4 h 30" or "25 min", in the row beside Runtime. Hours and minutes rather
+// than minutes alone: nobody reads 270 as four and a half hours.
+static void fmtMinutes(char* out, size_t n, int minutes) {
+    // To the nearest five minutes. The estimate is made from a slope measured
+    // in millivolts a minute; writing it to the minute claims a precision the
+    // measurement does not have, and the last digit would never stop moving.
+    minutes = ((minutes + 2) / 5) * 5;
+    if (minutes < 5) minutes = 5;
+    if (minutes >= 60) snprintf(out, n, "%d %s %02d", minutes / 60,
+                                i18n::T(S_UNIT_HOUR), minutes % 60);
+    else               snprintf(out, n, "%d %s", minutes < 0 ? 0 : minutes,
+                                i18n::T(S_UNIT_MIN));
+}
+
+// The battery itself, drawn at the size the screen can spare: a body with a
+// cap, filled to the level, in the colour the level means. A bar would have
+// been less work and it is not the same thing - this shape is read without
+// being read, which is the whole job of the top half of this screen.
+static void batteryGlyph(lv_obj_t* parent, int pct, bool charging, uint32_t col) {
+    const lv_coord_t W = 104, H = 46;
+
+    lv_obj_t* row = lv_obj_create(parent);
+    lv_obj_remove_style_all(row);
+    lv_obj_set_size(row, W + 8, H);
+    lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t* body = lv_obj_create(row);
+    lv_obj_remove_style_all(body);
+    lv_obj_set_size(body, W, H);
+    lv_obj_align(body, LV_ALIGN_LEFT_MID, 0, 0);
+    lv_obj_set_style_radius(body, 7, 0);
+    lv_obj_set_style_border_color(body, lv_color_hex(col), 0);
+    lv_obj_set_style_border_width(body, 2, 0);
+    lv_obj_set_style_border_opa(body, LV_OPA_COVER, 0);
+    lv_obj_set_style_pad_all(body, 4, 0);
+    lv_obj_clear_flag(body, LV_OBJ_FLAG_SCROLLABLE);
+
+    // The fill never disappears entirely: a dead-empty outline reads as a
+    // drawing of a battery rather than as a battery at 2%.
+    const int shown = pct < 0 ? 0 : (pct > 100 ? 100 : pct);
+    lv_coord_t fillW = (lv_coord_t)((W - 8) * shown / 100);
+    if (shown > 0 && fillW < 4) fillW = 4;
+    s_bFill = nullptr;
+    if (fillW > 0) {
+        lv_obj_t* fill = s_bFill = lv_obj_create(body);
+        lv_obj_remove_style_all(fill);
+        lv_obj_set_size(fill, fillW, H - 8);
+        lv_obj_align(fill, LV_ALIGN_LEFT_MID, 0, 0);
+        lv_obj_set_style_radius(fill, 4, 0);
+        lv_obj_set_style_bg_color(fill, lv_color_hex(col), 0);
+        lv_obj_set_style_bg_opa(fill, LV_OPA_COVER, 0);
+        lv_obj_clear_flag(fill, LV_OBJ_FLAG_SCROLLABLE);
+    }
+
+    // The cap, on the right, so the shape is a battery and not a slider.
+    lv_obj_t* cap = lv_obj_create(row);
+    lv_obj_remove_style_all(cap);
+    lv_obj_set_size(cap, 6, 18);
+    lv_obj_align(cap, LV_ALIGN_RIGHT_MID, 0, 0);
+    lv_obj_set_style_radius(cap, 2, 0);
+    lv_obj_set_style_bg_color(cap, lv_color_hex(col), 0);
+    lv_obj_set_style_bg_opa(cap, LV_OPA_COVER, 0);
+    lv_obj_clear_flag(cap, LV_OBJ_FLAG_SCROLLABLE);
+
+    // The bolt sits in the middle of the body while charging, in WHITE.
+    //
+    // It was drawn in the background colour, then in whichever of the two
+    // colours the fill was not - and both vanish at the level where the fill
+    // edge runs through the glyph, which is exactly where the eye goes. White
+    // is the one colour that reads over the fill and over the empty part at
+    // the same time, at every level.
+    if (charging) {
+        lv_obj_t* bolt = lv_label_create(body);
+        lv_label_set_text(bolt, LV_SYMBOL_CHARGE);
+        lv_obj_set_style_text_font(bolt, &font_ui_20, 0);
+        lv_obj_set_style_text_color(bolt, lv_color_hex(theme::TEXT), 0);
+        lv_obj_center(bolt);
+    }
+}
+
+// The battery screen's own rows. kv() sets both halves in 12 px, which is the
+// size a settings screen uses for a value somebody glances at; this screen IS
+// the value, and it is read at arm's length from a device that may be sitting
+// on a shelf. The label steps up one size, the value steps up two and goes
+// bold.
+static lv_obj_t* kvBig(lv_obj_t* parent, const char* k, const char* v, uint32_t colour) {
+    lv_obj_t* row = kv(parent, k, v, colour);
+    lv_obj_set_style_pad_bottom(row, 4, 0);
+    lv_obj_t* key = lv_obj_get_child(row, 0);
+    lv_obj_t* val = lv_obj_get_child(row, 1);
+    lv_obj_set_style_text_font(key, &font_ui_14, 0);
+    // White, not the dimmed grey a settings label takes. Three rows of dim
+    // text under a coloured battery read as a footnote to it; on this screen
+    // they are the content.
+    lv_obj_set_style_text_color(key, lv_color_hex(theme::TEXT), 0);
+    lv_obj_set_style_text_font(val, &font_ui_bold_16, 0);
+    lv_obj_set_style_max_width(val, 150, 0);
+    return val;
+}
+
+void showBattery(float volts, int pct, bool charging, int minutesLeft) {
+    // The voltage moves every second by a millivolt or two, and a view that
+    // rebuilds on that flickers. Rounded to what is drawn - the level, the
+    // state, the voltage to the ten millivolts and the time to five minutes -
+    // so it rebuilds when something a reader would notice has changed.
+    // Only what changes the SHAPE of the screen is in the signature: whether
+    // it is charging, and whether there is a time to show. The numbers - the
+    // level, the time, the voltage - are written into the widgets that are
+    // already there. The voltage moves a millivolt a second, and with it in
+    // the signature this screen rebuilt itself once a second: the back arrow
+    // was destroyed under the finger pressing it, so going back took several
+    // tries and felt like a freeze.
+    const uint32_t sig = 0xBA000000u ^ (charging ? 0x8000u : 0u)
+                       ^ (minutesLeft >= 0 ? 0x4000u : 0u);
+    char t[16], v[16], m[16];
+    snprintf(t, sizeof(t), "%d%%", pct < 0 ? 0 : pct);
+    snprintf(v, sizeof(v), "%.2f V", volts);
+    if (minutesLeft >= 0) fmtMinutes(m, sizeof(m), minutesLeft);
+
+    if (sameView((const void*)showBattery, sig) && s_bScreen == frame::screen()) {
+        if (s_bBig)   lv_label_set_text(s_bBig, t);
+        if (s_bVolts) lv_label_set_text(s_bVolts, v);
+        if (s_bTime && minutesLeft >= 0) lv_label_set_text(s_bTime, m);
+        if (s_bFill) {
+            const int shown = pct < 0 ? 0 : (pct > 100 ? 100 : pct);
+            lv_coord_t w = (lv_coord_t)(96 * shown / 100);
+            if (shown > 0 && w < 4) w = 4;
+            lv_obj_set_width(s_bFill, w);
+        }
+        return;
+    }
+    claimView((const void*)showBattery, sig);
+
+    lv_obj_t* body = frame::build(i18n::T(S_BATTERY), onBack);
+    lv_obj_set_flex_align(body, LV_FLEX_ALIGN_START,
+                          LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_clear_flag(body, LV_OBJ_FLAG_SCROLLABLE);
+
+    const bool low = !charging && pct >= 0 && pct <= 15;
+    const uint32_t col = charging ? theme::WARN
+                       : low      ? theme::DANGER
+                       : pct <= 35 ? theme::WARN : theme::OK;
+
+    lv_obj_t* air = lv_obj_create(body);
+    lv_obj_remove_style_all(air);
+    lv_obj_set_size(air, 1, 10);
+
+    batteryGlyph(body, pct, charging, col);
+
+    lv_obj_t* big = s_bBig = lv_label_create(body);
+    lv_label_set_text(big, t);
+    lv_obj_set_style_text_font(big, &font_ui_24, 0);
+    lv_obj_set_style_text_color(big, lv_color_hex(col), 0);
+    lv_obj_set_style_pad_top(big, 8, 0);
+    lv_obj_set_style_pad_bottom(big, 14, 0);
+
+    // Then the facts, in the order somebody asks for them: what state it is
+    // in, how long that leaves, and the measurement all of it came from.
+    kvBig(body, i18n::T(S_BATT_STATE),
+          i18n::T(charging ? S_BATT_CHARGING : low ? S_BATT_PLUG_IN : S_BATT_ON_BATTERY),
+          charging ? theme::WARN : low ? theme::DANGER : theme::TEXT);
+
+    s_bTime = (minutesLeft >= 0)
+        ? kvBig(body, i18n::T(charging ? S_BATT_FULL_IN : S_BATT_RUNTIME), m, theme::TEXT)
+        : nullptr;
+
+    s_bVolts = kvBig(body, i18n::T(S_BATT_VOLTAGE), v, theme::TEXT);
+    s_bScreen = frame::screen();
+
+    // The measurement is the only fact on this screen; everything above it was
+    // worked out from the measurement, and the line says so.
+    lv_obj_t* note = frame::caption(i18n::T(charging ? S_BATT_CHARGE_NOTE
+                                                     : S_BATT_NOTE), theme::TEXT);
+    lv_obj_set_style_text_font(note, &font_ui_12, 0);
+    lv_obj_set_style_pad_top(note, 10, 0);
+}
+
 void showReaderHex(const TagInfo* tag) {
     uint32_t sig = 0xB2000000u ^ (tag ? tag->idProduct * 2654435761u : 0u);
     if (sameView((const void*)showReaderHex, sig)) return;

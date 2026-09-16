@@ -24,6 +24,7 @@ firmware/
     ├── filament_resolve.cpp what a slot is sent, field by field - pure, host-testable
     ├── product_api.cpp     the TigerTag+ product lookup, on its own task
     ├── reader.cpp          PN532 use, TigerTag decoding
+    ├── battery.cpp         the cell on the boards that have one - GPIO5
     ├── tigertag_cloud.cpp  account sign-in, pairing, printer import
     ├── tt_db.cpp           reference-table lookups, compiled and downloaded
     ├── webcfg.cpp          captive portal, LAN page, /screen.bmp, /api/*
