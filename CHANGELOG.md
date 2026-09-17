@@ -7,6 +7,19 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.57.0] - 2026-09-18
+
+### Fixed
+
+- **A board with no battery no longer shows a battery.** The charge is measured
+  on a pin that reads the battery rail, and on USB that rail is held up by the
+  charger whether a cell is plugged in or not - on one board at 4.27 V, on
+  another at 4.01, which is where a real cell sits. A level alone cannot tell
+  them apart, and the board has no pin to ask. The device now listens to the
+  charger's own ripple instead: a cell swallows it, an empty connector does
+  not. Measured on two boards, 2-3 mV against 7-22, and the answer takes a
+  second.
+
 ## [1.56.0] - 2026-09-17
 
 ### Fixed

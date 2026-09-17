@@ -27,6 +27,33 @@ const float    SANE_MAX_V = 4.24f;
 // into Settings and take it away again.
 const int      CONFIRM    = 2;
 
+// Whether there is a cell at all is answered by RIPPLE, not by level.
+//
+// A level cannot answer it: one board with no cell sits at 4.27 V and another
+// at 4.01, which is exactly where a working cell sits, so any threshold
+// between them fails on one board or the other. Nor is there a pin to ask -
+// the charger's STAT output drives a red LED and goes nowhere near the
+// processor (ETA6098, pin 9, in the board's schematic), and the battery
+// connector is two wires, VBAT and ground.
+//
+// What does answer it is the charger's own switching. It is a switcher with a
+// 2.2 uH inductor, and its output ripples; a cell on the connector is an
+// enormous capacitor across that output and swallows the ripple. Measured on
+// the bench, eight reads taken back to back, both boards on USB:
+//
+//     with a cell      1.8 - 3.2 mV between the lowest and the highest read
+//     with none        6.6 - 21.8 mV, with peaks over 50
+//
+// So the answer takes a second rather than ten minutes, and it also settles the
+// case that a level and a drift test both get wrong: a FULL cell on a charger,
+// which is perfectly still and still damped.
+//
+// The band between the two thresholds is where nothing changes, so a board
+// sitting near the line does not flicker between the two answers. The verdict
+// is kept in NVS, so a board that has settled the question once starts from it.
+const float    RIPPLE_CELL_MV = 4.0f;   // at or below: something is damping it
+const float    RIPPLE_NONE_MV = 6.0f;   // at or above: nothing is
+
 // Charging is read from the SHAPE of the curve, not from its level, because
 // the level says nothing: the same cell read 3.94 V on its own and 4.04 V a
 // second after the cable went in. Measured on the bench: on the cell the
@@ -147,6 +174,7 @@ float s_v       = 0.0f;
 int   s_run     = 0;        // consecutive plausible readings
 bool  s_present = false;
 bool  s_charging = false;
+int   s_ripple  = 0;        // spread of the last burst of reads, in mV
 int   s_prevMv  = 0;        // the reading before this one, for the step
 float s_offsetMv = 0.0f;    // the charger's share, once measured
 bool  s_offsetKnown = false;
@@ -155,6 +183,19 @@ bool  s_offsetKnown = false;
 // a default that is wrong for a nearly full cell - which shows up as the level
 // reading fifteen points low until somebody happens to unplug something.
 float s_offsetSaved = 0.0f;
+
+// The stillness test, and its verdict.
+bool  s_noCell     = false;     // proven still: no cell on the connector
+bool  s_noCellKnown = false;    // ...and whether that has been decided at all
+float s_rippleAvg = 0.0f;       // the ripple, smoothed over recent samples
+int   s_rippleN   = 0;
+
+void saveNoCell() {
+    Preferences k;
+    if (!k.begin("tigerspool", false)) return;
+    k.putUChar("bnocell", s_noCell ? 1 : 0);
+    k.end();
+}
 
 // The prior, for a device that has not seen a cable move yet.
 float priorOffsetMv(float v) {
@@ -206,7 +247,14 @@ uint32_t s_next = 0;
 
 void sample() {
     uint32_t sum = 0;
-    for (int i = 0; i < READS; i++) sum += analogReadMilliVolts(BATTERY_ADC_PIN);
+    int lo = 100000, hi = 0;
+    for (int i = 0; i < READS; i++) {
+        const int r = (int)analogReadMilliVolts(BATTERY_ADC_PIN);
+        sum += (uint32_t)r;
+        if (r < lo) lo = r;
+        if (r > hi) hi = r;
+    }
+    s_ripple = hi - lo;
     s_mv = (int)(sum / READS);
     s_v  = (float)s_mv * BATTERY_DIVIDER / 1000.0f;
 
@@ -215,7 +263,24 @@ void sample() {
     } else {
         s_run = 0;
     }
-    s_present = s_run >= CONFIRM;
+    // Plausible level AND not proven to be a bare charger rail.
+    s_present = s_run >= CONFIRM && !s_noCell;
+
+    // The ripple, smoothed over recent samples, is what says whether a cell is
+    // there at all - see RIPPLE_CELL_MV above.
+    s_rippleAvg = s_rippleN ? (s_rippleAvg * 0.8f + (float)s_ripple * 0.2f)
+                            : (float)s_ripple;
+    if (s_rippleN < 8) s_rippleN++;
+    if (s_rippleN >= 4) {
+        const bool cell = s_rippleAvg <= RIPPLE_CELL_MV;
+        const bool none = s_rippleAvg >= RIPPLE_NONE_MV;
+        if ((cell || none) && (!s_noCellKnown || s_noCell != none)) {
+            s_noCell = none; s_noCellKnown = true; saveNoCell();
+            Serial.printf("[batt] ripple %d.%d mV - %s\n",
+                          (int)s_rippleAvg, ((int)(s_rippleAvg * 10)) % 10,
+                          none ? "no cell on the connector" : "a cell is damping it");
+        }
+    }
 
     // The step, against the reading before this one. Decided here, before the
     // level is asked for, so the state and the voltage it is applied to are
@@ -263,12 +328,16 @@ void battery::begin() {
     {
         Preferences k;
         if (k.begin("tigerspool", true)) {
-            const uint16_t v = k.getUShort("boffmv", 0);
+            const uint16_t v  = k.getUShort("boffmv", 0);
+            // The verdict from last time, if there is one. Absent, the level
+            // answers until the stillness test has had its ten minutes.
+            const uint8_t  nc = k.getUChar("bnocell", 2);
             k.end();
             if (v >= (uint16_t)OFFSET_MIN_MV && v <= (uint16_t)OFFSET_MAX_MV) {
                 s_offsetMv = s_offsetSaved = (float)v;
                 s_offsetKnown = true;
             }
+            if (nc <= 1) { s_noCell = nc == 1; s_noCellKnown = true; }
         }
     }
     sample();

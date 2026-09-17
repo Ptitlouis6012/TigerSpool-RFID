@@ -15,11 +15,25 @@ every printer brand** — only the printed shell changes ([models/](../models/))
 
 | # | Part | Why this one | ~Price |
 |---|---|---|---|
-| 1 | **[Waveshare ESP32-S3 2inch Capacitive Touch Display Development Board](https://link.amazon/B0c5hr3uf)** — 240×320 IPS, LX7 dual-core to 240 MHz, Wi-Fi and Bluetooth. (Listed with an OV5640 camera header; the camera is not included and TigerSpool does not use it.) | 2.0" 240×320 IPS with CST816S capacitive touch, ESP32-S3**R8**, 16 MB flash, 8 MB octal PSRAM. The screen, the touch panel and the MCU are one board — there is no separate display to wire. The 16 MB is what makes two OTA slots comfortable. | ~25 € |
-| 2 | **PN532 NFC module**, V3 breakout with DIP switches — e.g. [this two-pack](https://link.amazon/B0dyEfwKa) | Reads the NTAG21x chips TigerTag uses. It **must** support **HSU/UART** mode; the DIP-switch V3 boards do, and both switches go to `0` / OFF. A two-pack costs barely more than one, and the spare settles "is it the module or my wiring?" in a minute. | ~9 € the pair |
+| 1 | **[Waveshare ESP32-S3 2inch Capacitive Touch Display Development Board](https://link.amazon/B06RoLfDi)** — 240×320 IPS, LX7 dual-core to 240 MHz, Wi-Fi and Bluetooth. (Listed with an OV5640 camera header; the camera is not included and TigerSpool does not use it.) | 2.0" 240×320 IPS with CST816S capacitive touch, ESP32-S3**R8**, 16 MB flash, 8 MB octal PSRAM. The screen, the touch panel and the MCU are one board — there is no separate display to wire. The 16 MB is what makes two OTA slots comfortable. | ~25 € |
+| 2 | **PN532 NFC module**, V3 breakout with DIP switches — e.g. [this kit](https://link.amazon/B0iJgHVtP) | Reads the NTAG21x chips TigerTag uses. It **must** support **HSU/UART** mode; the DIP-switch V3 boards do, and both switches go to `0` / OFF. A two-pack costs barely more than one, and the spare settles "is it the module or my wiring?" in a minute. | ~9 € the pair |
 | 3 | **A USB-A to USB-C cable that carries data** — e.g. [this one](https://link.amazon/B00Xg3WT4) | Powers the board and flashes it. **Speed is irrelevant**: the ESP32-S3's native USB is full-speed, so any USB 2.0 data cable is enough. What matters is that it carries data at all. | ~5-10 € |
 
 Plus a **3D-printed case** from [models/](../models/), about 30 g of filament.
+
+## Two things worth adding
+
+Neither is needed to build a working TigerSpool, and both earn their place next
+to a printer.
+
+| Part | Why | ~Price |
+|---|---|---|
+| **[Magnetic USB connector](https://link.amazon/B0bWVIBa0)** | The USB port is the one thing on this box that gets handled - a spool goes past it every day. A magnetic tip stays in the socket and the cable lets go instead of the connector. | ~10 € |
+| **[3.7 V 1000 mAh LiPo cell, PH1.25 connector, with protection](https://link.amazon/B0fL0jjf3)** | The board charges it over USB and runs from it when the cable is out, so the box can be carried to a printer to write a spool and brought back. With one fitted, Settings gains a **Battery** entry - level, state, time left. Without one, nothing changes and the entry is not there. | ~10 € for four |
+
+**Check the polarity before plugging a cell in.** The connector is not keyed
+against a cell wired the other way round, and the board has no protection
+against it. The battery connector is `J4`, marked on the board.
 
 **The four jumper wires come with the PN532** — 3V3, GND, TX and RX, and that is
 the whole harness. There is nothing else to order.
@@ -43,7 +57,9 @@ non-technical users is the right trade.
 **No level shifters.** The PN532 runs at 3V3 — the same as the ESP32-S3. Do not
 power it from 5 V. See [../docs/WIRING.md](../docs/WIRING.md).
 
-**No battery.** TigerSpool sits next to a printer that is already plugged in.
+**No battery, by default.** TigerSpool sits next to a printer that is already
+plugged in, so it is not required - see the two optional parts above if you
+want one anyway.
 
 ## The tags
 

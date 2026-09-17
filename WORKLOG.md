@@ -1478,6 +1478,42 @@ ten, not by memory.
   other models (A1, P1P, P2S) or older firmware: none was in LAN mode on the
   bench.
 
+## 2026-09-17 - telling a battery from a charger (released in 1.57.0)
+
+- Benoit, on a board he says has no cell: it showed 73%. It reads 4.01 V, and
+  the presence test was a threshold at 4.24 - taken from the only other
+  battery-less board there was, whose rail sits at 4.27. One board's charger
+  floats lower than another's, so the threshold was never going to hold.
+- What separates them is not the level but the MOVEMENT. A cell drifts: 2.4 mV
+  a minute at the pin while charging, about 5 while running the device. A rail
+  held by a charger with nothing to charge does not move at all. So the level
+  still answers at boot, and a drift test settles it: the reading, smoothed,
+  compared with itself ten minutes later, 6 mV of movement deciding it.
+- First attempt compared raw readings over a 2 mV window and declared "there is
+  a cell" within a minute on a board that has none: the ADC wanders 4-5 mV
+  between samples, which is more than a charging cell drifts in a minute. The
+  smoothing is what makes the test mean anything.
+- The verdict is kept in NVS (bnocell), so a board settles the question once.
+- Then Benoit asked the right question: can the board not simply say? The
+  schematic answers it. The charger is an ETA6098; its STAT output (pin 9)
+  drives a red LED through R13 and goes nowhere near the processor, and the
+  battery connector J4 is two wires. The information exists, it lights an LED,
+  and it is not wired to the MCU. (Rendering the schematic to a PNG with
+  qlmanage and reading it is how this was settled - the PDF's text layer is one
+  character per draw call and greps to nothing.)
+- But the schematic gave the answer anyway: the charger is a SWITCHER, with a
+  2.2 uH inductor, and its output ripples. A cell on the connector is an
+  enormous capacitor across it and swallows the ripple. Measured, eight reads
+  back to back, both boards on USB: 1.8-3.2 mV with a cell, 6.6-21.8 mV
+  without, peaks over 50. The noise that had defeated the first attempt was the
+  signal.
+- So presence is decided on ripple, smoothed, with a band between 4 and 6 mV
+  where nothing changes. It answers in a second instead of ten minutes, and it
+  also settles the case the drift test got wrong - a FULL cell on a charger,
+  which is perfectly still and still damped. Verified on both boards at once:
+  "ripple 3.2 mV - a cell is damping it", 77%, against "(no battery)" on the
+  other.
+
 ## 2026-09-17 - the AMS HT, and a report nobody was reading (released in 1.56.0)
 
 - A user (mediastorm2000) reported that an AMS HT is not enumerated on an X1C

@@ -162,12 +162,13 @@ printer brand — only the 3D-printed shell changes.
 
 | Part | Notes |
 |---|---|
-| **Waveshare ESP32-S3 2inch Capacitive Touch Display** development board | 240×320 IPS, ESP32-S3R8, 16 MB flash, 8 MB octal PSRAM. Screen, touch and MCU on one board. |
-| **PN532 NFC module**, V3 with DIP switches | Set to **HSU (UART)** — not I²C, not SPI. Both switches `0` / OFF. |
+| **[Waveshare ESP32-S3 2inch Capacitive Touch Display](https://link.amazon/B06RoLfDi)** development board | 240×320 IPS, ESP32-S3R8, 16 MB flash, 8 MB octal PSRAM. Screen, touch and MCU on one board. |
+| **[PN532 NFC module](https://link.amazon/B0iJgHVtP)**, V3 with DIP switches | Set to **HSU (UART)** — not I²C, not SPI. Both switches `0` / OFF. |
 | **A USB-C to USB-A cable that carries data** | Powers and flashes the board. A charge-only cable makes a working board look dead — no serial port ever appears. |
 | Four jumper wires | 3V3, GND, TX, RX. **Supplied with the PN532** — nothing to buy. |
 | A 3D-printed case | [models/](models/) — one per printer brand, plus a desktop stand |
-| *Optional:* a 3.7 V lithium cell on the board's MX1.25 header | The board charges it over USB. With one fitted, Settings gains a **Battery** entry — level, state, and how long is left. Without one, nothing changes and the entry is not there. |
+| *Optional:* a **[magnetic USB connector](https://link.amazon/B0bWVIBa0)** | The port is the one part handled every day; the cable lets go instead of the socket. |
+| *Optional:* a **[3.7 V 1000 mAh LiPo cell](https://link.amazon/B0fL0jjf3)** on the board's PH1.25 header | The board charges it over USB and runs from it when the cable is out. With one fitted, Settings gains a **Battery** entry — level, state, and how long is left. Without one, nothing changes and the entry is not there. **Check the polarity before plugging it in.** |
 
 **About 40 €** in total, plus filament. Parts, links and prices:
 **[hardware/BOM.md](hardware/BOM.md)**.
