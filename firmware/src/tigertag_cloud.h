@@ -66,6 +66,11 @@ namespace ttcloud {
     // from NVS immediately, and this updates it underneath.
     bool   startAsyncSync();              // false if one is already running
     bool   asyncBusy();
+    // True while a sync is waiting for internal RAM it cannot get: the task
+    // stack is 16 KB and must be contiguous. main.cpp reads this the same way
+    // it reads product_api::needsRoom(), and stands the background printer
+    // links down until there is a block big enough.
+    bool   needsRoom();
     bool   asyncTake(String& summary);    // true once, when it finishes
 
     // Bambu Lab's own cloud session, as Tiger Studio stores it in the account.

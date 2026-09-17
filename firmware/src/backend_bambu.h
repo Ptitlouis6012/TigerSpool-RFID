@@ -2,6 +2,7 @@
 #include "printer.h"
 #include <WiFiClientSecure.h>
 #include <PubSubClient.h>
+#include "net/buffered_client.h"
 #include <ArduinoJson.h>
 
 // Bambu Lab A1 / A1 mini / A2L / P1 / X1 / H2D over the LAN.
@@ -46,7 +47,11 @@ private:
     // One TLS session and one MQTT client per printer. Both were file statics,
     // which is what limited the device to a single Bambu at a time.
     WiFiClientSecure net_;
-    PubSubClient     mqtt_{net_};
+    // 1 KB between PubSubClient's byte-at-a-time reads and the TLS socket -
+    // see net/buffered_client.h. It is the difference between 74 ms and a few
+    // for one 30 KB report, and that report arrives once a second.
+    BufferedClient<1024> buf_{net_};
+    PubSubClient     mqtt_{buf_};
 
     BSlot     map_[BMAX] = { { "", 255, 254 },
                              { "A1", 0, 0 }, { "A2", 0, 1 }, { "A3", 0, 2 }, { "A4", 0, 3 } };

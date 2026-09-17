@@ -156,7 +156,7 @@ bool reader::read(TagInfo& out) {
     for (int attempt = 0; attempt < 20 && !win; attempt++) {
         if ((int32_t)(millis() - deadline) >= 0) break;
         if (!nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &ul, 150)) { delay(8); continue; }
-        delay(5);                    // deixa a tag assentar no campo
+        delay(5);                    // let the tag settle in the field
 
         bool got;
         if (attempt < 10) {

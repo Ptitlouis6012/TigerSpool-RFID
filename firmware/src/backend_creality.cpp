@@ -65,7 +65,7 @@ void CrealityBackend::applyBoxsInfo(JsonObjectConst bi) {
             s.r = r; s.g = g; s.b = b;
         }
     }
-    status_ = "K2: slots atualizados";
+    status_ = "K2: slots updated";
 }
 void CrealityBackend::onMsg(uint8_t* payload, size_t len) {
     const char* p = (const char*)payload;
@@ -80,8 +80,8 @@ void CrealityBackend::onMsg(uint8_t* payload, size_t len) {
 }
 void CrealityBackend::onEvent(WStype_t type, uint8_t* payload, size_t len) {
     switch (type) {
-        case WStype_CONNECTED:    connected_ = true;  status_ = "K2: ligado"; break;
-        case WStype_DISCONNECTED: connected_ = false; status_ = "K2: desligado"; break;
+        case WStype_CONNECTED:    connected_ = true;  status_ = "K2: connected"; break;
+        case WStype_DISCONNECTED: connected_ = false; status_ = "K2: disconnected"; break;
         case WStype_TEXT:         onMsg(payload, len); break;
         default: break;
     }
@@ -111,7 +111,7 @@ void CrealityBackend::loop() {
 void CrealityBackend::stop() {
     ws_.disconnect();
     connected_ = false;
-    status_ = "K2: parado";
+    status_ = "K2: stopped";
 }
 
 bool CrealityBackend::connected() { return connected_; }

@@ -1478,6 +1478,71 @@ ten, not by memory.
   other models (A1, P1P, P2S) or older firmware: none was in LAN mode on the
   bench.
 
+## 2026-09-17 - what the interface spends its time on (released in 1.55.0)
+
+### Measured
+
+- Benoit: find the freezes, everywhere. Instrumented the loop on the bench
+  board (six printers imported, several switched off) and measured the thing
+  that matters, which is not the length of a pass but the gap between two
+  LVGL frames - the screen going blind is what a finger feels.
+- Baseline, 75 s of running: 76 gaps over 40 ms, median 74 ms, worst 1318 ms,
+  8.9 s blind in total. That is 12% of the time with the screen dead.
+- Where it goes: the printer backends, 90 slow passes in 90 s. Broken down,
+  backend 0 (a Bambu, MQTT/TLS) 61 of them, median 58 ms, and the spikes of
+  1.0-1.4 s are TLS handshakes while dialling. The JSON parsing is NOT the
+  cost - under 10 ms with the filter - it is the socket read and the wait for
+  the rest of a 30 KB report.
+
+### Changed
+
+- net/buffered_client.h: a 1 KB read buffer in front of any Client, because
+  PubSubClient reads one byte at a time and over TLS each of those goes into
+  mbedtls. In front of the Bambu socket it took that backend from 58 ms median
+  to 44.
+- A frame is drawn BETWEEN printers now, not after all of them, so the gap is
+  capped at one printer's turn rather than the sum of six.
+- The loop slept a flat 15 ms per pass, including passes where LVGL had an
+  animation in hand. It now sleeps for what lv_timer_handler() asks for,
+  capped at 15.
+- Together: 7.9 s blind per 80 s, median gap 56 ms, worst unchanged at 1.3 s.
+
+### Fixed, from Benoit's screen
+
+- Benoit: the account says it is connected but the icon is orange. It was
+  right: health() returns 2 when the last exchange failed, and the log had
+  "[account] xTaskCreate failed - sync skipped" every minute. 50 KB free, and
+  the largest block 16 372 against the 16 384 the sync task's stack needs.
+- The deadlock behind it: standDownForTls() frees internal RAM when
+  needsTheRoom() is true, and that reads ttcloud::asyncBusy() - which is only
+  set once the task exists. A sync that could not start therefore never asked
+  for the room that would have let it start. ttcloud::needsRoom() now exists,
+  is set before the attempt when the largest block is under the stack plus a
+  margin, and is read by needsTheRoom() like product_api's already was. The
+  stack size is one constant now, SYNC_STACK, rather than a literal in the
+  task and a figure in a comment.
+- Verified on the bench board: links stood down, the sync ran to completion in
+  11.7 s (13 LAN printers, 4 cloud), and the account icon went green.
+
+### Still open
+
+- The worst gaps are TLS handshakes to printers that are switched off, and no
+  amount of buffering touches them: they are blocking connects on the UI loop.
+  The fix is to move printer network IO onto its own task, which is a chantier
+  of its own - the backends hold state that screens read, so it needs a
+  boundary drawn first. Proposed to Benoit, not started.
+- Leftovers in Portuguese, found while reading the backends and translated at
+  Benoit's request: twelve status strings across five backends ("Bambu: slots
+  atualizados", "K2: ligado", "FF: autenticado", "Snap: parado" and their
+  kind), four comments, and one more in tigertag_cloud.cpp. Worth knowing:
+  status() is not called anywhere - no screen, no log, no page reads it - so
+  none of this was ever visible. It is still committed non-English text, which
+  is what the rule is about.
+- And the guard that should have caught them learned the words it walked past:
+  atualizado, ligado, parado, subscrito, autenticado, relendo, confirma,
+  assentar, topologia, vazio, deixa, campo, validar. The last of them found a
+  thirteenth leftover on the first run.
+
 ## 2026-09-16 - the battery (released in 1.54.0)
 
 ### Added

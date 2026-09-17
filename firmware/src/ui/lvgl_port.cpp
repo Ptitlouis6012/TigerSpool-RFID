@@ -219,7 +219,10 @@ void begin() {
                   s_buf2 ? " (double)" : " (single)");
 }
 
-uint32_t loop() { return lv_timer_handler(); }
+uint32_t s_idle = 0;
+
+uint32_t loop() { s_idle = lv_timer_handler(); return s_idle; }
+uint32_t idleMs() { return s_idle; }
 
 uint32_t frameCounter() { return s_frame; }
 

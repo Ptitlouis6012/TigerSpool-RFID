@@ -654,7 +654,7 @@ bool ttcloud::syncNow(String& summary) {
                     String deviceIdField = fsStr(f, "deviceId");
                     p.sn = serialField.length() ? serialField
                          : (deviceIdField.length() ? deviceIdField : dev);
-                    // access code (FF checkCode / Bambu LAN) no campo "password"
+                    // access code (FF checkCode / Bambu LAN) in the "password" field
                     p.cc = fsAny(f, { "password", "dev_access_code", "accessCode", "access_code", "checkCode",
                                   "mqttPassword" });
                 }
@@ -940,10 +940,35 @@ static void syncTaskFn(void*) {
     vTaskDelete(nullptr);
 }
 
+// Set when a sync could not get its stack, cleared the moment one starts.
+static volatile bool g_wantRoom = false;
+
+// The one place the stack size is written: asked for by the task, and checked
+// for by the room test above it.
+static const uint32_t SYNC_STACK = 16384;
+
+bool ttcloud::needsRoom() { return g_wantRoom; }
+
 bool ttcloud::startAsyncSync() {
     if (g_asyncBusy) return false;
+
+    // Ask for the room BEFORE trying, not after failing.
+    //
+    // The stand-down that frees internal RAM is triggered by asyncBusy(), which
+    // is only true once the task exists - so a device that could not create the
+    // task never asked for the room that would have let it. Found on the bench
+    // with seven printers linked: 50 KB free, largest block 16 372, twelve
+    // bytes under the 16 384 the stack needs, and "[account] xTaskCreate failed
+    // - sync skipped" every minute for hours. The account icon sat orange, the
+    // printer list never refreshed, and nothing else said why.
+    if (ESP.getMaxAllocHeap() < SYNC_STACK + 2048) {
+        g_wantRoom = true;
+        return false;                  // the links step aside; due() comes back
+    }
     g_asyncBusy = true; g_asyncDone = false;
     // 16 KB: mbedTLS needs room, and the JSON parsing runs on this stack too.
+    // (SYNC_STACK, so the figure the room check uses and the figure the task
+    // asks for cannot drift apart.)
     //
     // CORE 0, not core 1. A full sync is fifteen seconds of TLS and JSON, and
     // on core 1 it shares that core with the Arduino loop at the same priority
@@ -951,11 +976,14 @@ bool ttcloud::startAsyncSync() {
     // every five minutes, and every screen felt like treacle while it ran.
     // Core 0 already carries Wi-Fi and the reachability probe; this belongs
     // with them, next to the radio it is talking through.
-    if (xTaskCreatePinnedToCore(syncTaskFn, "ttSync", 16384, nullptr, 1, nullptr, 0) != pdPASS) {
+    if (xTaskCreatePinnedToCore(syncTaskFn, "ttSync", SYNC_STACK, nullptr, 1, nullptr, 0) != pdPASS) {
         g_asyncBusy = false;
-        Serial.println("[account] xTaskCreate failed - sync skipped");
+        g_wantRoom = true;
+        Serial.printf("[account] no room for the sync task: %u free, largest %u\n",
+                      (unsigned)ESP.getFreeHeap(), (unsigned)ESP.getMaxAllocHeap());
         return false;
     }
+    g_wantRoom = false;
     return true;
 }
 bool ttcloud::asyncBusy() { return g_asyncBusy; }

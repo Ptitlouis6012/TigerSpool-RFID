@@ -7,6 +7,30 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.55.0] - 2026-09-17
+
+### Fixed
+
+- **The account stopped syncing on a device with many printers, and only the
+  orange account icon said so.** The sync needs 16 KB of contiguous memory for
+  its task; with seven printers linked the largest free block was 16 372 bytes
+  - twelve short - and the mechanism that frees memory only ran once a sync had
+  started, which this one never could. The room is now asked for before the
+  attempt, and the log says how much memory there was when one fails.
+
+### Changed
+
+- Internal: the last Portuguese left in the firmware - status strings and
+  comments in the printer backends - is now English, and the guard that checks
+  for it knows the words it had been walking past.
+- **The screen keeps moving while the printers are talked to.** Measured on a
+  bench with six printers: the panel was blind for 8.9 seconds out of every 75
+  - a Bambu report costs about 70 ms to read and they were all read back to
+  back before the screen was allowed to draw. Three changes bring that to 7.9
+  seconds and halve the typical gap: a read buffer in front of the MQTT socket,
+  a frame drawn between printers rather than after all of them, and a loop that
+  sleeps only as long as the interface says it can.
+
 ## [1.54.0] - 2026-09-17
 
 ### Added

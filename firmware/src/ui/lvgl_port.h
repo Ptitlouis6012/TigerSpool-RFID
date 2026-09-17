@@ -15,6 +15,10 @@ void begin();
 // Pumps LVGL. Returns the milliseconds LVGL wants before the next call, so the
 // main loop can idle instead of spinning.
 uint32_t loop();
+// What the last loop() asked for, in milliseconds: how long LVGL is happy to
+// wait before it needs the CPU again. Zero while it has work in hand - an
+// animation, a scroll, a screen still being flushed.
+uint32_t idleMs();
 
 // Screenshot support: mirror the next full repaint into the sprite.
 void requestCapture(bool on);

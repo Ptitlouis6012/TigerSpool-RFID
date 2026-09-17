@@ -1064,7 +1064,8 @@ static bool needsTheNetwork() {
 // back until it is done.
 static bool needsTheRoom() {
     const ota::State o = ota::state();
-    return ttcloud::asyncBusy() || o == ota::CHECKING || o == ota::DOWNLOADING
+    return ttcloud::asyncBusy() || ttcloud::needsRoom()
+        || o == ota::CHECKING || o == ota::DOWNLOADING
         || product_api::needsRoom();
 }
 
@@ -1581,6 +1582,7 @@ void loop() {
     // where the user happens to be standing.
     if (!s_memtest && ttcloud::due() && !ttcloud::asyncBusy()) ttcloud::startAsyncSync();
 
+
     // Every open link, not only the selected one. A connection nobody is
     // looking at still has to be pumped or it drops, and the whole point of
     // holding several is that switching to one costs nothing.
@@ -1604,7 +1606,20 @@ void loop() {
         // A live connection is pumped every pass: that is cheap and it is what
         // keeps it alive. A dead one is pumped only while it holds the dialling
         // slot, because for it loop() IS the blocking connect.
-        if (l.be->connected() || i == s_dialer) l.be->loop();
+        if (l.be->connected() || i == s_dialer) {
+            const uint32_t t0 = millis();
+            l.be->loop();
+            // A frame between printers, not one after all of them.
+            //
+            // Measured on a bench with six: a Bambu's MQTT pass costs about 60
+            // ms - the TLS read of a 30 KB report, not the parsing of it,
+            // which is under 10 - and they were all run back to back before
+            // the screen was allowed to draw. That is a third of a second of
+            // dead panel per pass, and it is what the interface feels like
+            // rather than what any one printer costs. Pumping here caps the
+            // gap at ONE printer's turn.
+            if (millis() - t0 > 10) lvgl_port::loop();
+        }
     }
     linkTick();                  // keep the printer links up, everywhere
     battery::loop();             // one ADC read every two seconds
@@ -2554,7 +2569,18 @@ void loop() {
     }
     }
 
-    delay(15);
+    // Sleep for as long as LVGL says it has nothing to do, and no longer.
+    //
+    // A flat 15 ms was paid on every pass, including the passes where LVGL had
+    // an animation in hand and wanted the CPU immediately: a scroll gave up a
+    // frame in three for nothing. lv_timer_handler() returns the time it is
+    // happy to wait; 15 ms remains the ceiling, so an idle device costs the
+    // same as before.
+    {
+        uint32_t want = lvgl_port::idleMs();
+        if (want > 15) want = 15;
+        delay(want ? want : 1);
+    }
 
 }
 

@@ -129,7 +129,7 @@ void SnapmakerBackend::loop() {
 void SnapmakerBackend::stop() {
     ws_.disconnect();
     connected_ = false;
-    status_ = "Snap: parado";
+    status_ = "Snap: stopped";
 }
 
 bool SnapmakerBackend::connected() { return connected_; }
@@ -170,6 +170,6 @@ bool SnapmakerBackend::assign(int idx, const TagInfo& t) {
 
     bool ok = sendRaw(out);
     status_ = ok ? (String("sent -> ") + SLOTS[idx]) : "send failed";
-    if (ok) { delay(200); refresh(); }
+    if (ok) { delay(200); refresh(); }   // confirm by reading it back
     return ok;
 }

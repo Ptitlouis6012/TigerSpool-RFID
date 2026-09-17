@@ -54,6 +54,13 @@ MARKERS = {
     "como", "esta", "falhou", "falha", "nenhuma", "ligar", "aguardar",
     "aprovacao", "enviado", "erro", "cama", "guardar", "tela", "arquivo",
     "sao", "sua", "seu", "seja", "entao", "apos", "ultima", "primeiro",
+    # Found in September 2026, in backend status strings and comments that had
+    # survived every earlier sweep: a status line read "Bambu: slots
+    # atualizados" and a comment "confirma relendo". Each of these is a word
+    # this guard walked past, which is the only reason they lasted a year.
+    "atualizados", "atualizado", "atualiza", "ligado", "desligado", "parado",
+    "subscrito", "autenticado", "relendo", "confirma", "assentar", "topologia",
+    "vazio", "deixa", "campo", "validar",
     # Nouns and participles, not function words. Every one of these was found on
     # a screen or in a log AFTER a sweep declared the tree clean: the list is a
     # heuristic and grows by being wrong in public.

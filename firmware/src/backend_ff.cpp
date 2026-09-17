@@ -107,7 +107,7 @@ void FlashForgeC5Backend::begin(const PrinterCfg& cfg) {
     if (sn_.length() && !sn_.startsWith("SN")) sn_ = "SN" + sn_;
     for (int i = 0; i < 4; i++) slots_[i] = SlotState{};
     auth_ = false;
-    status_ = "FF: a validar...";
+    status_ = "FF: checking...";
 
     tryAuth();
 }
@@ -125,8 +125,8 @@ void FlashForgeC5Backend::tryAuth() {
     JsonDocument d;
     if (code == 200 && !deserializeJson(d, resp)) {
         int c = d["code"] | -99;
-        if (c == 0)       { auth_ = true;  status_ = "FF: autenticado"; }
-        else if (c == -2) status_ = "FF: Modo LAN desligado";
+        if (c == 0)       { auth_ = true;  status_ = "FF: authenticated"; }
+        else if (c == -2) status_ = "FF: LAN mode is off";
         else if (c == 1)  status_ = "FF: access code errado";
         else if (c == 3)  status_ = "FF: not authorised";
         else if (c == 5)  status_ = "FF: serial errado";
@@ -179,7 +179,7 @@ void FlashForgeC5Backend::refresh() {
     }
     int cur = d["detail"]["matlStationInfo"]["currentSlot"] | 0;
     for (int i = 0; i < 4; i++) slots_[i].selected = (cur == i + 1);
-    status_ = "FF: slots atualizados";
+    status_ = "FF: slots updated";
 }
 
 bool FlashForgeC5Backend::assign(int idx, const TagInfo& t) {
@@ -212,6 +212,6 @@ bool FlashForgeC5Backend::assign(int idx, const TagInfo& t) {
     JsonDocument r;
     bool ok = (code == 200) && !deserializeJson(r, resp) && ((r["code"] | -1) == 0);
     status_ = ok ? (String("sent -> ") + LABELS[idx] + " " + mt) : "FF: send failed";
-    if (ok) { delay(150); refresh(); }        // confirma relendo (cmd desconhecido e ACKed na mesma)
+    if (ok) { delay(150); refresh(); }        // confirm by reading back: an unknown command is ACKed all the same
     return ok;
 }

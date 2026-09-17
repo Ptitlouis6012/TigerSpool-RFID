@@ -145,7 +145,7 @@ void BambuBackend::onMqtt(uint8_t* payload, unsigned int len) {
     // AMS (the "id" arrives as the string "0" or as a number)
     JsonArrayConst amsArr = pr["ams"]["ams"].as<JsonArrayConst>();
     if (!amsArr.isNull()) {
-        rebuildMap(amsArr);                 // topologia real (AMS Lite / AMS / multi)
+        rebuildMap(amsArr);                 // the real topology (AMS Lite / AMS / multi)
         for (JsonObjectConst a : amsArr) {
             int amsId = a["id"].as<int>();
             JsonArrayConst trays = a["tray"].as<JsonArrayConst>();
@@ -155,7 +155,7 @@ void BambuBackend::onMqtt(uint8_t* payload, unsigned int len) {
                 applyTray(amsId, t["id"].as<int>(), t);
             }
         }
-        status_ = "Bambu: slots atualizados";
+        status_ = "Bambu: slots updated";
     }
     // external spool
     JsonObjectConst vt = pr["vt_tray"];
@@ -263,8 +263,8 @@ void BambuBackend::loop() {
         if (mqtt_.connect(cid.c_str(), user_.c_str(), cc_.c_str())) {
             mqtt_.subscribe(topReport_.c_str());
             connected_ = true;
-            status_ = "Bambu: ligado";
-            Serial.println("[bambu] ligado + subscrito");
+            status_ = "Bambu: connected";
+            Serial.println("[bambu] connected and subscribed");
             refresh();
         } else {
             status_ = String("Bambu: MQTT rc=") + mqtt_.state() + " (access code?)";
@@ -309,7 +309,7 @@ void BambuBackend::stop() {
     if (cloud_) { bambu_cloud::detach(sn_); connected_ = false; status_ = "Bambu: stopped"; return; }
     mqtt_.disconnect();
     connected_ = false;
-    status_ = "Bambu: parado";
+    status_ = "Bambu: stopped";
 }
 
 bool BambuBackend::connected() { return connected_; }
