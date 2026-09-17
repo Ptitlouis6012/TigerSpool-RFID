@@ -1478,6 +1478,33 @@ ten, not by memory.
   other models (A1, P1P, P2S) or older firmware: none was in LAN mode on the
   bench.
 
+## 2026-09-17 - the AMS HT, and a report nobody was reading (released in 1.56.0)
+
+- A user (mediastorm2000) reported that an AMS HT is not enumerated on an X1C
+  that shows its two AMS Gen 1 and its external spool, and sent the full MQTT
+  dump. The dump settles it: the units arrive as id "0", "1" and "128", the
+  HT holding a single tray of PLA-CF, and `tray_exist_bits` is "100ff" - bit 16
+  for the HT rather than a bit inside the AMS range. rebuildMap() dropped
+  anything over id 3.
+- Now: ids 0-3 are AMS units of four trays, 128-131 are HT units of one, BMAX
+  is 21 and the labels are A1..D4 and HT1..HT4. Letters for the HT would have
+  been a guess at what Bambu Studio shows; HT1 is not.
+- Verified by REPLAYING the user's dump onto our own X1C's report topic:
+  mosquitto_pub to device/<sn>/report on the printer's broker, with the
+  printer's own certificate pulled by openssl s_client, and the device saw it
+  as a report from that printer. The log then read "AMS: 3 unit(s) -> 10
+  slots" and "HT1: PLA-CF #F72323" - the external spool, A1-A4, B1-B4 and HT1.
+  Worth keeping as a technique: a bug reported with a dump can be reproduced on
+  hardware nobody here owns.
+- That replay found a second fault immediately: the first publish changed
+  nothing, because a background Bambu had an 8 KB MQTT buffer and the report is
+  8.9 KB. PubSubClient drops an oversized message silently. So a printer with
+  two AMS was only ever updating its slots while it was the printer on screen.
+  The background buffer is 20 KB now; it lives in PSRAM at that size.
+- Not verified, and it needs the reporter's hardware: WRITING to an HT slot.
+  The command goes out as ams_id 128, tray_id 0, which is what the mapping
+  implies, but nothing here can confirm the printer accepts it.
+
 ## 2026-09-17 - what the interface spends its time on (released in 1.55.0)
 
 ### Measured

@@ -33,10 +33,11 @@ public:
     String status() override;
     void refresh() override;
 
-    // external spool + 4 AMS units x 4 trays
-    static const int BMAX = 17;
+    // external spool + 4 AMS units x 4 trays + 4 single-slot AMS HT units.
+    // The HT reports itself as unit 128 and up - see rebuildMap().
+    static const int BMAX = 21;
 private:
-    struct BSlot { char name[4]; int ams; int tray; };
+    struct BSlot { char name[5]; int ams; int tray; };
 
     void setDefaultMap();
     void rebuildMap(JsonArrayConst amsArr);

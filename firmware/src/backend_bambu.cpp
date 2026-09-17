@@ -23,7 +23,16 @@ namespace {
     // until it was measured. What limits how many Bambus can be open is the TLS
     // session, and this buffer has nothing to do with it.
     const uint16_t BAMBU_BUF_FULL = 51200;
-    const uint16_t BAMBU_BUF_BG   = 8192;
+    // 20 KB in the background, not 8.
+    //
+    // PubSubClient DROPS a message larger than its buffer, silently. A real
+    // report from an X1C with two AMS and an AMS HT is 8.9 KB - measured, by
+    // replaying a user's own dump onto a printer's report topic - so at 8192 a
+    // printer with more than one AMS never updated its slots unless it was the
+    // one on screen. The buffer goes to PSRAM at this size, which is what makes
+    // the fix cheap: 20 KB of PSRAM per background printer against slots that
+    // are simply wrong.
+    const uint16_t BAMBU_BUF_BG   = 20480;
 }
 
 void BambuBackend::setDefaultMap() {
@@ -70,15 +79,31 @@ namespace {
 }
 
 // Rebuild map_ from the AMS units present in the report
+// The AMS HT is unit 128, not unit 4.
+//
+// Reported by a user with two AMS and one AMS HT on an X1C, with the MQTT dump
+// to prove it: the units arrive as id "0", id "1" and id "128", the HT holding
+// a single tray. Everything above id 3 used to be dropped here, so the HT was
+// invisible - the two AMS and the external spool appeared and the dryer did
+// not. Bambu numbers the HT units from 128 upwards and gives each one tray;
+// the printer's own tray_exist_bits agrees, setting bit 16 for the first of
+// them rather than a bit inside the AMS range.
+//
+// The letters follow Bambu Studio for the AMS - A1..A4, B1..B4 - and the HT
+// units are labelled HT1, HT2 and so on, because there is no letter for them
+// that anybody could check against Studio's screen.
 void BambuBackend::rebuildMap(JsonArrayConst amsArr) {
-    int ids[4], nu = 0;
+    const int HT_BASE = 128;          // first AMS HT unit id
+    int ids[8], nu = 0;
     if (!amsArr.isNull())
         for (JsonObjectConst a : amsArr) {
-            int id = a["id"].as<int>();
-            if (id < 0 || id > 3) continue;
+            const int id = a["id"].as<int>();
+            const bool ams = (id >= 0 && id <= 3);
+            const bool ht  = (id >= HT_BASE && id <= HT_BASE + 3);
+            if (!ams && !ht) continue;
             bool dup = false;
             for (int i = 0; i < nu; i++) if (ids[i] == id) dup = true;
-            if (!dup && nu < 4) ids[nu++] = id;
+            if (!dup && nu < 8) ids[nu++] = id;
         }
     for (int i = 0; i < nu; i++)
         for (int j = i + 1; j < nu; j++)
@@ -87,17 +112,18 @@ void BambuBackend::rebuildMap(JsonArrayConst amsArr) {
     int n = 0;
     map_[n].name[0] = 0;   // external spool: translated at draw time
     map_[n].ams = 255; map_[n].tray = 254; n++;
-    for (int u = 0; u < nu && n < BMAX; u++)
-        for (int tr = 0; tr < 4 && n < BMAX; tr++) {
-            // The unit is a letter and the tray a number: A1..A4 for the
-            // first AMS, B1..B4 for the second. That is what Bambu Studio
-            // shows, and matching it is the difference between a user
-            // reading the slot and having to work it out.
-            snprintf(map_[n].name, 4, "%c%d", 'A' + ids[u], tr + 1);
-            map_[n].ams = ids[u];
+    for (int u = 0; u < nu && n < BMAX; u++) {
+        const bool ht = ids[u] >= HT_BASE;
+        // An HT is one heated slot, not four.
+        const int trays = ht ? 1 : 4;
+        for (int tr = 0; tr < trays && n < BMAX; tr++) {
+            if (ht) snprintf(map_[n].name, sizeof(map_[n].name), "HT%d", ids[u] - HT_BASE + 1);
+            else    snprintf(map_[n].name, sizeof(map_[n].name), "%c%d", 'A' + ids[u], tr + 1);
+            map_[n].ams  = ids[u];
             map_[n].tray = tr;
             n++;
         }
+    }
     if (n != nSlots_) Serial.printf("[bambu] AMS: %d unit(s) -> %d slots\n", nu, n);
     nSlots_ = n;
 }

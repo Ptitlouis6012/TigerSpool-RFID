@@ -172,7 +172,7 @@ These are taken from Tiger Studio's renderers, which are the reference:
 
 | Brand | External | Units |
 |---|---|---|
-| **Bambu Lab** | `Ext.` | `A1`–`A4` for the first AMS, `B1`–`B4` for the second, and so on |
+| **Bambu Lab** | `Ext.` | `A1`–`A4` for the first AMS, `B1`–`B4` for the second, and so on. An **AMS HT** is one heated slot and is labelled `HT1`, `HT2`… — the printer reports those units as id 128 and up, not as a fifth AMS |
 | **Creality** | `Ext.` | `1A`–`1D` for the first CFS box, `2A`–`2D` for the second |
 | **FlashForge** | `Ext.` | `1A`–`1D` for the material station. `T1`–`T4` are something else: the Creator 5 Pro's tool-changer nozzles, not station slots. |
 | **Elegoo** | `Ext.` | `S1`–`S4` |

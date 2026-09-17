@@ -7,6 +7,19 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.56.0] - 2026-09-17
+
+### Fixed
+
+- **A Bambu AMS HT is now seen.** A printer reports its HT units as 128 and
+  up, and everything above id 3 was being dropped: an X1C with two AMS and an
+  AMS HT showed the two AMS and the external spool, and the dryer not at all.
+  Reported with a full MQTT dump, which is what made it findable.
+- **A Bambu with more than one AMS updates its slots in the background too.**
+  The report from such a printer is about 9 KB and the background buffer held
+  8, so it was dropped without a word - the slots only ever refreshed while
+  that printer was the one on screen.
+
 ## [1.55.0] - 2026-09-17
 
 ### Fixed
