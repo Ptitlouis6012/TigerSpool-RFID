@@ -1478,6 +1478,38 @@ ten, not by memory.
   other models (A1, P1P, P2S) or older firmware: none was in LAN mode on the
   bench.
 
+## 2026-09-18 - the roaming, tested rather than trusted (released in 1.58.0)
+
+- PR #9 (roaming, disconnect reasons, RF tuning) and #3 (the hardware table)
+  merged, after review. What the bench said about #9, in order:
+- The fault is real and was reproduced: the device sat on an access point at
+  -73 dBm while another with the SAME SSID was at -48, and roamCheck() moved
+  it. Benoit's network has three APs per SSID, at about -45, -73 and -85.
+- A roam costs a reconnection. Timestamped: staBegin() at t=103852 ms, the six
+  printer links back between t=107713 and t=118743 - four to fifteen seconds,
+  every link dropped. The PR claimed no disruption; it is not true, and the
+  CHANGELOG says what actually happens.
+- No ping-pong: 25 scans across two boards, 13 of them with the hysteresis cut
+  from 8 dB to 1, and not one unjustified move. Not a proof of the 8 dB - at
+  this spot the other two APs are 25 dB behind, so nothing can compete - and
+  that limit is stated rather than glossed over.
+- Four reboots, four times the right AP: the scan-by-signal choice works, so
+  the wrong association is occasional rather than systematic.
+- A correction of my own: I read a 24 dB gap between two boards 5 cm apart as
+  evidence for HT20, and it was not. Swapping the firmware between the boards
+  left the gap on the same BOARD - 13 dB on the same BSSID - so it is that
+  unit's radio, not the bandwidth setting. And the two boards were on
+  different SSIDs at the time, which Benoit pointed out; the A/B was worth
+  nothing until he put them on one network.
+- Added, because a roam mid-write is the one thing this feature could cost a
+  user: roamCheck() holds while sendWaiting is set and on ST_SCAN, ST_REVIEW
+  and ST_RESULT. Verified with a temporary log: four scans in the minute
+  before, ZERO in 75 s on the review screen, four again in the 40 s after
+  leaving it.
+- And the write itself, with roaming live: a PLA High Speed from R3D onto the
+  Ender-3's slot 1D, temperatures 215/230 with their decimal point, the grid
+  showing R3D where it showed Durami before.
+
 ## 2026-09-17 - telling a battery from a charger (released in 1.57.0)
 
 - Benoit, on a board he says has no cell: it showed 73%. It reads 4.01 V, and

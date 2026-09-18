@@ -7,6 +7,8 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.58.0] - 2026-09-18
+
 ### Fixed
 
 - **A device stuck on a distant access point now moves to the near one.** On a
@@ -17,6 +19,11 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   clearly better. Moving costs a reconnection: the printers drop and come back
   within four to fifteen seconds, which is why it only moves for a large
   difference.
+- **A spool write is never interrupted by the device changing access point.**
+  Moving costs a reconnection, and one landing between Send and the printer's
+  answer would turn a write into a failure the user watches happen. The device
+  now stays where it is while a write is in flight and while a spool is being
+  scanned, reviewed or sent.
 - **A wrong Wi-Fi password is reported at once** instead of after a 30-second
   wait, and the log says why a connection was lost rather than only that it
   was.

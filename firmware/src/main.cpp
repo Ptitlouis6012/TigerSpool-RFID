@@ -1507,6 +1507,22 @@ static void roamCheck() {
 
     if (!WiFi.isConnected()) { scanPending = false; return; }
 
+    // Never in the middle of a write.
+    //
+    // Roaming means WiFi.disconnect(), which takes every socket with it -
+    // measured on the bench, four to fifteen seconds before the printers are
+    // back. That is a fair price at any other moment and not at this one: a
+    // reassociation landing between Send and the printer's answer turns a
+    // spool write into a failure the user watches happen. The scan itself is
+    // held back too, not just the move, because the answer usually arrives
+    // within the second or two a scan lasts.
+    if (sendWaiting) return;
+
+    // Nor while the screen is showing a spool being reviewed or sent: the
+    // states around a write are short, and waiting one more minute costs
+    // nothing next to writing to a printer that has just gone away.
+    if (state == ST_SCAN || state == ST_REVIEW || state == ST_RESULT) return;
+
     if (!scanPending) {
         const uint32_t now = millis();
         if (now - lastCheck < ROAM_CHECK_MS) return;
