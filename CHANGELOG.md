@@ -7,6 +7,20 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.60.0] - 2026-09-18
+
+### Changed
+
+- **The Wi-Fi icon is calibrated for this radio, and it stops twitching.** The
+  scale moved 10 dB: full strength is now -70 dBm rather than -60, so a network
+  that works is no longer drawn as one that is failing - the ESP32 reads low,
+  and by an amount that differs between boards, so the old scale worried people
+  for nothing. The exact dBm is still printed beside the word. And the wave no
+  longer moves every second when the signal wanders across a boundary: the
+  reading is averaged once a second, and an arc is gained or lost only after
+  3 dB past the line. A change of more than 15 dB is shown at once, because
+  that is somebody moving the device rather than noise.
+
 ## [1.59.0] - 2026-09-18
 
 ### Fixed

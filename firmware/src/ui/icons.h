@@ -94,6 +94,14 @@ void setSignal(lv_obj_t* box, int level, bool connected);
 // this one.
 int wifiLevelFromRssi(int rssi);
 
+// The same, smoothed and with hysteresis - what the SCREENS use.
+//
+// A signal wandering across a boundary (-70, -71, -70) moved the wave every
+// second, and an icon that twitches reads as a device in trouble. See
+// signal_level.h: one sample a second whoever asks, and three decibels past a
+// boundary before an arc is gained or lost.
+int wifiLevelSmoothed(int rssi);
+
 constexpr lv_coord_t BOX = 22;
 
 }  // namespace icons

@@ -1,6 +1,8 @@
 #include "icons.h"
+#include <Arduino.h>
 #include "fonts.h"
 #include "theme.h"
+#include "signal_level.h"
 #include "lvgl_port.h"
 
 namespace icons {
@@ -138,12 +140,33 @@ static const int WIFI_W = 30, WIFI_H = 23, WIFI_DROP = 5;
 static const uint8_t WIFI_CLIP_H[4] = { 0, 7, 14, WIFI_H };
 static const uint8_t WIFI_CLIP_W = 22;
 
+// dBm to a number of arcs, and the thresholds are calibrated for THIS radio.
+//
+// They sit 10 dB below where a textbook would put them, on purpose. The ESP32's
+// receiver reads low, and it reads low by an amount that is not even constant
+// between boards: two units of ours, five centimetres apart, reported -47 and
+// -60 dBm on the same access point. So the absolute figure cannot be compared
+// with what a phone shows in the same room, and a scale built for the phone's
+// numbers tells a user their network is failing while the device works
+// perfectly well. That is not information, it is worry.
+//
+// What is NOT hidden by this: the Wi-Fi screen prints the dBm beside the word,
+// so anyone diagnosing a real problem still sees the raw number. The scale
+// decides the adjective, not the truth.
+// The bare scale, with no memory: the portal's own copy of this arithmetic and
+// the starting point for the smoothed one. Both live in signal_level.h, which
+// carries the reasoning and is free of LVGL so it can be run on a computer.
 int wifiLevelFromRssi(int rssi) {
     lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
-    if (rssi >= -60) return 3;
-    if (rssi >= -70) return 2;
-    if (rssi >= -80) return 1;
-    return 0;
+    return signal_level::fromRssi(rssi);
+}
+
+// One radio, one smoother. Asked for by the home header and by the Wi-Fi
+// screen, both of which run from the main loop.
+int wifiLevelSmoothed(int rssi) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
+    static signal_level::Smoother s;
+    return s.update(rssi, (unsigned)millis());
 }
 
 lv_obj_t* wifiWave(lv_obj_t* parent) {

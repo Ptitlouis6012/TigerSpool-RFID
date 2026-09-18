@@ -769,7 +769,7 @@ static void wifiQuality(int level, bool connected, const char*& word, uint32_t& 
 void showWifi(const char* ssid, const char* ip, const char* mac, bool connected, int channel,
               int rssi) {
     lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
-    const int level = icons::wifiLevelFromRssi(rssi);
+    const int level = icons::wifiLevelSmoothed(rssi);
     char dbm[16];
     snprintf(dbm, sizeof(dbm), "%d dBm", rssi);
     const char* word; uint32_t colour;

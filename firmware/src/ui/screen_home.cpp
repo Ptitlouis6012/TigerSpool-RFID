@@ -142,7 +142,7 @@ static uint32_t signature(const PrinterCfg* printers, int count,
     // The language is in it: the list's own words - no printers yet, all
     // hidden - are translated too.
     uint32_t h = 2166136261u ^ (uint32_t)selected ^ ((uint32_t)syncing << 16)
-               ^ ((uint32_t)icons::wifiLevelFromRssi(wifiRssi) << 24)
+               ^ ((uint32_t)icons::wifiLevelSmoothed(wifiRssi) << 24)
                ^ ((uint32_t)account << 12) ^ ((uint32_t)i18n::current() << 20);
     for (int i = 0; i < count; i++) {
         h = h * 16777619u ^ (uint32_t)printers[i].type;
@@ -255,7 +255,7 @@ void show(const PrinterCfg* printers, int count,
     // the TigerScale has been following it all along: colour carries a STATE
     // (green connected, red no network), length carries a QUANTITY. Nobody has
     // to wonder whether a yellow means "middling" or "look out".
-    icons::setSignal(s_wifi, icons::wifiLevelFromRssi(wifiRssi), wifiRssi != 0);
+    icons::setSignal(s_wifi, icons::wifiLevelSmoothed(wifiRssi), wifiRssi != 0);
 
 
     if (!s_active) {

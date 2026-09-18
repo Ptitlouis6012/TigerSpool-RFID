@@ -1478,6 +1478,33 @@ ten, not by memory.
   other models (A1, P1P, P2S) or older firmware: none was in LAN mode on the
   bench.
 
+## 2026-09-18 - the Wi-Fi wave: a scale for this radio, and no more twitching (released in 1.60.0)
+
+- Benoit: the ESP32 hears poorly, users read "Weak" and worry, shift everything
+  by 10 dB. Fair, and the bench supports it: two of our boards five centimetres
+  apart reported -47 and -60 dBm on the same access point, so the absolute
+  figure cannot be compared with a phone's and a scale built for the phone's
+  numbers describes a working device as a failing one. Thresholds are now
+  -70 / -80 / -90, in icons.cpp and in the portal's own copy. The Wi-Fi screen
+  still prints the dBm beside the word, so nothing is hidden - said plainly to
+  Benoit: at -85 the screen will read "Fair" while the link is genuinely weak,
+  and the number beside it is what will explain a support case.
+- Then: the wave moved every second when the signal wandered across a boundary
+  (-70, -71, -70). Two mechanisms, in ui/signal_level.h - header-only and free
+  of LVGL on purpose, so the arithmetic can be run on a computer:
+  - the average is TIME-based, one sample a second, not one per call. The
+    screens ask for the level on every pass of the main loop, tens of times a
+    second, and a per-call average converges before the wobble it exists to
+    absorb has happened.
+  - an arc has to be earned: 3 dB past a boundary to gain one, 3 dB back to
+    lose one. A jump of more than 15 dB bypasses both - that is the box being
+    moved, not noise.
+- Verified on a host build rather than by waiting for the right signal: 20 s of
+  -69/-72 gives ZERO changes, 12 s of -79/-82 gives zero, a slow slide from
+  -50 to -89 gives two in the right direction, and an abrupt -45 to -88 shows
+  immediately. On the device, the -76 dBm fixture now reads "Bon" with two arcs
+  where it read "Moyen" in orange.
+
 ## 2026-09-18 - the interface on its own task (released in 1.59.0)
 
 - Benoit, on the plan to move the printers onto a task: why not move the
