@@ -1,6 +1,7 @@
 #include "frame.h"
 #include "fonts.h"
 #include "theme.h"
+#include "lvgl_port.h"
 
 namespace {
 lv_obj_t* s_screen = nullptr;
@@ -30,6 +31,7 @@ lv_obj_t* dot(lv_obj_t* parent) {
 namespace frame {
 
 lv_obj_t* build(const char* title, Callback onBack) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     s_onBack = onBack;
 
     lv_obj_t* old = s_screen;
@@ -114,6 +116,7 @@ lv_obj_t* header() { return s_header; }
 lv_obj_t* body()   { return s_body; }
 
 void setDots(int syncing, int wifiUp, int readerUp) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     const int  vals[3]    = { syncing, wifiUp, readerUp };
     const uint32_t on[3]  = { theme::OK, theme::OK, theme::OK };
     for (int i = 0; i < 3; i++) {
@@ -126,6 +129,7 @@ void setDots(int syncing, int wifiUp, int readerUp) {
 }
 
 lv_obj_t* caption(const char* text, uint32_t colour, const lv_font_t* font) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     lv_obj_t* l = lv_label_create(s_body);
     lv_label_set_text(l, text);
     lv_label_set_long_mode(l, LV_LABEL_LONG_WRAP);
@@ -137,6 +141,7 @@ lv_obj_t* caption(const char* text, uint32_t colour, const lv_font_t* font) {
 }
 
 lv_obj_t* bigLabel(const char* text, uint32_t colour) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     lv_obj_t* l = lv_label_create(s_body);
     lv_label_set_text(l, text);
     lv_label_set_long_mode(l, LV_LABEL_LONG_DOT);
@@ -148,6 +153,7 @@ lv_obj_t* bigLabel(const char* text, uint32_t colour) {
 }
 
 lv_obj_t* button(lv_obj_t* parent, const char* text, int tone, Callback onClick) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     lv_obj_t* b = lv_btn_create(parent);
     lv_obj_remove_style_all(b);
     lv_obj_add_style(b, theme::rowStyle(), 0);
@@ -176,6 +182,7 @@ lv_obj_t* button(lv_obj_t* parent, const char* text, int tone, Callback onClick)
 lv_obj_t* row(lv_obj_t* parent, const char* label, const char* value,
               bool chevron, lv_event_cb_t cb, void* userData,
               icons::Id icon, uint32_t iconColour) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     lv_obj_t* r = lv_btn_create(parent);
     lv_obj_remove_style_all(r);
     lv_obj_add_style(r, theme::rowStyle(), 0);

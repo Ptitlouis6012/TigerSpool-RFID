@@ -7,6 +7,35 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.59.0] - 2026-09-18
+
+### Fixed
+
+- **An update could fail to install on a device with several printers.** The
+  download opened its connection before the device had freed the memory a
+  secure connection needs, and whether it succeeded came down to how much
+  happened to be free: on a bench with seven printers linked it failed outright
+  with 11 KB of contiguous memory where it needed 20. It now waits for the room
+  - the printers step aside in a few milliseconds - and connects with 42 KB.
+- **The screen woke but stopped answering.** After the display had gone to
+  sleep once, taps did nothing at all: the sleep check and the drawing were
+  both reading the touch panel, on the same bus, from two places.
+- **The loading spinner on the first printer import is the right size and
+  centred**, and says what it is waiting for. Padding on an LVGL arc is taken
+  off the arc itself, so a 40 px spinner with 24 px of padding had 16 px left
+  to draw in.
+
+### Changed
+
+- **The screen no longer freezes while the device talks to a printer.** Drawing
+  and the touch panel now run on their own task, so a connection to a printer
+  that is switched off - which blocks for over a second - no longer stops the
+  interface. Measured on a bench with six printers: the panel went blind for
+  7.9 seconds out of every 80, in gaps of up to 1.3 seconds; it is now 1.2
+  seconds out of 80, and the worst gap is a tenth of a second. Scrolling stays
+  smooth while a printer is being dialled, and a tap during it is no longer
+  lost - it is acted on when the device comes back, instead of never.
+
 ## [1.58.0] - 2026-09-18
 
 ### Fixed

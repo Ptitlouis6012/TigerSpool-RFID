@@ -7,6 +7,7 @@
 #include "frame.h"
 #include "icons.h"
 #include "theme.h"
+#include "lvgl_port.h"
 #include "../printer_budget.h"
 #include "i18n.h"
 #include "version.h"
@@ -15,8 +16,8 @@
 
 namespace {
 screen_settings::Entry s_entry = screen_settings::E_NONE;
-bool s_back = false;
-int  s_toggled = -1;
+volatile bool s_back = false;
+volatile int s_toggled = -1;
 uint32_t s_viewSig = 0;
 
 // WHICH screen the signature belongs to, and it is not a nicety.
@@ -60,8 +61,8 @@ lv_obj_t* s_bScreen = nullptr;  // the screen those four belong to
 uint32_t s_menuSig = 0;
 uint32_t s_pickSig = 0;
 uint32_t s_chooseSig = 0;
-bool s_hex = false;
-bool s_chosen = false;
+volatile bool s_hex = false;
+volatile bool s_chosen = false;
 
 void onEntry(lv_event_t* e) {
     s_entry = (screen_settings::Entry)(intptr_t)lv_event_get_user_data(e);
@@ -83,7 +84,7 @@ void gap(lv_obj_t* parent, lv_coord_t h) {
 
 void onBack()  { s_back = true; }
 void onHex()   { s_hex  = true; }
-bool s_reload = false;
+volatile bool s_reload = false;
 lv_obj_t* s_reloadIcon = nullptr;
 lv_obj_t* s_reloadSpin = nullptr;
 void onReload(lv_event_t*) { s_reload = true; }
@@ -137,6 +138,7 @@ uint32_t hashOf(const char* s, uint32_t h = 2166136261u) {
 namespace screen_settings {
 
 void invalidate() {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     s_menuSig = 0; s_pickSig = 0; s_chooseSig = 0;
     s_gaugeBar = s_gaugeVal = s_gaugeKey = nullptr;
     for (int i = 0; i < MAX_PRINTERS; i++) s_sw[i] = nullptr;
@@ -159,6 +161,7 @@ lv_obj_t* s_mIcon[4] = { nullptr, nullptr, nullptr, nullptr };
 lv_obj_t* s_menuScreen = nullptr;
 
 void showMenu(const MenuState& st) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     char printersVal[16];
     snprintf(printersVal, sizeof(printersVal), "%d/%d",
              st.visiblePrinters, st.totalPrinters);
@@ -396,6 +399,7 @@ static void printerRows(lv_obj_t* body, const PrinterCfg* printers, int count) {
 
 void showPrinters(const PrinterCfg* printers, int count, bool syncing,
                   uint16_t used, bool refused) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     // Deliberately NOT hashing `visible`. It changes on every toggle, and a
     // changed signature means a rebuilt screen, and a rebuilt list has lost
     // its scroll position - which is how pressing a switch sent the view back
@@ -497,6 +501,7 @@ void showPrinters(const PrinterCfg* printers, int count, bool syncing,
 // between them and a device that works.
 void showChoosePrinters(const PrinterCfg* printers, int count, bool syncing,
                         uint16_t used, bool refused) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     uint32_t sig = 2166136261u ^ (syncing ? 0x5AA5u : 0u);
     for (int i = 0; i < count; i++) {
         if (printers[i].type == PT_NONE) continue;
@@ -548,13 +553,30 @@ void showChoosePrinters(const PrinterCfg* printers, int count, bool syncing,
     theme::scrollbar(list);
 
     if (syncing) {
+        // Centred in the space the list will fill, and NOT padded.
+        //
+        // Padding on an arc is taken off the arc, not off the space around it:
+        // a 40 px spinner with 24 px of top padding had 16 px left to draw in
+        // and sat high and to one side, which is what a user sees as "tiny and
+        // off-centre". The air comes from centring it in the list instead, and
+        // it says what it is waiting for - this is the first thing a new device
+        // shows after an account is linked, and it can take fifteen seconds.
+        lv_obj_set_flex_align(list, LV_FLEX_ALIGN_CENTER,
+                              LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+        lv_obj_clear_flag(list, LV_OBJ_FLAG_SCROLLABLE);
+
         lv_obj_t* sp = lv_spinner_create(list, 900, 60);
-        lv_obj_set_size(sp, 40, 40);
-        lv_obj_set_style_arc_width(sp, 4, LV_PART_MAIN);
-        lv_obj_set_style_arc_width(sp, 4, LV_PART_INDICATOR);
+        lv_obj_set_size(sp, 64, 64);
+        lv_obj_set_style_arc_width(sp, 5, LV_PART_MAIN);
+        lv_obj_set_style_arc_width(sp, 5, LV_PART_INDICATOR);
         lv_obj_set_style_arc_color(sp, lv_color_hex(theme::LINE), LV_PART_MAIN);
         lv_obj_set_style_arc_color(sp, lv_color_hex(theme::ACCENT), LV_PART_INDICATOR);
-        lv_obj_set_style_pad_top(sp, 24, 0);
+
+        lv_obj_t* said = lv_label_create(list);
+        lv_label_set_text(said, i18n::T(S_TT_IMPORTING));
+        lv_obj_set_style_text_font(said, &font_ui_16, 0);
+        lv_obj_set_style_text_color(said, lv_color_hex(theme::TEXT), 0);
+        lv_obj_set_style_pad_top(said, 16, 0);
     } else {
         printerRows(list, printers, count);
     }
@@ -574,9 +596,9 @@ bool takeChosen()  { bool v = s_chosen; s_chosen = false; return v; }
 // ===========================================================================
 namespace {
 screen_settings::Action s_action = screen_settings::A_NONE;
-int  s_newBright = -1;
-int  s_newSleep  = -1;
-int  s_newRot    = screen_settings::ROT_NONE;
+volatile int s_newBright = -1;
+volatile int s_newSleep  = -1;
+volatile int s_newRot    = screen_settings::ROT_NONE;
 
 
 // Widgets kept from the last build, so a value that changes can be written
@@ -746,6 +768,7 @@ static void wifiQuality(int level, bool connected, const char*& word, uint32_t& 
 // channel go in a second card, at 14 px.
 void showWifi(const char* ssid, const char* ip, const char* mac, bool connected, int channel,
               int rssi) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     const int level = icons::wifiLevelFromRssi(rssi);
     char dbm[16];
     snprintf(dbm, sizeof(dbm), "%d dBm", rssi);
@@ -835,6 +858,7 @@ void showWifi(const char* ssid, const char* ip, const char* mac, bool connected,
 }
 
 void showAccount(const char* email, int printers, bool linked) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     uint32_t sig = hashOf(email) ^ ((uint32_t)printers << 8) ^ (uint32_t)linked;
     if (sameView((const void*)showAccount, sig)) return;
     claimView((const void*)showAccount, sig);
@@ -870,6 +894,7 @@ void showAccount(const char* email, int printers, bool linked) {
 }
 
 void showScreen(uint8_t brightness, int sleepSeconds, int rotation, bool autoRot) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     uint32_t sig = 0xB0000000u ^ ((uint32_t)brightness << 16)
                  ^ (uint32_t)sleepSeconds ^ ((uint32_t)rotation << 12)
                  ^ (autoRot ? 0x00000800u : 0u);
@@ -984,6 +1009,7 @@ static void badge(lv_obj_t* parent, const char* glyph, uint32_t colour) {
 
 void showUpdate(const char* version, const char* channel,
                 int otaState, const char* latest, int percent) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     // `percent` is written into the ring, never hashed into the signature.
     // A download reports a hundred times, and a screen rebuilt on each report
     // is an arc that restarts from nothing a hundred times instead of sweeping
@@ -1157,6 +1183,7 @@ void showUpdate(const char* version, const char* channel,
 }
 
 void showUpdateNotice(const char* current, const char* latest) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     uint32_t sig = 0xF0000000u ^ hashOf(current) ^ hashOf(latest);
     if (sameView((const void*)showUpdateNotice, sig)) return;
     claimView((const void*)showUpdateNotice, sig);
@@ -1289,6 +1316,7 @@ static lv_obj_t* kvBig(lv_obj_t* parent, const char* k, const char* v, uint32_t 
 }
 
 void showBattery(float volts, int pct, bool charging, int minutesLeft) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     // The voltage moves every second by a millivolt or two, and a view that
     // rebuilds on that flickers. Rounded to what is drawn - the level, the
     // state, the voltage to the ten millivolts and the time to five minutes -
@@ -1366,6 +1394,7 @@ void showBattery(float volts, int pct, bool charging, int minutesLeft) {
 }
 
 void showReaderHex(const TagInfo* tag) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     uint32_t sig = 0xB2000000u ^ (tag ? tag->idProduct * 2654435761u : 0u);
     if (sameView((const void*)showReaderHex, sig)) return;
     claimView((const void*)showReaderHex, sig);
@@ -1426,6 +1455,7 @@ void showReaderHex(const TagInfo* tag) {
 }
 
 void showReader(bool ready, const char* err, const TagInfo* tag) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     // The tag's own identity is the signature: a new spool rebuilds, the same
     // spool held there does not.
     uint32_t sig = 0xB1000000u ^ (uint32_t)ready
@@ -1693,6 +1723,7 @@ void confirmPair(lv_obj_t* body, const char* actionText, int tone,
 }
 
 void showRestart() {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     if (sameView((const void*)showRestart, 0xD0000000u)) return;
     claimView((const void*)showRestart, 0xD0000000u);
 
@@ -1717,6 +1748,7 @@ void showRestart() {
 }
 
 void showFactory() {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     if (sameView((const void*)showFactory, 0xE0000000u)) return;
     claimView((const void*)showFactory, 0xE0000000u);
 

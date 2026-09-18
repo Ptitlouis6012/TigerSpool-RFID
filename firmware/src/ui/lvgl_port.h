@@ -12,6 +12,28 @@
 namespace lvgl_port {
 
 void begin();
+
+// The interface runs on its own task, and LVGL is not reentrant.
+//
+// loop() builds screens from main.cpp's state while that task draws them; two
+// threads inside LVGL at once corrupts its object tree, and the failure is the
+// kind that shows up hours later as a reboot nobody can reproduce. So every
+// call into LVGL from outside the drawing task takes this lock - the screens
+// do it for their callers, and webcfg does it around the preview builders and
+// the screenshot.
+//
+// The mutex is recursive: a screen that calls another screen's helper must not
+// deadlock against itself.
+void lock();
+void unlock();
+// Scoped form. `lvgl_port::Lock guard;` at the top of anything that touches
+// LVGL from the loop.
+struct Lock {
+    Lock()  { lvgl_port::lock(); }
+    ~Lock() { lvgl_port::unlock(); }
+    Lock(const Lock&) = delete;
+    Lock& operator=(const Lock&) = delete;
+};
 // Pumps LVGL. Returns the milliseconds LVGL wants before the next call, so the
 // main loop can idle instead of spinning.
 uint32_t loop();

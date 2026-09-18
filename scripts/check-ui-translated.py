@@ -47,6 +47,11 @@ UI = REPO / "firmware" / "src" / "ui"
 # Lines whose literals never reach the panel.
 INCLUDE = re.compile(r"^\s*#\s*include")
 SERIAL = re.compile(r"\bSerial\s*\.\s*\w+\s*\(")
+# A FreeRTOS task name is an identifier for a debugger, not words for a person:
+# it shows up in a core dump and in `top`, never on the panel. The interface got
+# a task of its own and this guard reported its name, "ui", as untranslated text
+# on the screen - which it is not, and which no translation could improve.
+TASKNAME = re.compile(r"\bxTaskCreate\w*\s*\(")
 
 # Format specifiers are not words. Without stripping them, "%s  %ds" reads as
 # containing "ds" and a skeleton gets reported as untranslated prose.
@@ -92,14 +97,14 @@ def unescape(literal: str) -> str:
         return literal
 
 
-def serial_spans(text: str):
-    """Character ranges covered by Serial.* calls, brackets balanced.
+def call_spans(text: str, pattern):
+    """Character ranges covered by calls matching `pattern`, brackets balanced.
 
     Matched over the whole file rather than per line: a printf whose format
     string is split across two lines has "Serial.printf(" only on the first.
     """
     spans = []
-    for m in SERIAL.finditer(text):
+    for m in pattern.finditer(text):
         depth, i = 0, m.end() - 1
         while i < len(text):
             if text[i] == "(":
@@ -127,7 +132,7 @@ def main() -> int:
         rel = path.relative_to(REPO).as_posix()
         text = path.read_text(encoding="utf-8")
         lines = text.splitlines()
-        spans = serial_spans(text)
+        spans = call_spans(text, SERIAL) + call_spans(text, TASKNAME)
         scanned += 1
 
         for kind, lineno, literal in cxx_scan.scan(text):

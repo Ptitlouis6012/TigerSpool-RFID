@@ -115,6 +115,16 @@ bool fetchManifest() {
     return true;
 }
 
+// What a TLS handshake needs as one contiguous block. The same figure
+// product_api.cpp waits for, and for the same reason: mbedTLS allocates one
+// large buffer and fails outright if it cannot have it.
+// 20 KB, not the 40 product_api asks for: this is what the stand-down can
+// actually deliver on a device with seven printers linked - measured at 20 KB
+// contiguous, and a handshake opened at 19 956 bytes downloaded and installed
+// a whole image. Asking for more than the room that exists turns a wait into a
+// timeout.
+static const uint32_t TLS_BLOCK = 20000;
+
 bool download() {
     if (s_url.isEmpty()) { fail("nothing to install"); return false; }
     if (!ota::slotAvailable()) { fail("no spare app slot"); return false; }
@@ -229,6 +239,25 @@ void checkTask(void*) {
 void applyTask(void*) {
     s_state = ota::DOWNLOADING;
     s_percent = 0;
+    // Wait for the room before connecting, rather than connecting and hoping.
+    //
+    // main.cpp stands the background printer links down whenever this state is
+    // DOWNLOADING - but it does that from the loop, and this task reaches the
+    // handshake in milliseconds. It was a race, and the loop lost it: measured
+    // on a bench with seven printers linked, the handshake opened with 24 KB
+    // free and 11.5 KB contiguous and failed outright, while the same firmware
+    // with a little more headroom connected with 34 KB and 20 KB and installed
+    // perfectly. The difference was luck.
+    //
+    // So: announce the state, then give the loop its turn until there is a
+    // block big enough for mbedTLS. Three seconds is far more than the 16 ms
+    // the stand-down itself takes; it is a ceiling for the case where the room
+    // never comes, where failing with a message beats hanging.
+    const uint32_t t0 = millis();
+    while (ESP.getMaxAllocHeap() < TLS_BLOCK && millis() - t0 < 3000) delay(50);
+    if (ESP.getMaxAllocHeap() < TLS_BLOCK)
+        Serial.printf("[ota] room never came: largest %u after %lu ms\n",
+                      (unsigned)ESP.getMaxAllocHeap(), (unsigned long)(millis() - t0));
     if (download()) s_state = ota::DONE;
     s_busy = false;
     vTaskDelete(nullptr);

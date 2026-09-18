@@ -2,6 +2,7 @@
 #include "fonts.h"
 #include "icons.h"
 #include "theme.h"
+#include "lvgl_port.h"
 #include "frame.h"
 #include "../i18n.h"
 #include "i18n.h"
@@ -22,9 +23,9 @@ lv_obj_t* s_wifi     = nullptr;
 // The level lives in icons::wifiLevelFromRssi. The portal's picker uses the
 // same thresholds; see `bars()` in net/portal_page.h.
 bool      s_active   = false;
-int       s_tapped   = -1;
-bool      s_settings = false;
-bool      s_pick     = false;
+volatile int s_tapped   = -1;
+volatile bool s_settings = false;
+volatile bool      s_pick     = false;
 
 void onRow(lv_event_t* e)      { s_tapped   = (int)(intptr_t)lv_event_get_user_data(e); }
 void onSettings(lv_event_t*)   { s_settings = true; }
@@ -156,6 +157,7 @@ static uint32_t signature(const PrinterCfg* printers, int count,
 void show(const PrinterCfg* printers, int count,
           int selected, const uint8_t* state, bool syncing, int wifiRssi,
           int account) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     if (!s_screen) buildScreen();
 
     static uint32_t lastSig = 0;

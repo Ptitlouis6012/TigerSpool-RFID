@@ -283,6 +283,7 @@ namespace {
     // front of it says which row separates. That is a measurement; reading a
     // BMP of it is not.
     void previewGreys() {
+        lvgl_port::Lock lvglGuard;   // builds LVGL objects from the loop
         struct Pair { uint32_t fill, line; const char* label; };
         static const Pair PAIRS[] = {
             { 0x000000, 0x3A4046, "1  000000 / 3A4046" },
@@ -349,6 +350,7 @@ namespace {
     // faults were found this way: a sun set at 16 px beside a globe drawn to 20,
     // and a reader row quietly borrowing the sun.
     void previewIcons() {
+        lvgl_port::Lock lvglGuard;   // builds LVGL objects from the loop
         struct Row { icons::Id id; const char* name; };
         static const Row ROWS[] = {
             { icons::PRINTER, "PRINTER" }, { icons::WIFI,   "WIFI"   },
@@ -366,6 +368,10 @@ namespace {
 
     void handleShot() {
         if (!canvasReady) { server.send(503, "text/plain", "no canvas"); return; }
+        // The whole handler holds the LVGL lock, in pieces: it builds preview
+        // screens, forces a repaint, and then reads the sprite the drawing task
+        // paints into. Taken around each of those rather than for the duration,
+        // because the send itself takes seconds and the panel must keep moving.
 
         // The shadow copy is not maintained frame by frame - that would put a
         // PSRAM write in the render path for a feature used a few times a day.
@@ -432,11 +438,13 @@ namespace {
         // LVGL paint the requested screen into the sprite - and painting is
         // exactly what would overwrite a bitmap that LVGL knows nothing about.
         if (preview == "splash") {
+            lvgl_port::Lock lvglGuard;
             lvgl_port::drawSplash(true);
         } else {
             lvgl_port::requestCapture(true);
-            lv_obj_invalidate(lv_scr_act());
-            for (uint32_t t0 = millis(); millis() - t0 < 400; ) { lv_timer_handler(); delay(5); }
+            { lvgl_port::Lock lvglGuard; lv_obj_invalidate(lv_scr_act()); }
+            // The drawing task paints it; this only waits for it to happen.
+            for (uint32_t t0 = millis(); millis() - t0 < 400; ) delay(5);
             lvgl_port::requestCapture(false);
         }
 
@@ -493,6 +501,7 @@ namespace {
         uint8_t* shot = (uint8_t*)ps_malloc(dataSize);
         if (!shot) { server.sendContent("", 0); return; }
         uint8_t* o = shot;
+        lvgl_port::lock();       // the sprite is written by the drawing task
         for (int y = H - 1; y >= 0; y--) {          // BMP stores the last row first
             for (int x = 0; x < W; x++) {
                 uint32_t c = canvas.readPixel(x, y);    // RGB565 -> RGB888
@@ -502,11 +511,12 @@ namespace {
                 *o++ = r | (r >> 5);
             }
         }
+        lvgl_port::unlock();     // the pixels are ours now; LVGL may repaint
         for (uint32_t sent = 0; sent < dataSize; ) {
             const uint32_t chunk = min<uint32_t>(rowBytes * 8, dataSize - sent);
             server.sendContent((const char*)(shot + sent), chunk);
             sent += chunk;
-            lv_timer_handler();      // the panel keeps moving while this goes out
+            delay(1);                // the drawing task keeps the panel moving
         }
         free(shot);
         server.sendContent("", 0);
@@ -844,7 +854,7 @@ namespace {
         } else {
             lvgl_port::injectTap(x, y);
         }
-        for (uint32_t t0 = millis(); millis() - t0 < 400; ) { lv_timer_handler(); delay(5); }
+        for (uint32_t t0 = millis(); millis() - t0 < 400; ) delay(5);
         server.send(200, "text/plain", "ok");
     }
 

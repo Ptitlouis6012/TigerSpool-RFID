@@ -1478,6 +1478,80 @@ ten, not by memory.
   other models (A1, P1P, P2S) or older firmware: none was in LAN mode on the
   bench.
 
+## 2026-09-18 - the interface on its own task (released in 1.59.0)
+
+- Benoit, on the plan to move the printers onto a task: why not move the
+  INTERFACE instead, and leave what is already on core 0 - the Wi-Fi stack, the
+  account sync, the product lookup - with the memory it has? He is right, and
+  for a reason I had missed: the freeze is not about which core the network
+  runs on, it is that ONE task does the network and the drawing. Move either
+  one and the screen keeps moving; moving the interface is far less dangerous,
+  because the interface READS state and does not write it. Issue #6 rewritten
+  around that.
+- Done: a task whose only job is lv_timer_handler(), core 1 beside the loop, at
+  priority 2. A blocked task yields, so it draws while the loop waits in a
+  socket. Nothing on core 0 moved.
+- The three hazards, each answered rather than hoped over:
+  - LVGL is not reentrant. lvgl_port::Lock (a recursive mutex) is taken by all
+    43 public functions in ui/ and by webcfg's preview builders, its repaint
+    and its read of the canvas sprite. The old CODEMAP rule - "safe because the
+    web server and the drawing are the same loop" - is no longer true and now
+    says so.
+  - Flags set from an LVGL event callback are now set on the drawing task and
+    read on the loop: s_tapped, s_back, s_pick and eighteen others are
+    volatile.
+  - Internal RAM. The stack is 8 KB and uses 3.1 of it (measured with
+    uxTaskGetStackHighWaterMark), leaving the largest free block at 29 KB -
+    comfortably over the 16 KB the account sync needs contiguous.
+- Measured, same bench and same six printers as 1.55.0 and 1.58.0:
+
+  | | 1.58.0 | now |
+  |---|---|---|
+  | screen blind | 7.9 s / 80 s | 1.2 s / 80 s |
+  | worst gap | 1 324 ms | 105 ms |
+
+  The target in issue #6 was under 1 s and under 100 ms; this is within a
+  rounding error of both, and the remaining gaps are the loop holding the lock
+  while it builds a screen.
+- Checked by hand as well: navigation, back, /api/tap, /screen.bmp and the
+  ?preview= renderers all still work, which is what a missed lock would have
+  broken first.
+- Benoit asked the right question before publishing: have you checked you added
+  no bug, and will the OTA still work? Both tests found one.
+  - **The OTA failed.** With the drawing task's 8 KB gone from internal RAM,
+    the download opened its handshake with 24 KB free and 11.5 KB contiguous
+    and got HTTP -1. The control - v1.58.0 rebuilt as 1.57.0 and offered the
+    same update - connected with 34 KB and 20 KB and installed. So the task
+    pushed a budget over the edge, and the budget was already the problem:
+    applyTask() sets the DOWNLOADING state and reaches the handshake in
+    milliseconds, while the stand-down that frees the memory runs from the
+    loop. It was a race, and published firmware wins it by luck. Now the task
+    announces the state and WAITS for a 20 KB block, up to three seconds: the
+    links step aside in 16 ms and the handshake opens with 42 KB. Retested end
+    to end - downloaded, written, verified, rebooted into 1.58.0. The drawing
+    stack also came down from 8 KB to 6.
+  - **Sleep broke the touch panel.** After the screen had slept once, no tap
+    was acted on again. sleepTick() polled the touch controller from the loop
+    to notice the wake, while the drawing task polls the same controller
+    through LVGL every 5 ms - two tasks on one I2C bus, which is hazard number
+    two from the issue, live. The wake now reads the timestamp touchCb()
+    already writes, so there is one reader again. Retested: first tap wakes and
+    is consumed, second tap acts.
+  - Also verified after both fixes: all 30 previews render, navigation and
+    /api/tap answer, and a real spool write - PLA High Speed from R3D onto the
+    Ender-3's slot 1C, 215/230 - lands.
+  - Not tested, and stated as such: the first-boot flow end to end. Its screens
+    pass the sweep; the sequence needs a device with no configuration, and
+    Benoit has one erased for exactly that.
+- And the loading spinner on the printer import: 40 px with 24 px of padding
+  left 16 px of arc, high and off-centre - the same trap as the battery bar,
+  padding on an arc coming out of the arc. 64 px, centred, with the words under
+  it.
+- One guard corrected on the way: check-ui-translated.py reported the FreeRTOS
+  task name "ui" as untranslated on-screen text. A task name is an identifier
+  for a debugger; the guard now skips xTaskCreate* the way it already skipped
+  Serial.
+
 ## 2026-09-18 - the roaming, tested rather than trusted (released in 1.58.0)
 
 - PR #9 (roaming, disconnect reasons, RF tuning) and #3 (the hardware table)

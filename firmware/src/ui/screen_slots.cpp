@@ -8,6 +8,7 @@ static const char* LINK_HELP_URL = "https://wiki.tigersystem.io";
 
 #include "frame.h"
 #include "theme.h"
+#include "lvgl_port.h"
 #include "i18n.h"
 #include <lvgl.h>
 #include <cstring>
@@ -22,8 +23,8 @@ const char* const CLOUD_HELP_URL =
 
 lv_obj_t* s_grid = nullptr;
 bool s_built = false;
-int  s_tapped = -1;
-bool s_back = false;
+volatile int s_tapped = -1;
+volatile bool s_back = false;
 lv_obj_t* s_progress = nullptr;   // the line under the spinner, or null
 int  s_lastCount = -1;
 uint32_t s_lastSig = 0;
@@ -35,7 +36,7 @@ void onBack()              { s_back = true; }
 // would not stop anything - connections are held open across screens now - so
 // a printer that is not answering would go on retrying behind the user's back
 // after they had explicitly said no.
-bool s_cancelLink = false;
+volatile bool s_cancelLink = false;
 void onCancelLink()        { s_back = true; s_cancelLink = true; }
 
 // A cheap signature of what is on screen, so the grid is only rebuilt when the
@@ -94,7 +95,7 @@ namespace screen_slots {
 
 void invalidate() { s_built = false; s_lastCount = -1; s_lastSig = 0; }
 
-bool s_retry = false;
+volatile bool s_retry = false;
 void onRetry(lv_event_t*) { s_retry = true; }
 
 // What to say under the spinner. Reading the account comes first because it is
@@ -111,6 +112,7 @@ void progressText(char* out, size_t n, int tries, int budget, bool fetching) {
 void show(const char* printerName, PrinterBackend* backend,
           int selected, bool readerReady, int link,
           int tries, int budget, bool fetching, bool cloud) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     // No backend is a state to DRAW, not a reason to draw nothing. When the
     // link has given up there is no backend at all, and that is exactly the
     // moment the user needs a screen with a retry button on it.
@@ -412,6 +414,7 @@ void show(const char* printerName, PrinterBackend* backend,
 }
 
 void showCloudNotice(const char* slotLabel) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     if (s_built && s_lastSig == 0xC10D0000u) return;
     s_built = true; s_lastSig = 0xC10D0000u; s_lastCount = -1;
     s_progress = nullptr;

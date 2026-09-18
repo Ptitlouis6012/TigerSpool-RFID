@@ -1,6 +1,7 @@
 #include "screen_setup.h"
 #include "fonts.h"
 #include "theme.h"
+#include "lvgl_port.h"
 #include "icons.h"
 #include "i18n.h"
 #include <Arduino.h>
@@ -10,13 +11,13 @@ namespace {
 lv_obj_t* s_screen = nullptr;
 lv_obj_t* s_body   = nullptr;
 bool      s_active = false;
-int       s_lang   = -1;
-bool      s_pair   = false;
+volatile int s_lang   = -1;
+volatile bool s_pair   = false;
 
 void onLang(lv_event_t* e) { s_lang = (int)(intptr_t)lv_event_get_user_data(e); }
 void onPair(lv_event_t*)   { s_pair = true; }
-int  s_choice = -1;
-bool s_back = false;
+volatile int s_choice = -1;
+volatile bool s_back = false;
 void onBack(lv_event_t*) { s_back = true; }
 
 // A floating chevron for the header-less screens. 56 x 44 of hit area for a
@@ -248,6 +249,7 @@ namespace screen_setup {
 static bool s_langBuilt = false;
 
 void showLanguage(bool force, bool withBack) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     if (force) { s_active = false; }
     // Leaving without choosing has to be possible. Reached from Settings, this
     // screen had no exit at all: the only way out was to pick a language,
@@ -302,6 +304,7 @@ void showLanguage(bool force, bool withBack) {
 int takeLanguage() { int v = s_lang; s_lang = -1; return v; }
 
 void showWifi(const char* apSsid, const char* apPass, bool withBack) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     // A header with a back arrow whenever there is somewhere to go back to:
     // Settings > Wi-Fi when the portal was opened from Change network, the
     // language screen when it follows a first-boot language choice (a wrong
@@ -386,6 +389,7 @@ void showWifi(const char* apSsid, const char* apPass, bool withBack) {
 // rule the rest of this UI follows applies here too: build once, write values
 // into the widgets that are already on the glass.
 void showWifiConnecting(const char* ssid, int secondsLeft) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     static uint32_t   myGen = 0;
     static lv_obj_t*  s_cd  = nullptr;
     static char       lastSsid[33] = "";
@@ -415,6 +419,7 @@ void showWifiConnecting(const char* ssid, int secondsLeft) {
 }
 
 void showWifiFailed(const char* ssid) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     frame("Wi-Fi");
     lv_obj_t* x = lv_label_create(s_body);
     lv_label_set_text(x, LV_SYMBOL_CLOSE);
@@ -431,6 +436,7 @@ void showWifiFailed(const char* ssid) {
 }
 
 void showSignInChoice() {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     static bool built = false;
     if (built && s_active) return;
     built = true;
@@ -486,6 +492,7 @@ void showSignInChoice() {
 int takeSignInChoice() { int v = s_choice; s_choice = -1; return v; }
 
 void showPortalReady(const char* url, bool withBack) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     frame(withBack ? "Wi-Fi" : nullptr, withBack);   // see showWifi()
     const lv_coord_t airAbove = withBack ? 8 : 20;
     const lv_coord_t airBelow = withBack ? 10 : 22;
@@ -515,6 +522,7 @@ void showPortalReady(const char* url, bool withBack) {
 }
 
 void showEmailPairing(const char* deviceUrl) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     static String lastUrl;
     if (s_active && lastUrl == deviceUrl) return;
     lastUrl = deviceUrl;
@@ -545,6 +553,7 @@ void showEmailPairing(const char* deviceUrl) {
 }
 
 void showAccountIntro() {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     // Built once. frame() tears down and rebuilds, and this is called from the
     // main loop - without the guard the button is destroyed under the finger
     // that is pressing it and the tap never lands.
@@ -574,6 +583,7 @@ void showAccountIntro() {
 }
 
 void showBusy(const char* text, bool withBack) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     static String lastText;
     static bool lastBack = false;
     if (s_active && lastText == text && lastBack == withBack) return;
@@ -601,6 +611,7 @@ void showBusy(const char* text, bool withBack) {
 }
 
 void showPreparing() {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     // "Waiting", not "Importing printers": nothing is being imported here. The
     // device is asking the cloud for a pairing code.
     showBusy(i18n::T(S_WAITING), true);
@@ -635,6 +646,7 @@ void showPreparingOld() {
 }
 
 void showPairing(const char* verifyUrl, const char* code, int secondsLeft) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     // Only the countdown changes, and only once a second. Re-encoding the QR
     // sixty times a second would be the most expensive thing the device does,
     // for a picture that never changes.
@@ -734,6 +746,7 @@ void showPairing(const char* verifyUrl, const char* code, int secondsLeft) {
 }
 
 void showPairFailed(const char* reason) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     // Built once per failure. Without a way out this screen is a dead end, and
     // a dead end on the last step of setup means a factory reset.
     static bool built = false;

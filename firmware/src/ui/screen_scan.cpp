@@ -2,12 +2,13 @@
 #include "fonts.h"
 #include "frame.h"
 #include "theme.h"
+#include "lvgl_port.h"
 #include "i18n.h"
 #include <lvgl.h>
 #include <stdio.h>
 
 namespace {
-bool s_cancel = false, s_send = false, s_dismiss = false;
+volatile bool s_cancel = false, s_send = false, s_dismiss = false;
 enum Which { NONE, SCAN, REVIEW, RESULT } s_which = NONE;
 uint32_t s_sig = 0;
 
@@ -44,6 +45,7 @@ void invalidate() { s_which = NONE; s_sig = 0; }
 // the tap that opened this screen came off that grid. A pair of green dots
 // repeating it spends the top of the panel saying what the user just did.
 void showScan(const char* slotLabel, const char* errorOrNull) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     uint32_t sig = hashStr(slotLabel) ^ hashStr(errorOrNull ? errorOrNull : "");
     if (s_which == SCAN && sig == s_sig) return;
     s_which = SCAN; s_sig = sig;
@@ -72,6 +74,7 @@ void showScan(const char* slotLabel, const char* errorOrNull) {
 }
 
 void showReview(const char* slotLabel, const TagInfo& tag) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     uint32_t sig = hashStr(slotLabel) ^ (tag.r << 16 | tag.g << 8 | tag.b)
                  ^ hashStr(tag.material.c_str()) ^ hashStr(tag.brand.c_str());
     if (s_which == REVIEW && sig == s_sig) return;
@@ -112,6 +115,7 @@ void showReview(const char* slotLabel, const TagInfo& tag) {
 
 void showResult(const char* slotLabel, bool ok, const char* message,
                 const TagInfo& tag, uint32_t sentColour) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     uint32_t sig = hashStr(message) ^ (uint32_t)ok ^ sentColour;
     if (s_which == RESULT && sig == s_sig) return;
     s_which = RESULT; s_sig = sig;

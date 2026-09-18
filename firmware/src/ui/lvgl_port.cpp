@@ -82,8 +82,11 @@ void flushCb(lv_disp_drv_t* drv, const lv_area_t* area, lv_color_t* px) {
     lv_disp_flush_ready(drv);
 }
 
-uint32_t s_lastTouch = 0;
-bool     s_asleep    = false;
+// Read by the loop (sleepTick) and written by the drawing task (touchCb), so
+// both are volatile: without it the compiler is free to keep them in a
+// register across the loop's test and the screen never wakes.
+volatile uint32_t s_lastTouch = 0;
+volatile bool     s_asleep    = false;
 
 // A tap queued over HTTP by /api/tap, so the interface can be driven and
 // photographed without a finger. It is reported to LVGL exactly like a real
@@ -141,6 +144,10 @@ void touchCb(lv_indev_drv_t*, lv_indev_data_t* data) {
 namespace lvgl_port {
 
 void drawSplash(bool alsoCanvas) {
+    // Writes straight to the panel, so it cannot run while the drawing task is
+    // flushing to the same bus. At boot the task does not exist yet and the
+    // lock is free; from webcfg's ?preview=splash it is not.
+    Lock guard;
     lcd.pushImage(0, 0, SPLASH_W, SPLASH_H, (lgfx::rgb565_t*)SPLASH_DATA);
     // The capture route serialises the sprite, not the panel, so a screenshot
     // of the boot screen needs it in both.
@@ -161,7 +168,13 @@ void injectSwipe(int x1, int y1, int x2, int y2) {
     s_swipeSteps = 12;
 }
 
+// One recursive mutex for everything LVGL - see lvgl_port.h.
+SemaphoreHandle_t s_lvglMutex = nullptr;
+TaskHandle_t      s_uiTask     = nullptr;
+void uiTaskFn(void*);
+
 void begin() {
+    s_lvglMutex = xSemaphoreCreateRecursiveMutex();
     lv_init();
 
     // MALLOC_CAP_DMA implies internal RAM on this chip and guarantees the
@@ -212,6 +225,18 @@ void begin() {
         Serial.printf("[ui] LV_COLOR_16_SWAP=%d  LV_COLOR_DEPTH=%d\n",
                       LV_COLOR_16_SWAP, LV_COLOR_DEPTH);
     }
+    // 6 KB. LVGL's rendering, LovyanGFX's flush and the touch driver together
+    // use 3.1 KB of it, measured with uxTaskGetStackHighWaterMark on the bench,
+    // so this is twice what is needed and not a byte more. The figure matters
+    // more than it looks: this is INTERNAL RAM, the scarce kind. At 8 KB an OTA
+    // download on a device with seven printers linked failed outright - 24 KB
+    // free, 11.5 KB contiguous, against the 34 and 20 the same firmware had
+    // without this task. The wait in ota.cpp is the real fix; this is not
+    // paying for headroom that is not used.
+    if (xTaskCreatePinnedToCore(uiTaskFn, "ui", 6144, nullptr, 2, &s_uiTask, 1) != pdPASS) {
+        s_uiTask = nullptr;
+        Serial.println("[ui] no room for the drawing task - drawing from the loop");
+    }
     Serial.printf("[ui] LVGL %d.%d ready - %ux%u, %u KB DMA draw buffer%s\n",
                   LVGL_VERSION_MAJOR, LVGL_VERSION_MINOR, SCR_W, SCR_H,
                   (unsigned)((s_buf2 ? 2 : 1) * (s_buf2 ? BUF_PX : BUF_PX / 2)
@@ -221,7 +246,43 @@ void begin() {
 
 uint32_t s_idle = 0;
 
-uint32_t loop() { s_idle = lv_timer_handler(); return s_idle; }
+void lock()   { if (s_lvglMutex) xSemaphoreTakeRecursive(s_lvglMutex, portMAX_DELAY); }
+void unlock() { if (s_lvglMutex) xSemaphoreGiveRecursive(s_lvglMutex); }
+
+// The drawing task.
+//
+// Core 1, beside the Arduino loop, and at a higher priority: the point is not
+// more processor - LVGL needs very little - it is that when the loop blocks
+// inside a socket, a blocked task yields and this one draws. Before it existed,
+// a TLS handshake to a printer that was switched off froze the panel for 1.3 s
+// and the touch that arrived during it was never read, because the touch is
+// read by LVGL and LVGL was not running.
+//
+// Nothing on core 0 moves: the Wi-Fi stack, the account sync and the product
+// lookup keep the core and the memory they already have.
+void uiTaskFn(void*) {
+    for (;;) {
+        lock();
+        s_idle = lv_timer_handler();
+        unlock();
+        // 5 ms, not s_idle: the touch panel is polled by LVGL's input driver,
+        // so sleeping as long as LVGL says it has nothing to DRAW would also
+        // stop reading the finger. 5 ms is 200 reads a second, which is what
+        // makes a press feel immediate.
+        vTaskDelay(pdMS_TO_TICKS(5));
+    }
+}
+
+// Kept for the loop, which calls it after building a screen. With the task
+// running it no longer pumps LVGL itself - two threads in lv_timer_handler()
+// is exactly what the lock exists to prevent - it just gives the task its turn
+// so the screen that was just built is on the glass before anything else
+// happens.
+uint32_t loop() {
+    if (!s_uiTask) { lock(); s_idle = lv_timer_handler(); unlock(); return s_idle; }
+    vTaskDelay(pdMS_TO_TICKS(2));
+    return s_idle;
+}
 uint32_t idleMs() { return s_idle; }
 
 uint32_t frameCounter() { return s_frame; }
@@ -230,6 +291,9 @@ void requestCapture(bool on) { s_capture = on; }
 bool capturing()             { return s_capture; }
 
 void setRotation(int rotation) {
+    // The panel and LVGL both, from the loop, while the drawing task may be
+    // mid-flush on the same SPI bus.
+    Lock guard;
     lcd.setRotation(rotation == 0 ? 0 : 2);
     lv_obj_invalidate(lv_scr_act());
 }
@@ -259,12 +323,17 @@ void sleepTick(int timeoutSec, uint8_t awakeBrightness) {
     uint32_t idle = (millis() - s_lastTouch) / 1000;
 
     if (s_asleep) {
-        // The wake is the touch itself, read straight from the panel: the LVGL
-        // input driver is reporting released while asleep, on purpose.
-        int32_t x, y;
-        if (lcd.getTouch(&x, &y)) {
+        // The wake is the touch itself - but this must NOT read the panel.
+        //
+        // The touch controller sits on an I2C bus that the drawing task is
+        // already polling every 5 ms through LVGL's input driver. Reading it
+        // from here as well put two tasks on one bus, and the bench showed
+        // exactly what that costs: after the screen had slept once, no tap
+        // was ever acted on again. touchCb() already timestamps every finger
+        // it sees, asleep or not, so noticing that timestamp move is the same
+        // information without the second reader.
+        if (s_lastTouch && millis() - s_lastTouch < 1000) {
             s_asleep = false;
-            s_lastTouch = millis();
             setBacklight(awakeBrightness);
         }
         return;

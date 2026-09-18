@@ -1,6 +1,7 @@
 #include "icons.h"
 #include "fonts.h"
 #include "theme.h"
+#include "lvgl_port.h"
 
 namespace icons {
 namespace {
@@ -138,6 +139,7 @@ static const uint8_t WIFI_CLIP_H[4] = { 0, 7, 14, WIFI_H };
 static const uint8_t WIFI_CLIP_W = 22;
 
 int wifiLevelFromRssi(int rssi) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     if (rssi >= -60) return 3;
     if (rssi >= -70) return 2;
     if (rssi >= -80) return 1;
@@ -145,6 +147,7 @@ int wifiLevelFromRssi(int rssi) {
 }
 
 lv_obj_t* wifiWave(lv_obj_t* parent) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     lv_obj_t* wrap = piece(parent, 0, 0, WIFI_W, WIFI_H);
 
     lv_obj_t* dim = lv_label_create(wrap);          // child 0
@@ -167,6 +170,7 @@ lv_obj_t* wifiWave(lv_obj_t* parent) {
 }
 
 void setSignal(lv_obj_t* box, int level, bool connected) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     if (!box || lv_obj_get_child_cnt(box) < 2) return;
     lv_obj_t* dim  = lv_obj_get_child(box, 0);
     lv_obj_t* clip = lv_obj_get_child(box, 1);
@@ -213,6 +217,7 @@ void setSignal(lv_obj_t* box, int level, bool connected) {
 }
 
 void tint(lv_obj_t* box, uint32_t colour) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     if (!box) return;
     const lv_color_t c = lv_color_hex(colour);
     for (uint32_t i = 0; i < lv_obj_get_child_cnt(box); i++) {
@@ -229,6 +234,7 @@ void tint(lv_obj_t* box, uint32_t colour) {
 }
 
 lv_obj_t* build(lv_obj_t* parent, Id id, uint32_t c, int scale) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
     const auto S = [scale](int v) { return v * scale / 100; };
     switch (id) {
     case WIFI:    return symbol(parent, LV_SYMBOL_WIFI, c);
