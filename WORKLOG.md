@@ -1540,9 +1540,16 @@ ten, not by memory.
   - Also verified after both fixes: all 30 previews render, navigation and
     /api/tap answer, and a real spool write - PLA High Speed from R3D onto the
     Ender-3's slot 1C, 215/230 - lands.
-  - Not tested, and stated as such: the first-boot flow end to end. Its screens
-    pass the sweep; the sequence needs a device with no configuration, and
-    Benoit has one erased for exactly that.
+  - The first-boot flow end to end: Benoit walked a freshly erased board
+    through language, portal, Wi-Fi, account pairing, printer import and a
+    spool - "tout a bien fonctionné, aucun freeze". That is the one part this
+    bench could not drive, and it is now covered.
+  - Worth knowing, from the log of that walkthrough: after a full chip erase
+    LittleFS fails to mount and prints three red lines, formats itself, and the
+    reference tables arrive on the next boot - 293 entries from 7 files. Not a
+    fault, but it looks like one in a log. And the tables' last_update call
+    answered HTTP 503 once during setup, which is the TigerTag API rather than
+    the device; it recovered on its own.
 - And the loading spinner on the printer import: 40 px with 24 px of padding
   left 16 px of arc, high and off-centre - the same trap as the battery bar,
   padding on an arc coming out of the arc. 64 px, centred, with the words under
