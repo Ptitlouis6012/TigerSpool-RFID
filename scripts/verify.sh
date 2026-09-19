@@ -69,6 +69,7 @@ step "documented device names match the ones the firmware builds" "$PY" scripts/
 step "committed comments and strings are English" "$PY" scripts/check-text-english.py
 step "drawn text comes from the translation table" "$PY" scripts/check-ui-translated.py
 step "every drawn string is in a compiled font" "$PY" scripts/check-ui-fonts.py
+step "the device and the portal agree on signal strength" "$PY" scripts/check-signal-scale.py
 step "translation tables agree with their enums" "$PY" scripts/check-i18n.py
 step "generated files match their generator" "$PY" scripts/check-generated.py
 step "the version macro is the single source of truth" bash scripts/check-version.sh

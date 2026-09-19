@@ -75,7 +75,25 @@ command -v pio >/dev/null 2>&1 || {
 #  The expected MAC lives in .bench-mac, which is gitignored - it is a fact
 #  about one desk, not about the project.
 # ---------------------------------------------------------------------------
-ESPTOOL="$HOME/.platformio/penv/bin/python -m esptool"
+# esptool is reached two ways because only one of them is dependable. The
+# PlatformIO virtualenv usually has it importable, and usually is not always:
+# installing a package into that environment can take esptool out of it, and
+# then `-m esptool` fails with "No module named esptool" - which mac_of turns
+# into an empty MAC and the script into "no board is plugged in", with a board
+# plugged in. The uploader tool that ships with the platform is always there,
+# so it is the fallback.
+PIOPY="$HOME/.platformio/penv/bin/python"
+ESPTOOL="$PIOPY -m esptool"
+if ! $PIOPY -c "import esptool" >/dev/null 2>&1; then
+  PKG="$HOME/.platformio/packages/tool-esptoolpy/esptool.py"
+  if [ -f "$PKG" ]; then
+    ESPTOOL="$PIOPY $PKG"
+  else
+    echo "error: esptool is neither importable nor at $PKG."
+    echo "       Nothing was written. Run: cd firmware && pio pkg install"
+    exit 1
+  fi
+fi
 EXPECT="${TIGERSPOOL_MAC:-$(cat .bench-mac 2>/dev/null || true)}"
 
 # A port that does not answer is not an error: it is a port that is not an

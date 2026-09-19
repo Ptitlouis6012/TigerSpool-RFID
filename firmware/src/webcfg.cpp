@@ -13,6 +13,7 @@
 #include "ui/screen_slots.h"
 #include "ui/screen_scan.h"
 #include "ui/screen_settings.h"
+#include "ui/screen_read.h"
 #include "ui/frame.h"
 #include "ui/icons.h"
 #include "ui/theme.h"
@@ -349,6 +350,25 @@ namespace {
     // rest are below the fold on a panel that cannot be scrolled from here. Two
     // faults were found this way: a sun set at 16 px beside a globe drawn to 20,
     // and a reader row quietly borrowing the sun.
+    // A spool that does not exist, for the reader screen: a full set of fields
+    // so the layout is judged against its worst case rather than its best.
+    TagInfo previewTag() {
+        TagInfo t;
+        t.ok = true;
+        t.idProduct = 0x1234;
+        t.r = 0x1E; t.g = 0x88; t.b = 0xE5;
+        t.material = "PETG HF";
+        t.brand = "Polymaker";
+        t.aspect1Label = "Matte";
+        t.diameterLabel = "1.75 mm";
+        t.nozMin = 230; t.nozMax = 260;
+        t.bedMin = 70;  t.bedMax = 85;
+        t.available = 742;
+        t.unitLabel = "g";
+        t.signature = TagInfo::SIG_VALID;
+        return t;
+    }
+
     void previewIcons() {
         lvgl_port::Lock lvglGuard;   // builds LVGL objects from the loop
         struct Row { icons::Id id; const char* name; };
@@ -427,6 +447,9 @@ namespace {
         else if (preview == "choose")    screen_settings::showChoosePrinters(printers, MAX_PRINTERS, false,
                                              budget::used(printers, MAX_PRINTERS, -1), false);
         else if (preview == "choosing")  screen_settings::showChoosePrinters(nullptr, 0, true, 0, false);
+        else if (preview == "main")      screen_home::showMain(2, 3, true, -58, 3);
+        else if (preview == "read")      screen_read::showWaiting();
+        else if (preview == "readtag")   { screen_read::invalidate(); screen_read::showTag(previewTag()); }
         else if (preview == "greys")     previewGreys();
         else if (preview == "icons")     previewIcons();
 
@@ -463,6 +486,7 @@ namespace {
             screen_slots::invalidate();
             screen_scan::invalidate();
             screen_settings::invalidate();
+            screen_read::invalidate();
         }
 
         const int W = 240, H = 320;

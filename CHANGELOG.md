@@ -7,6 +7,43 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.61.0] - 2026-09-19
+
+### Added
+
+- A home screen that asks what you came for: **Printers** or **Reader**. The
+  printer list is one tap in, with a chevron back; the account and Wi-Fi state
+  live on the home screen, which is where the device starts.
+- **Reader mode**: put a spool on the pad and read it - colour, material,
+  brand, finish, diameter, the two temperature windows, what is left on the
+  spool, and whether the chip proved itself genuine. It is the NFC tester's
+  question without the NFC tester's thirty fields, which stay in Settings.
+- A **Write** row on the home screen, greyed and marked as coming: writing a
+  spool from the device itself is not built yet, and the row says so rather
+  than appearing one day and moving everything under it.
+
+### Changed
+
+- The account and Wi-Fi icons are on the home screen only. The printer list
+  carries a back chevron, its title and the gear instead: 240 px does not hold
+  all six, and the title was running under the icons.
+- Settings returns to the screen the gear was pressed on.
+- The reader row wears the same amber as the reader screen: one subject, one
+  colour.
+- Internal: a guard now fails the build when the device and the setup portal
+  disagree about how many bars a signal is worth. The scale is written in two
+  languages, in two files, and nothing but a person holding a phone beside the
+  device would have noticed them drifting apart.
+
+### Fixed
+
+- Two NFC icons on one screen shared a single pixel buffer, so the second one
+  drawn overwrote the first and both wore the second's colour. Each canvas icon
+  now owns its buffer and frees it with the object.
+- `scripts/flash.sh` no longer claims no board is plugged in when the
+  PlatformIO virtualenv has lost its `esptool` module. It falls back to the
+  copy that ships with the platform, and says so plainly if neither is there.
+
 ## [1.60.0] - 2026-09-18
 
 ### Changed

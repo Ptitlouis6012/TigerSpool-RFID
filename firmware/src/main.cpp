@@ -47,6 +47,7 @@
 #include "ui/screen_slots.h"
 #include "ui/screen_scan.h"
 #include "ui/screen_settings.h"
+#include "ui/screen_read.h"
 #include "version.h"
 
 // ---- cores -------------------------------------------------------------
@@ -111,10 +112,14 @@ static void staBegin();            // likewise
 static bool wifiReasonIsAuthFailure(uint8_t reason);   // likewise
 static const char* wifiReasonStr(uint8_t reason);      // likewise
 
-enum State { ST_LANG, ST_WIFI, ST_AP, ST_ACCOUNT, ST_SETTINGS, ST_PICK, ST_SET_WIFI, ST_SET_ACCOUNT, ST_SET_SCREEN,
+enum State { ST_LANG, ST_WIFI, ST_AP, ST_ACCOUNT, ST_MAIN, ST_READ, ST_SETTINGS, ST_PICK, ST_SET_WIFI, ST_SET_ACCOUNT, ST_SET_SCREEN,
              ST_SET_UPDATE, ST_SET_RESTART, ST_SET_FACTORY, ST_PRINTER, ST_GRID, ST_SCAN, ST_REVIEW, ST_RESULT,
              ST_WEB_PAIR, ST_UPDATE_NOTICE, ST_SET_READER, ST_SET_BATTERY, ST_SYNCING, ST_CLOUD_SLOT, ST_CHOOSE_PRINTERS, ST_SET_READER_HEX };
 State   state = ST_LANG;
+// Which screen the gear was pressed on. Settings is reachable from both faces
+// of the home screen, and coming out of it onto the other one moves the ground
+// under somebody who only wanted to change the brightness.
+State   settingsFrom = ST_MAIN;
 // Whether the language screen was opened from Settings rather than reached on
 // first boot. It decides two things: that the screen offers a way back, and
 // where picking a language returns to. Inferring it from WiFi.isConnected()
@@ -616,7 +621,7 @@ static void onWifiUp() {
 // on the printer list, so it asks for the account first - that is the step that
 // fills the list.
 static State afterWifi() {
-    return ttcloud::haveSession() ? ST_PRINTER : ST_ACCOUNT;
+    return ttcloud::haveSession() ? ST_MAIN : ST_ACCOUNT;
 }
 // Set by startConfigAP once the QR is on the panel, so ST_AP does not encode
 // it a second time. Encoding the QR is the most expensive thing on that screen.
@@ -1865,7 +1870,7 @@ void loop() {
     // Held to the home screen so it cannot land on top of a spool being
     // assigned.
     static String notifiedVersion;
-    if (everChecked && state == ST_PRINTER && ota::state() == ota::AVAILABLE
+    if (everChecked && (state == ST_PRINTER || state == ST_MAIN) && ota::state() == ota::AVAILABLE
         && notifiedVersion != ota::latestVersion()) {
         notifiedVersion = ota::latestVersion();
         screen_home::leave();
@@ -2036,7 +2041,7 @@ void loop() {
                 Serial.printf("[account] linked as %s\n", ttcloud::email().c_str());
                 screen_setup::hide();
                 step = CHOICE;
-                state = printersChosen() ? ST_PRINTER : ST_CHOOSE_PRINTERS;
+                state = printersChosen() ? ST_MAIN : ST_CHOOSE_PRINTERS;
                 stateSince = millis();
             }
             break;
@@ -2092,7 +2097,7 @@ void loop() {
                         Serial.printf("[account] linked as %s\n", email.c_str());
                         screen_setup::hide();
                         step = CHOICE;                // ready for a next time
-                        state = printersChosen() ? ST_PRINTER : ST_CHOOSE_PRINTERS;
+                        state = printersChosen() ? ST_MAIN : ST_CHOOSE_PRINTERS;
                         stateSince = millis();
                         break;
                     }
@@ -2108,6 +2113,83 @@ void loop() {
         screen_setup::showPairFailed(failReason.c_str());
         lvgl_port::loop();
         if (screen_setup::takeStartPairing()) { screen_setup::hide(); step = CHOICE; }
+        break;
+    }
+
+    // The first screen: printers, or the reader. Two things the box does, and
+    // until now only one of them had a way in from the outside - the reader was
+    // a page of a bench instrument inside Settings.
+    case ST_MAIN: {
+        {
+            String s;
+            if (ttcloud::asyncTake(s)) {
+                if (ttcloud::consumeChanged()) {
+                    loadCfg(); resultMsg = s;
+                    for (int i = 0; i < MAX_PRINTERS; i++) pLastSeen[i] = 0;
+                }
+            }
+        }
+        int up = 0, total = 0;
+        for (int i = 0; i < MAX_PRINTERS; i++) {
+            if (printers[i].type == PT_NONE || !printers[i].visible) continue;
+            total++;
+            const Link* l = linkFor(i);
+            if ((l && l->be && l->state == LINK_UP) || isOnline(i)) up++;
+        }
+        screen_home::showMain(up, total, nfcReady,
+                              WiFi.isConnected() ? WiFi.RSSI() : 0,
+                              ttcloud::health());
+        lvgl_port::loop();
+
+        if (screen_home::takeGoPrinters()) {
+            state = ST_PRINTER; stateSince = millis();
+        } else if (screen_home::takeGoReader()) {
+            screen_home::leave();
+            screen_read::invalidate();
+            state = ST_READ; stateSince = millis();
+        } else if (screen_home::takeSettingsTap()) {
+            screen_home::leave();
+            screen_settings::invalidate();
+            settingsFrom = ST_MAIN;
+            state = ST_SETTINGS; stateSince = millis();
+        }
+        break;
+    }
+
+    // Reader mode. The same polling discipline as the tester in Settings, and
+    // for the same reason: reader::read() is 575 ms, so it runs once per spool
+    // rather than once per frame, and what was read stays on screen when the
+    // spool is taken away - that is the moment somebody wants to look at it.
+    case ST_READ: {
+        static TagInfo seen;
+        static uint8_t seenUid[7] = {0};
+        static uint8_t seenLen = 0;
+        static uint32_t lastPoll = 0;
+
+        if (nfcReady && millis() - lastPoll > 300) {
+            lastPoll = millis();
+            uint8_t uid[7] = {0}; uint8_t ul = 0;
+            if (reader::present(uid, &ul)
+                && (!seen.ok || ul != seenLen || memcmp(uid, seenUid, ul) != 0)) {
+                TagInfo t;
+                if (reader::read(t)) {
+                    seen = t;
+                    memcpy(seenUid, uid, ul > 7 ? 7 : ul);
+                    seenLen = ul;
+                    Serial.printf("[reader] tag %s read\n", t.uid.c_str());
+                }
+            }
+        }
+        if (seen.ok) screen_read::showTag(seen);
+        else         screen_read::showWaiting();
+        lvgl_port::loop();
+
+        if (screen_read::takeBack()) {
+            seen = TagInfo();
+            seenLen = 0;
+            screen_read::invalidate();
+            state = ST_MAIN; stateSince = millis();
+        }
         break;
     }
 
@@ -2174,7 +2256,11 @@ void loop() {
             else if (screen_home::takeSettingsTap()) {
                 screen_home::leave();
                 screen_settings::invalidate();
+                settingsFrom = ST_PRINTER;
                 state = ST_SETTINGS; stateSince = millis();
+            }
+            else if (screen_home::takeBack()) {
+                state = ST_MAIN; stateSince = millis();
             }
         }
         break;
@@ -2211,7 +2297,7 @@ void loop() {
 
         if (screen_settings::takeBack()) {
             screen_home::leave();
-            state = ST_PRINTER; stateSince = millis(); break;
+            state = settingsFrom; stateSince = millis(); break;
         }
         switch (screen_settings::takeEntry()) {
             case screen_settings::E_PRINTERS:
@@ -2400,7 +2486,7 @@ void loop() {
         } else if (a == screen_settings::A_LATER) {
             screen_settings::invalidate();
             screen_home::leave();
-            state = ST_PRINTER; stateSince = millis();
+            state = ST_MAIN; stateSince = millis();
         }
         break;
     }

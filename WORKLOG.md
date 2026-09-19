@@ -18,6 +18,48 @@ message, and reset it to this header.
 
 ## Unreleased
 
+## 2026-09-19 - a home screen, and reader mode (released in 1.61.0)
+
+### Added
+
+- A home screen that asks what you came for: two 72 px rows, **Printers** with
+  how many are online under it and **Reader** with what it does. The printer
+  list is one tap in and comes back with a chevron.
+- **Reader mode** (`ui/screen_read.cpp`): the spool's colour as a disc, the
+  material, "brand - finish - diameter", the nozzle and bed windows, what is
+  left on the spool, and a green "genuine" mark in the header. The NFC tester
+  keeps every raw field and stays where it was, in Settings.
+- A third home row, **Write**, greyed and not clickable: no chevron, no
+  pressed state, "Coming soon" under it.
+- Previews `main`, `read` and `readtag` for the three new screens.
+
+### Changed
+
+- The account and Wi-Fi icons are on the home screen only. On the printer list
+  the header carries a back chevron, the title and the gear, and 240 px does
+  not hold all six.
+- Settings returns to the screen the gear was pressed on, not always the home.
+- The home rows start at the top rather than centred: the list grows, and a
+  centred stack moves every row down each time one is added.
+
+### Fixed
+
+- `ui/icons.cpp`: the canvas icons (the turned Wi-Fi wave used for NFC) shared
+  one static pixel buffer. Two of them on the home screen - read and write -
+  meant the second drawn overwrote the first, and the read row came out grey
+  instead of amber. Each one now allocates its own buffer from the LVGL heap
+  (PSRAM) and frees it on LV_EVENT_DELETE; internal RAM use drops 5.8 KB.
+
+- `scripts/flash.sh` no longer reports "no board is plugged in" when the
+  PlatformIO virtualenv has lost its `esptool` module: it falls back to the
+  copy that ships with the platform, and says so plainly if neither is there.
+
+Verified on the bench board (dc:b4:d9:24:99:18) over `/api/tap` and
+`/screen.bmp`: home -> printers -> back, home -> reader with a real R3D PLA
+High Speed spool (215-230 / 50-60 C, 476 g, signature valid, matching the
+serial decode), gear from both faces and back to each. `bash scripts/verify.sh`
+passes, build included.
+
 ## 2026-09-05 - the update screen, and the header everywhere
 
 ### Changed

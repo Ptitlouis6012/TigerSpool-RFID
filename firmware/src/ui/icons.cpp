@@ -63,10 +63,16 @@ void disc(lv_obj_t* p, int x, int y, int d, uint32_t c) {
 // eye reads two icons that are nearly identical as a mistake rather than as a
 // family.
 //
-// One canvas is alive at a time - a single row uses this - so the pixel buffer
-// is shared. It is 22 x 22 at two bytes plus an alpha byte per pixel, which is
-// about 1.5 KB, and it lives in static memory rather than being allocated and
-// freed on every screen build.
+// Each canvas gets its OWN pixel buffer, out of the LVGL heap, which is PSRAM.
+//
+// It used to be one static buffer, on the reasoning that only one of these was
+// ever on screen at a time. The home screen then put two NFC rows up - read and
+// write - and they shared those 1.5 KB: the second one drawn overwrote the
+// first, so both wore the second's colour. A buffer shared between objects that
+// can coexist is not a saving, it is a bug waiting for the second caller.
+//
+// The canvas does not own the memory it is given, so the buffer is freed when
+// the object is deleted - which LVGL does for every child when a screen goes.
 lv_obj_t* turnedSymbol(lv_obj_t* parent, const char* glyph, uint32_t colour,
                        int16_t tenthsOfADegree, int scale = 100) {
     // Two sizes, because there are two uses: 22 px on a menu row, and a big one
@@ -75,7 +81,10 @@ lv_obj_t* turnedSymbol(lv_obj_t* parent, const char* glyph, uint32_t colour,
     const bool big = (scale >= 150);
     const lv_coord_t side = big ? BOX * 2 : BOX;
     const lv_font_t* face = big ? &font_ui_24 : &font_ui_16;
-    static uint8_t buf[LV_CANVAS_BUF_SIZE_TRUE_COLOR_ALPHA(BOX * 2, BOX * 2)];
+    const uint32_t bufSize = big ? LV_CANVAS_BUF_SIZE_TRUE_COLOR_ALPHA(BOX * 2, BOX * 2)
+                                 : LV_CANVAS_BUF_SIZE_TRUE_COLOR_ALPHA(BOX, BOX);
+    uint8_t* buf = (uint8_t*)lv_mem_alloc(bufSize);
+    if (!buf) return piece(parent, 0, 0, side, side);   // no icon beats a crash
 
     // The box is larger than the canvas in the big case, because the canvas is
     // then ZOOMED and a parent clips what its child draws outside it. 24 px is
@@ -85,6 +94,9 @@ lv_obj_t* turnedSymbol(lv_obj_t* parent, const char* glyph, uint32_t colour,
     lv_obj_t* box = piece(parent, 0, 0, big ? BOX * 3 : side, big ? BOX * 3 : side);
     lv_obj_t* cv = lv_canvas_create(box);
     lv_canvas_set_buffer(cv, buf, side, side, LV_IMG_CF_TRUE_COLOR_ALPHA);
+    lv_obj_add_event_cb(cv, [](lv_event_t* e) {
+        lv_mem_free(lv_event_get_user_data(e));
+    }, LV_EVENT_DELETE, buf);
     lv_canvas_fill_bg(cv, lv_color_black(), LV_OPA_TRANSP);
 
     lv_draw_label_dsc_t d;

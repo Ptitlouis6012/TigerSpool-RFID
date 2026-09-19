@@ -26,6 +26,20 @@ enum Dot : uint8_t { DOT_OFF = 0, DOT_UP = 1, DOT_TRYING = 2 };
 // 0 not signed in. It replaced a dot that reported whether a sync happened to
 // be running - true for a second every five minutes, and grey the rest of the
 // time, which is not something anyone can act on.
+// The first screen, and a choice rather than a list: the printers, or the
+// reader. Same header as the list below it - the two are one screen wearing
+// two faces, so the account and Wi-Fi icons do not move when you go in and out.
+//
+// `printersUp` and `printersTotal` are shown beside the first row: what a
+// person wants to know before pressing it is whether anything is connected.
+void showMain(int printersUp, int printersTotal, bool readerReady,
+              int wifiRssi, int account);
+bool takeGoPrinters();
+bool takeGoReader();
+// The chevron on the printer list, which only that face shows: it goes back to
+// the choice above.
+bool takeBack();
+
 void show(const PrinterCfg* printers, int count,
           int selected, const uint8_t* state, bool syncing, int wifiRssi,
           int account);

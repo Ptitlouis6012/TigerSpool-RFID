@@ -19,6 +19,19 @@ lv_obj_t* s_account  = nullptr;
 // device switched to Chinese keeps the title of the language it booted in.
 lv_obj_t* s_title    = nullptr;
 lv_obj_t* s_wifi     = nullptr;
+// The chevron back to the first screen. It belongs to the printer list only,
+// so it is built once with the header and hidden while the choice is showing -
+// a screen with nowhere to go back to must not offer the way.
+lv_obj_t* s_back     = nullptr;
+lv_obj_t* s_gear     = nullptr;
+lv_obj_t* s_gearIcon = nullptr;
+
+// Which of the two faces the list currently holds: 1 the choice, 2 the printer
+// list. Both faces draw into the same container and each keeps its own redraw
+// signature, so without this a face whose signature had not changed since the
+// last time it was shown would decline to rebuild - and the other face's rows
+// would stay on screen.
+int       s_face     = 0;
 
 // The level lives in icons::wifiLevelFromRssi. The portal's picker uses the
 // same thresholds; see `bars()` in net/portal_page.h.
@@ -26,9 +39,15 @@ bool      s_active   = false;
 volatile int s_tapped   = -1;
 volatile bool s_settings = false;
 volatile bool      s_pick     = false;
+volatile bool      s_goPrinters = false;
+volatile bool      s_goReader   = false;
+volatile bool      s_homeBack   = false;
 
 void onRow(lv_event_t* e)      { s_tapped   = (int)(intptr_t)lv_event_get_user_data(e); }
 void onSettings(lv_event_t*)   { s_settings = true; }
+void onGoPrinters(lv_event_t*) { s_goPrinters = true; }
+void onGoReader(lv_event_t*)   { s_goReader   = true; }
+void onHomeBack(lv_event_t*)   { s_homeBack   = true; }
 
 // A status dot: 9 px, and colour is the only thing that changes. Green means
 // the printer answered on its control port recently; grey means it did not.
@@ -55,8 +74,26 @@ void buildScreen() {
     lv_obj_align(header, LV_ALIGN_TOP_MID, 0, 0);
     lv_obj_clear_flag(header, LV_OBJ_FLAG_SCROLLABLE);
 
+    // 56 x 44 of hit area for a 24 px glyph, the same target frame::build
+    // gives every other screen.
+    s_back = lv_btn_create(header);
+    lv_obj_remove_style_all(s_back);
+    lv_obj_set_size(s_back, 56, theme::HEADER_H);
+    lv_obj_align(s_back, LV_ALIGN_LEFT_MID, 0, 0);
+    lv_obj_add_event_cb(s_back, onHomeBack, LV_EVENT_CLICKED, nullptr);
+    lv_obj_add_flag(s_back, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_t* backGlyph = lv_label_create(s_back);
+    lv_label_set_text(backGlyph, LV_SYMBOL_LEFT);
+    lv_obj_set_style_text_font(backGlyph, &font_ui_24, 0);
+    lv_obj_set_style_text_color(backGlyph, lv_color_hex(theme::TEXT), 0);
+    lv_obj_center(backGlyph);
+
     lv_obj_t* title = s_title = lv_label_create(header);
     lv_label_set_text(title, i18n::T(S_PRINTER));
+    // Truncated, never overlapping: the title shared its line with three icons
+    // and nothing stopped a long word from running under them.
+    lv_label_set_long_mode(title, LV_LABEL_LONG_DOT);
+    lv_obj_set_height(title, lv_font_get_line_height(&font_ui_bold_16));
     // This screen builds its own header rather than using frame::build, so the
     // title's weight has to be set here too - and it has to match, or the home
     // screen is the one place in the product where a title is lighter.
@@ -95,12 +132,12 @@ void buildScreen() {
     // is the one a tap on either finds.
     static const lv_coord_t ICONS_X = 126;
     const lv_coord_t hitW = theme::SCREEN_W - ICONS_X;
-    lv_obj_t* gear = lv_btn_create(header);
+    lv_obj_t* gear = s_gear = lv_btn_create(header);
     lv_obj_remove_style_all(gear);
     lv_obj_set_size(gear, hitW, theme::HEADER_H);
     lv_obj_align(gear, LV_ALIGN_RIGHT_MID, 0, 0);
     lv_obj_add_event_cb(gear, onSettings, LV_EVENT_CLICKED, nullptr);
-    lv_obj_t* gearIcon = lv_label_create(gear);
+    lv_obj_t* gearIcon = s_gearIcon = lv_label_create(gear);
     lv_label_set_text(gearIcon, LV_SYMBOL_SETTINGS);
     // 24 px, a size up from the row icons. At 20 its ink was exactly as tall as
     // the bust's and the wave's and it still read as the small one: a gear is
@@ -128,9 +165,162 @@ void buildScreen() {
     lv_obj_set_style_bg_opa(s_list, LV_OPA_TRANSP, 0);
 }
 
+// The header wears the same two faces as the list under it.
+//
+// On the choice, the account and the Wi-Fi are what a person wants to see
+// before pressing anything, and there is no back to offer. On the printer list
+// there IS a back, and a chevron plus a title plus three icons do not fit on
+// 240 px: the French title alone is 108 px wide. So the two status icons are
+// the ones that go - they belong to the screen the chevron leads to, which is
+// one tap away and is where the device starts.
+void headerFace(bool choice) {
+    static const lv_coord_t ICONS_X = 126;   // as in buildScreen
+    if (choice) {
+        lv_obj_add_flag(s_back, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(s_account, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(s_wifi, LV_OBJ_FLAG_HIDDEN);
+        const lv_coord_t hitW = theme::SCREEN_W - ICONS_X;
+        lv_obj_set_size(s_gear, hitW, theme::HEADER_H);
+        lv_obj_align(s_gear, LV_ALIGN_RIGHT_MID, 0, 0);
+        lv_obj_align(s_gearIcon, LV_ALIGN_CENTER,
+                     hitW / 2 - theme::ICON_HIT_W / 2 + 1, 0);
+        lv_obj_set_width(s_title, ICONS_X - 9 - 6);
+        lv_obj_align(s_title, LV_ALIGN_LEFT_MID, 9, 0);
+    } else {
+        lv_obj_clear_flag(s_back, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(s_account, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(s_wifi, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_size(s_gear, theme::ICON_HIT_W, theme::HEADER_H);
+        lv_obj_align(s_gear, LV_ALIGN_RIGHT_MID, 0, 0);
+        lv_obj_align(s_gearIcon, LV_ALIGN_CENTER, 1, 0);
+        lv_obj_set_width(s_title, theme::SCREEN_W - theme::ICON_HIT_W - 56 - 6);
+        lv_obj_align(s_title, LV_ALIGN_LEFT_MID, 56, 0);
+    }
+}
+
 }  // namespace
 
 namespace screen_home {
+
+// The two rows of the first screen.
+//
+// frame::row is the settings row, 48 px: the right shape, one size too small
+// for a screen whose whole content is two choices. Built through it and then
+// grown to 72, so these stay the same component as every other row in the
+// product - same style, same pressed state, same icon column - rather than a
+// second kind of row that drifts from it.
+static const lv_coord_t MAIN_ROW_H = 72;
+
+static void mainRow(lv_obj_t* parent, icons::Id icon, uint32_t colour,
+                    const char* label, const char* hint, lv_event_cb_t cb,
+                    bool enabled = true) {
+    // A disabled row keeps its chevron off: the chevron is the mark that says
+    // "this opens something", and one on a row that opens nothing is a promise
+    // the screen does not keep.
+    lv_obj_t* r = frame::row(parent, label, nullptr, enabled, enabled ? cb : nullptr,
+                             nullptr, icon, colour);
+    lv_obj_set_height(r, MAIN_ROW_H);
+    if (!enabled) {
+        // No pressed state either, for the same reason: a row that lights up
+        // under the finger and then does nothing reads as a broken device
+        // rather than as a feature that is not ready.
+        lv_obj_clear_flag(r, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_set_style_bg_opa(r, LV_OPA_40, 0);
+    }
+
+    // The label a size up, with its hint under it rather than beside it.
+    //
+    // Beside it is what a settings row does, and on these two it did not fit:
+    // the value is given 74 px of a 240 px row, and what was left truncated
+    // "Imprimantes" to "Impriman...". The second line is also the honest shape
+    // for what these say - "Read a spool" is a sentence about the row, not a
+    // value of it.
+    lv_obj_t* l = lv_obj_get_child(r, icon == icons::NONE ? 0 : 1);
+    if (!l) return;
+
+    lv_obj_t* col = lv_obj_create(r);
+    lv_obj_remove_style_all(col);
+    lv_obj_set_height(col, LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(col, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_grow(col, 1);
+    lv_obj_clear_flag(col, LV_OBJ_FLAG_SCROLLABLE);
+    // An LVGL base object is CLICKABLE the moment it is created, and a click
+    // does not bubble to its parent. This one covers most of the row, so
+    // leaving the flag set made the row look pressable and do nothing - the
+    // press landed on the text column and stopped there.
+    lv_obj_clear_flag(col, LV_OBJ_FLAG_CLICKABLE);
+    // Before the chevron, which frame::row appended last.
+    lv_obj_move_to_index(col, icon == icons::NONE ? 0 : 1);
+
+    lv_obj_set_parent(l, col);
+    lv_obj_set_flex_grow(l, 0);
+    lv_obj_set_width(l, LV_PCT(100));
+    lv_obj_set_style_min_width(l, 0, 0);
+    lv_obj_set_style_text_font(l, &font_ui_20, 0);
+    if (!enabled) lv_obj_set_style_text_color(l, lv_color_hex(theme::TEXT_DIM), 0);
+
+    if (hint && *hint) {
+        lv_obj_t* h = lv_label_create(col);
+        lv_label_set_text(h, hint);
+        lv_label_set_long_mode(h, LV_LABEL_LONG_DOT);
+        lv_obj_set_width(h, LV_PCT(100));
+        lv_obj_set_style_text_font(h, &font_ui_12, 0);
+        lv_obj_set_style_text_color(h, lv_color_hex(theme::TEXT_DIM), 0);
+        lv_obj_set_style_pad_top(h, 2, 0);
+    }
+}
+
+void showMain(int printersUp, int printersTotal, bool readerReady,
+              int wifiRssi, int account) {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
+    if (!s_screen) buildScreen();
+
+    static uint32_t lastSig = 0;
+    static bool     built   = false;
+    const uint32_t sig = 0x4D41494Eu ^ (uint32_t)(printersUp * 31 + printersTotal * 7)
+                       ^ ((uint32_t)readerReady << 20)
+                       ^ ((uint32_t)icons::wifiLevelSmoothed(wifiRssi) << 24)
+                       ^ ((uint32_t)(account & 3) << 28)
+                       ^ ((uint32_t)i18n::current() << 16);
+    if (built && s_active && s_face == 1 && sig == lastSig) return;
+    lastSig = sig; built = true; s_face = 1;
+
+    lv_label_set_text(s_title, "TigerSpool");
+    headerFace(true);
+
+    // From the top, not centred: this list grows - write is already on it and
+    // greyed - and a centred stack moves every row down the screen each time
+    // one is added. What is at the top stays where a finger expects it.
+    lv_obj_clean(s_list);
+    lv_obj_set_flex_align(s_list, LV_FLEX_ALIGN_START,
+                          LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_add_flag(s_list, LV_OBJ_FLAG_SCROLLABLE);
+
+    char up[48];
+    snprintf(up, sizeof(up), "%d/%d %s", printersUp, printersTotal, i18n::T(S_ONLINE));
+    mainRow(s_list, icons::PRINTER, printersUp ? theme::OK : theme::TEXT_DIM,
+            i18n::T(S_PRINTER),
+            printersTotal ? up : i18n::T(S_FIND_PRINTERS), onGoPrinters);
+    // The same amber the reader screen gives it. One picture for the reader,
+    // one colour: the row and the screen it opens are the same subject.
+    mainRow(s_list, icons::NFC, readerReady ? theme::ACCENT : theme::TEXT_DIM,
+            i18n::T(S_READ_MODE), i18n::T(S_READ_HINT), onGoReader);
+    // Writing a spool from the device itself is not built yet. It is on the
+    // screen and greyed rather than absent: what the box will do is part of
+    // what it is, and a row that appears later moves the two above it.
+    mainRow(s_list, icons::NFC, theme::TEXT_DIM,
+            i18n::T(S_WRITE_MODE), i18n::T(S_SOON), nullptr, false);
+
+    icons::tint(s_account, account >= 3 ? theme::OK
+                         : account == 0 ? theme::DANGER : theme::WARN);
+    icons::setSignal(s_wifi, icons::wifiLevelSmoothed(wifiRssi), wifiRssi != 0);
+
+    if (!s_active) { lv_scr_load(s_screen); s_active = true; }
+}
+
+bool takeGoPrinters() { bool v = s_goPrinters; s_goPrinters = false; return v; }
+bool takeBack()       { bool v = s_homeBack;   s_homeBack   = false; return v; }
+bool takeGoReader()   { bool v = s_goReader;   s_goReader   = false; return v; }
 
 // A cheap signature of everything on screen. show() is called from the main
 // loop, and rebuilding the list on every one of those calls destroys each row
@@ -163,15 +353,18 @@ void show(const PrinterCfg* printers, int count,
     static uint32_t lastSig = 0;
     static bool     everBuilt = false;
     uint32_t sig = signature(printers, count, selected, state, syncing, wifiRssi, account);
-    if (everBuilt && s_active && sig == lastSig) return;
-    lastSig = sig; everBuilt = true;
+    if (everBuilt && s_active && s_face == 2 && sig == lastSig) return;
+    lastSig = sig; everBuilt = true; s_face = 2;
 
-    static Lang titleLang = LANG_N;
-    if (s_title && titleLang != i18n::current()) {
-        titleLang = i18n::current();
-        lv_label_set_text(s_title, i18n::T(S_PRINTER));
-    }
+    // Set on every rebuild rather than only when the language changes: the
+    // other face writes the product name here, so a test against the language
+    // alone would leave "TigerSpool" over the printer list.
+    lv_label_set_text(s_title, i18n::T(S_PRINTER));
+    headerFace(false);
 
+    lv_obj_set_flex_align(s_list, LV_FLEX_ALIGN_START,
+                          LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_add_flag(s_list, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_clean(s_list);
     int shown = 0, configured = 0;
     for (int i = 0; i < count; i++) {
