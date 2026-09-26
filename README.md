@@ -182,7 +182,7 @@ printer brand — only the 3D-printed shell changes.
 | — | Four jumper wires — 3V3, GND, TX, RX | ships with the PN532 |
 | 1 | 3D-printed case — the universal desktop stand, or one made for your printer | [Model3D/](Model3D/) |
 | *opt.* | Magnetic USB connector — the port is the one part handled every day; the cable lets go instead of the socket | [buy](https://link.amazon/B0bWVIBa0) |
-| *opt.* | 3.7 V 1000 mAh LiPo cell, PH1.25 — charged over USB, and the box runs from it with the cable out. Settings then gains a **Battery** entry; without a cell it is not there. **Check the polarity** | [buy](https://link.amazon/B0fL0jjf3) |
+| *opt.* | 3.7 V 1000 mAh LiPo cell, PH1.25 — charged over USB, and the box runs from it with the cable out. Optional: declare it in **Settings › Battery**, since the board cannot detect it. **Check the polarity** | [buy](https://link.amazon/B0fL0jjf3) |
 
 **About 40 €** in total, plus filament.
 

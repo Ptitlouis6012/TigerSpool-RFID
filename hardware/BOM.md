@@ -29,7 +29,7 @@ to a printer.
 | Part | Why | ~Price |
 |---|---|---|
 | **[Magnetic USB connector](https://link.amazon/B0bWVIBa0)** | The USB port is the one thing on this box that gets handled - a spool goes past it every day. A magnetic tip stays in the socket and the cable lets go instead of the connector. | ~10 € |
-| **[3.7 V 1000 mAh LiPo cell, PH1.25 connector, with protection](https://link.amazon/B0fL0jjf3)** | The board charges it over USB and runs from it when the cable is out, so the box can be carried to a printer to write a spool and brought back. With one fitted, Settings gains a **Battery** entry - level, state, time left. Without one, nothing changes and the entry is not there. | ~10 € for four |
+| **[3.7 V 1000 mAh LiPo cell, PH1.25 connector, with protection](https://link.amazon/B0fL0jjf3)** | The board charges it over USB and runs from it when the cable is out, so the box can be carried to a printer to write a spool and brought back. Optional, and **you declare it**: the board cannot tell whether a cell is on its connector, so once one is fitted, switch it on in **Settings › Battery**. The level, the state and the time left appear from then on. | ~10 € for four |
 
 **Check the polarity before plugging a cell in.** The connector is not keyed
 against a cell wired the other way round, and the board has no protection
@@ -59,7 +59,8 @@ power it from 5 V. See [../docs/WIRING.md](../docs/WIRING.md).
 
 **No battery, by default.** TigerSpool sits next to a printer that is already
 plugged in, so it is not required - see the two optional parts above if you
-want one anyway.
+want one anyway. A cell you add is declared in **Settings › Battery**; until it
+is, the box reports none.
 
 ## The tags
 
