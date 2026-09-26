@@ -19,8 +19,9 @@ rather than hoped for:
   must have been cut to a file name, and Bambu Studio's DesignerUserId - the
   designer's account number - emptied (scripts/clean-3mf.py does both).
 - PICTURE METADATA. A phone photo carries EXIF: the phone, the time and the
-  GPS position it was taken at - somebody's home, on a public repository. A
-  picture here carries none (Model3D/README.md has the command).
+  GPS position it was taken at - somebody's home, on a public repository. An
+  edited image can carry a C2PA manifest - the editing tool and its history.
+  A picture here carries neither (Model3D/README.md has the command).
 
 Files not yet committed are checked too: this is meant to fail before the
 commit that would publish them, not after. It exits 2 when Model3D/ holds no
@@ -88,6 +89,8 @@ def main() -> int:
             data = (REPO / f).read_bytes()
             if b"Exif\x00\x00" in data[:65536] or b"eXIf" in data[:65536]:
                 problems.append(f"{f}: carries EXIF metadata (phone, date, GPS) - strip it before committing")
+            elif b"caBX" in data or b"c2pa" in data[:65536] or b"jumb" in data[:65536]:
+                problems.append(f"{f}: carries a C2PA manifest (editing tool and history) - strip it before committing")
         if ext == ".3mf":
             try:
                 with zipfile.ZipFile(REPO / f) as z:

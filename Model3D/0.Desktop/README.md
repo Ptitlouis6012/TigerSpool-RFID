@@ -1,6 +1,9 @@
 # Desktop stand
 
-<img src="Images/tigerspool-desk-photo-front.jpg" alt="The desktop stand, printed, with a spool on it" width="360"> <img src="Images/tigerspool-desk-photo-side.jpg" alt="The desktop stand from the side" width="360">
+| Spool on the left | Spool on the right |
+|---|---|
+| <img src="Images/Left/tigerspool-desk-left-photo-front.jpg" alt="The desktop stand, spool on the left" width="320"> | <img src="Images/Right/tigerspool-desk-right-photo-front.jpg" alt="The desktop stand, spool on the right" width="320"> |
+| <img src="Images/Left/tigerspool-desk-left-photo-side.jpg" alt="Spool on the left, from the side" width="320"> | <img src="Images/Right/tigerspool-desk-right-photo-side.jpg" alt="Spool on the right, from the side" width="320"> |
 
 A free-standing stand for the bench or the desk. It is not attached to any
 printer, so it fits every one of them - the universal TigerSpool.
@@ -48,16 +51,16 @@ it already. Print it in one colour and it still works.
 
 | Spool on the left | Spool on the right |
 |---|---|
-| <img src="Images/tigerspool-desk-left-bambu-studio-plate.png" alt="Plate, spool on the left" width="320"> | <img src="Images/tigerspool-desk-right-bambu-studio-plate.png" alt="Plate, spool on the right" width="320"> |
+| <img src="Images/Left/tigerspool-desk-left-bambu-studio-plate.png" alt="Plate, spool on the left" width="320"> | <img src="Images/Right/tigerspool-desk-right-bambu-studio-plate.png" alt="Plate, spool on the right" width="320"> |
 
 ### From above
 
 | Spool on the left | Spool on the right |
 |---|---|
-| <img src="Images/tigerspool-desk-left-bambu-studio-top.png" alt="Plate from above, spool on the left" width="320"> | <img src="Images/tigerspool-desk-right-bambu-studio-top.png" alt="Plate from above, spool on the right" width="320"> |
+| <img src="Images/Left/tigerspool-desk-left-bambu-studio-top.png" alt="Plate from above, spool on the left" width="320"> | <img src="Images/Right/tigerspool-desk-right-bambu-studio-top.png" alt="Plate from above, spool on the right" width="320"> |
 
 The plate pictures are the slicers' own previews, taken out of the projects;
-the Creality Print ones, and a studio render, are in [`Images/`](Images/) too.
+the Creality Print ones and a render of each version are in [`Images/Left/`](Images/Left/) and [`Images/Right/`](Images/Right/) too.
 
 ## Source
 
