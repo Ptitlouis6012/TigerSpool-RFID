@@ -1,6 +1,6 @@
 # Desktop stand
 
-<img src="Images/tigerspool-desk-left-bambu-studio-plate.png" alt="Desktop stand, spool on the left" width="360"> <img src="Images/tigerspool-desk-right-bambu-studio-plate.png" alt="Desktop stand, spool on the right" width="360">
+<img src="Images/tigerspool-desk-photo-front.jpg" alt="The desktop stand, printed, with a spool on it" width="360"> <img src="Images/tigerspool-desk-photo-side.jpg" alt="The desktop stand from the side" width="360">
 
 A free-standing stand for the bench or the desk. It is not attached to any
 printer, so it fits every one of them - the universal TigerSpool.
@@ -37,14 +37,20 @@ was saved with:
 The display part uses a second PLA colour for its details; the projects assign
 it already. Print it in one colour and it still works.
 
-## From above
+## The parts
+
+| Spool on the left | Spool on the right |
+|---|---|
+| <img src="Images/tigerspool-desk-left-bambu-studio-plate.png" alt="Plate, spool on the left" width="320"> | <img src="Images/tigerspool-desk-right-bambu-studio-plate.png" alt="Plate, spool on the right" width="320"> |
+
+### From above
 
 | Spool on the left | Spool on the right |
 |---|---|
 | <img src="Images/tigerspool-desk-left-bambu-studio-top.png" alt="Plate from above, spool on the left" width="320"> | <img src="Images/tigerspool-desk-right-bambu-studio-top.png" alt="Plate from above, spool on the right" width="320"> |
 
-The pictures are the slicers' own previews, taken out of the projects in
-[`Images/`](Images/) - the Creality Print ones are there too.
+The plate pictures are the slicers' own previews, taken out of the projects;
+the Creality Print ones, and a studio render, are in [`Images/`](Images/) too.
 
 ## Source
 

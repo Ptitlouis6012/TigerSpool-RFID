@@ -110,6 +110,21 @@ their order. **Files** are lower case with hyphens:
 every link to the path in a README. `scripts/check-models.py` enforces all
 three.
 
+### Before a photo is committed
+
+A phone photo records the phone, the time and **the GPS position it was taken
+at**. Publish a copy with none of it, scaled to something a page can load:
+
+```bash
+ffmpeg -i IMG_1234.jpeg -vf "scale='min(2000,iw)':-2" -map_metadata -1 -q:v 3 \
+    Model3D/<Brand>/<Model>/Images/tigerspool-<model>-photo-<view>.jpg
+```
+
+`-map_metadata -1` drops the metadata; ffmpeg applies the phone's rotation to
+the pixels first, so the picture stays the right way up. Look at the
+background too: a photo on a desk shows whatever else is on that desk.
+`verify.sh` refuses a picture that still carries EXIF.
+
 ### Before a 3MF is committed
 
 A slicer project records more than geometry. It keeps the **full path** of the

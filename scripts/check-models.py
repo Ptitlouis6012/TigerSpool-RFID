@@ -17,6 +17,9 @@ rather than hoped for:
 - 3MF METADATA. A slicer keeps the full path each object was imported from,
   which on a public repository is somebody's user name and folder layout. It
   must have been cut to a file name (scripts/clean-3mf.py does it).
+- PICTURE METADATA. A phone photo carries EXIF: the phone, the time and the
+  GPS position it was taken at - somebody's home, on a public repository. A
+  picture here carries none (Model3D/README.md has the command).
 
 Files not yet committed are checked too: this is meant to fail before the
 commit that would publish them, not after. It exits 2 when Model3D/ holds no
@@ -79,6 +82,10 @@ def main() -> int:
         ext = pathlib.PurePath(f).suffix.lower()
         if ext not in ALLOWED:
             problems.append(f"{f}: '{ext}' is not a model, a picture or a document")
+        if ext in (".jpg", ".jpeg", ".png", ".webp"):
+            data = (REPO / f).read_bytes()
+            if b"Exif\x00\x00" in data[:65536] or b"eXIf" in data[:65536]:
+                problems.append(f"{f}: carries EXIF metadata (phone, date, GPS) - strip it before committing")
         if ext == ".3mf":
             try:
                 with zipfile.ZipFile(REPO / f) as z:
