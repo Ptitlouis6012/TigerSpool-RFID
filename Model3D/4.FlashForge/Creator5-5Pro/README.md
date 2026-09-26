@@ -2,7 +2,8 @@
 
 ![The parts on the Bambu Studio plate](Images/tigerspool-creator5-bambu-studio-plate.png)
 
-A TigerSpool case made for the FlashForge Creator 5 and Creator 5 Pro.
+A TigerSpool case made for the FlashForge Creator 5 and Creator 5 Pro. It
+clips onto the printer's screen.
 
 ## Parts
 
