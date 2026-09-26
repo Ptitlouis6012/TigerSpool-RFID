@@ -10,4 +10,4 @@ of them.
 
 | Model | Fits | Directory |
 |---|---|---|
-| *none yet* | | |
+| [A1 and A2](A1-A2/) | Bambu Lab A1, A2 | `A1-A2/` |

@@ -20,6 +20,12 @@ message, and reset it to this header.
 
 ### Added
 
+- Printer-mounted cases: `2.Creality/K2-K2Pro/` (Creality Print projects for
+  the K2 and the K2 Pro, a Bambu Studio one, three photos, Fusion source),
+  `1.BambuLab/A1-A2/` (Bambu Studio project, Fusion source),
+  `4.FlashForge/Creator5-5Pro/` (Bambu Studio project) and
+  `6.Anycubic/Kobra3/` (parts and Fusion source only). Source paths and the
+  Bambu account number stripped from every project.
 - `Model3D/` replaces `models/`: `0.Desktop/` (universal), then numbered
   brand directories (`1.BambuLab/` ...), then printer model; inside a model,
   `Images/`, `Source/`, `OriginalFiles/` and one directory per slicer.

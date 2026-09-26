@@ -1,7 +1,10 @@
 # 3D-printable cases
 
-> **Status:** one model, the universal [desktop stand](0.Desktop/). The brand
-> directories are ready and empty; each lists its models as they arrive.
+> **Status:** the universal [desktop stand](0.Desktop/), and cases for the
+> [Bambu Lab A1 and A2](1.BambuLab/A1-A2/), the
+> [Creality K2 and K2 Pro](2.Creality/K2-K2Pro/), the
+> [FlashForge Creator 5 and 5 Pro](4.FlashForge/Creator5-5Pro/) and the
+> [Anycubic Kobra 3](6.Anycubic/Kobra3/). Each brand directory lists its models.
 
 ---
 

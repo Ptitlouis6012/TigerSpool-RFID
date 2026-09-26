@@ -10,4 +10,4 @@ of them.
 
 | Model | Fits | Directory |
 |---|---|---|
-| *none yet* | | |
+| [K2 and K2 Pro](K2-K2Pro/) | Creality K2, K2 Pro | `K2-K2Pro/` |

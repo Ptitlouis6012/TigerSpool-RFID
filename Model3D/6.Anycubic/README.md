@@ -10,4 +10,4 @@ of them.
 
 | Model | Fits | Directory |
 |---|---|---|
-| *none yet* | | |
+| [Kobra 3](Kobra3/) | Anycubic Kobra 3 family (Kobra 3 Max design) | `Kobra3/` |

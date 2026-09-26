@@ -10,4 +10,4 @@ of them.
 
 | Model | Fits | Directory |
 |---|---|---|
-| *none yet* | | |
+| [Creator 5 and Creator 5 Pro](Creator5-5Pro/) | FlashForge Creator 5, Creator 5 Pro | `Creator5-5Pro/` |
