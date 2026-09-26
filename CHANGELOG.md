@@ -15,7 +15,7 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   in `Model3D/`: the universal stand in `0.Desktop/`, then one directory per
   brand and one per printer model inside it ([Model3D/README.md](Model3D/README.md)).
 - **Cases that mount on the printer**: the Creality K2 and K2 Pro, the Bambu
-  Lab A1 and A2, the FlashForge Creator 5 and Creator 5 Pro, and the Anycubic
+  Lab A1, A2 and A2L, the FlashForge Creator 5 and Creator 5 Pro, and every Anycubic
   Kobra 3 - each a frame, a cover and a reader holder, with slicer projects
   and the Fusion source where there is one.
 

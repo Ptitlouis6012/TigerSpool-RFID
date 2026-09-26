@@ -1,8 +1,9 @@
-# Bambu Lab A1 and A2
+# Bambu Lab A1, A2 and A2L
 
 ![The parts on the Bambu Studio plate](Images/tigerspool-a1-a2-bambu-studio-plate.png)
 
-A TigerSpool case made for the Bambu Lab A1 and A2.
+A TigerSpool case made for the Bambu Lab A1, A2 and A2L. It clips onto the
+printer's screen.
 
 ## Parts
 

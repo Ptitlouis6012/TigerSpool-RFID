@@ -1,10 +1,10 @@
 # 3D-printable cases
 
 > **Status:** the universal [desktop stand](0.Desktop/), and cases for the
-> [Bambu Lab A1 and A2](1.BambuLab/A1-A2/), the
+> [Bambu Lab A1, A2 and A2L](1.BambuLab/A1-A2/), the
 > [Creality K2 and K2 Pro](2.Creality/K2-K2Pro/), the
 > [FlashForge Creator 5 and 5 Pro](4.FlashForge/Creator5-5Pro/) and the
-> [Anycubic Kobra 3](6.Anycubic/Kobra3/). Each brand directory lists its models.
+> [Anycubic Kobra 3 series](6.Anycubic/Kobra3-Series/). Each brand directory lists its models.
 
 ---
 
