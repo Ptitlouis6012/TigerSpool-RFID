@@ -16,7 +16,8 @@ rather than hoped for:
   `<brand>/<model>/` - has a README.md.
 - 3MF METADATA. A slicer keeps the full path each object was imported from,
   which on a public repository is somebody's user name and folder layout. It
-  must have been cut to a file name (scripts/clean-3mf.py does it).
+  must have been cut to a file name, and Bambu Studio's DesignerUserId - the
+  designer's account number - emptied (scripts/clean-3mf.py does both).
 - PICTURE METADATA. A phone photo carries EXIF: the phone, the time and the
   GPS position it was taken at - somebody's home, on a public repository. A
   picture here carries none (Model3D/README.md has the command).
@@ -41,6 +42,7 @@ PLAIN = re.compile(r"^[a-z0-9]+(?:[-.][a-z0-9]+)*$")        # files
 READABLE = re.compile(r"^[A-Za-z0-9]+(?:[-.][A-Za-z0-9]+)*$")  # directories
 ALLOWED = {".md", ".3mf", ".stl", ".step", ".stp", ".f3d", ".png", ".jpg", ".jpeg", ".webp"}
 SOURCE = re.compile(r'key="source_file" value="([^"]*)"')
+DESIGNER = re.compile(r'<metadata name="DesignerUserId">([^<]+)</metadata>')
 
 
 def files():
@@ -89,6 +91,10 @@ def main() -> int:
         if ext == ".3mf":
             try:
                 with zipfile.ZipFile(REPO / f) as z:
+                    if "3D/3dmodel.model" in z.namelist() and DESIGNER.search(
+                            z.read("3D/3dmodel.model").decode("utf-8", "replace")):
+                        problems.append(f"{f}: carries a DesignerUserId (an account number) - "
+                                        "run scripts/clean-3mf.py on it")
                     for n in z.namelist():
                         if not n.endswith(".config"):
                             continue

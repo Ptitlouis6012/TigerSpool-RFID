@@ -23,6 +23,12 @@ Each version is three parts - the base, the display and the display cover.
 The slicer projects carry the orientation, the supports and the settings below.
 The bare parts carry geometry only, for any other slicer.
 
+## Assembly
+
+No screws, no inserts, no hardware to buy for the case: it is 100 % 3D
+printed. The board and the reader go into the printed parts, and the parts
+assemble on their own. Every part is designed to print without supports.
+
 ## Print settings
 
 PLA, 0.4 mm nozzle and 15 % infill everywhere. The rest is what each project
@@ -30,7 +36,8 @@ was saved with:
 
 | Project | Printer | Layer | Walls | Supports |
 |---|---|---|---|---|
-| Bambu Studio, left and right | A1 mini | 0.20 mm | 2 | none |
+| Bambu Studio, left | A1 mini | 0.20 mm | 2 | none |
+| Bambu Studio, right | A1 mini | 0.20 mm | 3 | none |
 | Creality Print, left | Hi | 0.24 mm | 2 | none |
 | Creality Print, right | K2 Pro | 0.20 mm | 3 | tree, painted on where needed |
 
