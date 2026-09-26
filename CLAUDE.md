@@ -120,6 +120,7 @@ the regeneration checked locally too.
 | `CRLF line ending(s)` | A file arrived converted. Convert it back to LF alone — a whole-file rewrite makes every later diff on it unreviewable. |
 | `has no release notes` | The version being built was never described. Write them from `WORKLOG.md`, which exists so they are not written from memory at tag time. |
 | any guard exiting `2` | Not a violation: the guard could not run. Its input set was empty or its anchor moved, so it is checking nothing. Fix the guard before trusting the tree. |
+| `keeps the path ... run scripts/clean-3mf.py` | A slicer project records where each object was imported from - a user name and a folder layout. `python3 scripts/clean-3mf.py <file>` cuts it to a file name and lists the object names: read them before committing. The layout and naming rules for `Model3D/` are in its README. |
 | `broken link -> …` | A relative link in a tracked `.md` points at a file that does not exist. Fix the link or add the file. |
 | `GPIO6/7 presented as a PN532 wiring instruction` | A document gives those pins as reader connections. Warning against them is fine; prescribing them is not. See the pin row under Hardware facts. |
 | Build fails only in CI | The PlatformIO cache is keyed on `firmware/platformio.ini`. If dependencies moved, the local `.pio` may be ahead of CI's. Delete `firmware/.pio` and rebuild locally before blaming CI. |

@@ -129,7 +129,7 @@ rather than trying to engineer them away.
 **Range is 2–4 cm.** That is the PN532's honest range with the module's own
 antenna. Keep the antenna away from ground planes and from the display's metal
 back — proximity to either kills what little range there is. The enclosure
-designs in [models/](../models/) exist partly to hold the antenna at a sane
+designs in [Model3D/](../Model3D/) exist partly to hold the antenna at a sane
 distance.
 
 **The module powers down between commands.** On these modules only the *first*
@@ -188,7 +188,7 @@ Listed here rather than left implied. These need bench work before they belong
 in the sections above.
 
 - **Enclosure antenna placement.** The 2–4 cm figure is measured with a bare
-  module. Read distance through each printed shell in [models/](../models/) has
+  module. Read distance through each printed shell in [Model3D/](../Model3D/) has
   not been characterised.
 - **PN532 module variants.** Verified on the common red V3 breakout. Other
   form factors (e.g. the flat NFC antenna variants) are untested.

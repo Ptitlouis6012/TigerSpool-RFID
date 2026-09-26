@@ -18,6 +18,22 @@ message, and reset it to this header.
 
 ## Unreleased
 
+### Added
+
+- `Model3D/` replaces `models/`: `0.Desktop/` (universal), then numbered
+  brand directories (`1.BambuLab/` ...), then printer model; inside a model,
+  `Images/`, `Source/`, `OriginalFiles/` and one directory per slicer.
+  Directories may use capitals, files are lower case, nothing has a space. `TEMPLATE.md` for model READMEs, a README per brand listing its
+  models.
+- The desktop stand (left and right versions: Bambu Studio and Creality Print
+  projects, bare parts, Fusion source, previews taken from the projects). Before publishing, object names referring to
+  politicians and every `source_file` path (`C:\Users\Admin\Desktop\...`)
+  were removed from the 3MFs; the `.f3d` was unpacked and scanned, clean.
+- `scripts/clean-3mf.py` cuts source paths to file names and lists object
+  names for review; `scripts/check-models.py` (in verify.sh) enforces the
+  layout, plain lower-case names and no path in a 3MF, untracked files
+  included.
+
 ## 2026-09-23 - the account page, and a sign-in that no longer resets the box (released in 1.67.0)
 
 ### Added

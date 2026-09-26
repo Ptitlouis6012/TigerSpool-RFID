@@ -180,7 +180,7 @@ printer brand — only the 3D-printed shell changes.
 | 1 | PN532 **V3** NFC module — DIP switches, set to **HSU (UART)**: both switches `0` / OFF, not I²C, not SPI | [buy](https://link.amazon/B0iJgHVtP) |
 | 1 | USB-C to USB-A cable **that carries data** — a charge-only cable makes a working board look dead: no serial port ever appears | [buy](https://link.amazon/B00Xg3WT4) |
 | — | Four jumper wires — 3V3, GND, TX, RX | ships with the PN532 |
-| 1 | 3D-printed case — one per printer brand, plus a desktop stand | [models/](models/) |
+| 1 | 3D-printed case — the universal desktop stand, or one made for your printer | [Model3D/](Model3D/) |
 | *opt.* | Magnetic USB connector — the port is the one part handled every day; the cable lets go instead of the socket | [buy](https://link.amazon/B0bWVIBa0) |
 | *opt.* | 3.7 V 1000 mAh LiPo cell, PH1.25 — charged over USB, and the box runs from it with the cable out. Settings then gains a **Battery** entry; without a cell it is not there. **Check the polarity** | [buy](https://link.amazon/B0fL0jjf3) |
 

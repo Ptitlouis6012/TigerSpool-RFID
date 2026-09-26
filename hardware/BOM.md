@@ -1,7 +1,7 @@
 # Bill of materials
 
 Everything needed to build one TigerSpool. **The electronics are identical for
-every printer brand** — only the printed shell changes ([models/](../models/)).
+every printer brand** — only the printed shell changes ([Model3D/](../Model3D/)).
 
 > **Prices are indicative** and were not re-checked at the time of writing.
 >
@@ -19,7 +19,7 @@ every printer brand** — only the printed shell changes ([models/](../models/))
 | 2 | **PN532 NFC module**, V3 breakout with DIP switches — e.g. [this kit](https://link.amazon/B0iJgHVtP) | Reads the NTAG21x chips TigerTag uses. It **must** support **HSU/UART** mode; the DIP-switch V3 boards do, and both switches go to `0` / OFF. A two-pack costs barely more than one, and the spare settles "is it the module or my wiring?" in a minute. | ~9 € the pair |
 | 3 | **A USB-A to USB-C cable that carries data** — e.g. [this one](https://link.amazon/B00Xg3WT4) | Powers the board and flashes it. **Speed is irrelevant**: the ESP32-S3's native USB is full-speed, so any USB 2.0 data cable is enough. What matters is that it carries data at all. | ~5-10 € |
 
-Plus a **3D-printed case** from [models/](../models/), about 30 g of filament.
+Plus a **3D-printed case** from [Model3D/](../Model3D/), about 30 g of filament.
 
 ## Two things worth adding
 

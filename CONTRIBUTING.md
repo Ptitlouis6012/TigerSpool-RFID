@@ -35,7 +35,7 @@ issue if something does not hold up.
 
 ### 3. Design a case
 
-[models/](models/) has the rules and empty directories. The electronics are
+[Model3D/](Model3D/) has the rules, the layout and a README template. The electronics are
 identical for every model — only the shell changes. A case that has been printed
 and used beats one that has been designed.
 

@@ -66,6 +66,7 @@ step "file format: line endings, marks, invisible characters" "$PY" scripts/chec
 step "documentation: internal notes unpublished, links resolve" "$PY" scripts/check-docs.py
 step "documented reader wiring matches config.h" "$PY" scripts/check-wiring.py
 step "documented device names match the ones the firmware builds" "$PY" scripts/check-device-names.py
+step "printable cases: layout, names, no local paths" "$PY" scripts/check-models.py
 step "committed comments and strings are English" "$PY" scripts/check-text-english.py
 step "drawn text comes from the translation table" "$PY" scripts/check-ui-translated.py
 step "every drawn string is in a compiled font" "$PY" scripts/check-ui-fonts.py

@@ -14,6 +14,9 @@ icon_bolt.h -diff linguist-generated
 *.pdf binary
 *.3mf binary
 *.stl binary
+*.step binary
+*.stp binary
+*.f3d binary
 
 # GitHub language stats: this is a firmware repo, not a JavaScript one.
 data/www/**    linguist-vendored

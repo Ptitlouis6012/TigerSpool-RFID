@@ -7,6 +7,14 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **The first printable case: a desktop stand** that fits beside any printer,
+  with the spool on the left of the screen or on the right. Bambu Studio and
+  Creality Print projects, every part on its own, and the Fusion source. The printable cases now live
+  in `Model3D/`: the universal stand in `0.Desktop/`, then one directory per
+  brand and one per printer model inside it ([Model3D/README.md](Model3D/README.md)).
+
 ## [1.67.0] - 2026-09-23
 
 ### Added
@@ -2031,7 +2039,7 @@ and temperatures — without typing anything on the device.
   not be lost ([docs/MIGRATION.md](docs/MIGRATION.md)).
 - Bill of materials ([hardware/BOM.md](hardware/BOM.md)).
 - 3D model directory structure and the rule that only the shell changes
-  ([models/README.md](models/README.md)).
+  ([Model3D/README.md](Model3D/README.md)).
 - The account data model — what the device reads from a TigerTag account and
   what it writes back after a scan ([docs/ACCOUNT-DATA.md](docs/ACCOUNT-DATA.md)).
 - Web installer design ([installer/README.md](installer/README.md)).

@@ -20,7 +20,7 @@ This file is tool-agnostic. Claude sessions additionally read
 | `firmware/tools/` | `gen_db.py` and its JSON inputs. |
 | `scripts/` | Guards and tooling. Everything CI runs, runs here first. |
 | `docs/` | Public documentation. Describes the product, not the sources. |
-| `hardware/`, `models/`, `installer/` | Wiring and BOM, printable cases, web installer. |
+| `hardware/`, `Model3D/`, `installer/` | Wiring and BOM, printable cases, web installer. |
 | `_internal/` | Maintainer working notes, French, **gitignored**. Never publish. |
 
 [docs/ADOPTING-THIS-STANDARD.md](docs/ADOPTING-THIS-STANDARD.md) records what
