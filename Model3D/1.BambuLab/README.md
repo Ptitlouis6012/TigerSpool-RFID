@@ -10,4 +10,4 @@ of them.
 
 | Model | Fits | Directory |
 |---|---|---|
-| [A1, A2 and A2L](A1-A2/) | Bambu Lab A1, A2, A2L - clips onto the screen | `A1-A2/` |
+| [A1 and A2L](A1-A2/) | Bambu Lab A1, A2L - clips onto the screen | `A1-A2/` |

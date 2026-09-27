@@ -110,7 +110,7 @@ lives where the spools are loaded.
 |---|---|---|
 | **Creality K2**<br>**Creality K2 Pro** | <img src="Model3D/2.Creality/K2-K2Pro/Images/tigerspool-k2-photo-side.jpg" alt="TigerSpool on a K2 Pro, the RFID reader and its logo on the side" width="240"> | **[MakerWorld](https://makerworld.com/models/3361291-tigerspool-for-creality-k2-and-k2-pro)** · [files](Model3D/2.Creality/K2-K2Pro/) |
 | **FlashForge Creator 5**<br>**FlashForge Creator 5 Pro** | <img src="Model3D/4.FlashForge/Creator5-5Pro/Images/tigerspool-creator5-closeup.jpg" alt="TigerSpool clipped onto a Creator 5 Pro, its screen on and the RFID logo on the side" width="240"> | **[MakerWorld](https://makerworld.com/models/3361301-tigerspool-rfid-for-flashforge-creator-5-and-5-pro)** · [files](Model3D/4.FlashForge/Creator5-5Pro/)<br><br>**[Firmware "FlashForge × TigerTag"](https://tigertag-project.github.io/FlashForge-TigerTag-Creator5-Firmware-Lan-and-Cloud/download/creator5/)**<br>LAN + Cloud<br>Recommended |
-| **Bambu Lab A1**<br>**Bambu Lab A2**<br>**Bambu Lab A2L** | <img src="Model3D/1.BambuLab/A1-A2/Images/tigerspool-a1-a2-bambu-studio-plate.png" alt="The A1 and A2 case on the slicer plate" width="160"> | [files](Model3D/1.BambuLab/A1-A2/) - not on MakerWorld yet |
+| **Bambu Lab A1**<br>**Bambu Lab A2L** | <img src="Model3D/1.BambuLab/A1-A2/Images/tigerspool-a1-a2-bambu-studio-plate.png" alt="The A1 and A2L case on the slicer plate" width="160"> | [files](Model3D/1.BambuLab/A1-A2/) - not on MakerWorld yet |
 | **Anycubic Kobra 3**<br>**Anycubic Kobra 3 V2**<br>**Anycubic Kobra 3 Max**<br>**Anycubic Kobra 3 Max V2** | <img src="Model3D/6.Anycubic/Kobra3-Series/Images/tigerspool-kobra3-bambu-studio-plate.png" alt="The Kobra 3 case on the slicer plate" width="160"> | [files](Model3D/6.Anycubic/Kobra3-Series/) - not on MakerWorld yet |
 
 </div>
@@ -231,6 +231,8 @@ chip and is how you get a genuine first-boot again.
 One board, one reader, four wires. The electronics are identical for every
 printer brand — only the 3D-printed shell changes.
 
+<div align="center">
+
 | Qty | Component | Link |
 |---|---|---|
 | 1 | Waveshare ESP32-S3-Touch-LCD-2 — 240×320 IPS touch, ESP32-S3**R8**, 16 MB flash, 8 MB octal PSRAM. Screen, touch and MCU on one board | [buy](https://link.amazon/B06RoLfDi) |
@@ -240,6 +242,8 @@ printer brand — only the 3D-printed shell changes.
 | 1 | 3D-printed case — the desktop stand, or the integration made for your printer ([above](#the-case-a-desktop-stand-or-built-into-your-printer)) | [MakerWorld](https://makerworld.com/@TigerTag) · [Model3D/](Model3D/) |
 | *opt.* | Magnetic USB connector — the port is the one part handled every day; the cable lets go instead of the socket | [buy](https://link.amazon/B0bWVIBa0) |
 | *opt.* | 3.7 V 1000 mAh LiPo cell, PH1.25 — charged over USB, and the box runs from it with the cable out. Optional: declare it in **Settings › Battery**, since the board cannot detect it. **Check the polarity** | [buy](https://link.amazon/B0fL0jjf3) |
+
+</div>
 
 **About 40 €** in total, plus filament.
 
@@ -266,10 +270,13 @@ Wiring: **[docs/WIRING.md](docs/WIRING.md)** and **[hardware/pinout.md](hardware
 
 ## Printer support
 
-**"Any printer" is the goal, not a claim about today.** The current state of
+**Every printer Tiger Studio Manager can add works with TigerSpool** - the
+models below are that list. The current state of
 every brand is in **[docs/PRINTER-COMPATIBILITY.md](docs/PRINTER-COMPATIBILITY.md)**,
 which grades each on three levels — ✅ automatic, ⚙️ one setup step,
 🧪 experimental. Read it before buying parts for a specific printer.
+
+<div align="center">
 
 | Brand | Firmware support | Transport |
 |---|---|---|
@@ -279,6 +286,60 @@ which grades each on three levels — ✅ automatic, ⚙️ one setup step,
 | **Snapmaker** | ✅ implemented, proven on hardware | Moonraker over WebSocket |
 | **Elegoo** | ✅ implemented, reading proven on hardware | MQTT |
 | **Anycubic** | ✅ implemented, reading proven on hardware - LAN mode | MQTT over TLS |
+
+</div>
+
+**Every model, and how TigerSpool reaches it.** LAN is the printer on your own
+network; Cloud is the printer reached through its maker's servers, with no LAN
+mode.
+
+<div align="center">
+
+| Printer | LAN | Cloud |
+|---|:---:|:---:|
+| Creality K1 | ✓ | ✕ |
+| Creality K1C | ✓ | ✕ |
+| Creality K1 SE | ✓ | ✕ |
+| Creality K1 Max | ✓ | ✕ |
+| Creality K2 | ✓ | ✕ |
+| Creality K2 SE | ✓ | ✕ |
+| Creality K2 Pro | ✓ | ✕ |
+| Creality K2 Plus | ✓ | ✕ |
+| Creality Hi | ✓ | ✕ |
+| Creality Ender-3 V4 | ✓ | ✕ |
+| Creality SparkX i7 | ✓ | ✕ |
+| FlashForge Creator 5 | ✓ | ✕ |
+| FlashForge Creator 5 Pro | ✓ | ✕ |
+| FlashForge AD5X | ✓ | ✕ |
+| FlashForge Adventurer 5M | ✓ | ✕ |
+| FlashForge Adventurer 5M Pro | ✓ | ✕ |
+| FlashForge A5 | ✓ | ✕ |
+| Bambu Lab A1 mini | ✓ | ✓ read only |
+| Bambu Lab A1 | ✓ | ✓ read only |
+| Bambu Lab A2L | ✓ | ✓ read only |
+| Bambu Lab P1P | ✓ | ✓ read only |
+| Bambu Lab P1S | ✓ | ✓ read only |
+| Bambu Lab P2S | ✓ | ✓ read only |
+| Bambu Lab X1C | ✓ | ✓ read only |
+| Bambu Lab X1E | ✓ | ✓ read only |
+| Bambu Lab X2D | ✓ | ✓ read only |
+| Bambu Lab H2D | ✓ | ✓ read only |
+| Bambu Lab H2D Pro | ✓ | ✓ read only |
+| Bambu Lab H2S | ✓ | ✓ read only |
+| Bambu Lab H2C | ✓ | ✓ read only |
+| Snapmaker U1 | ✓ | ✕ |
+| Elegoo Centauri 2 | ✓ | ✕ |
+| Elegoo Centauri 2 Combo | ✓ | ✕ |
+| Elegoo Centauri Carbon 2 | ✓ | ✕ |
+| Elegoo Centauri Carbon 2 Combo | ✓ | ✕ |
+| Anycubic Kobra 3 Combo | ✓ | ✕ |
+| Anycubic Kobra 3 V2 | ✓ | ✕ |
+| Anycubic Kobra 3 Max | ✓ | ✕ |
+| Anycubic Kobra 3 Max V2 | ✓ | ✕ |
+| Anycubic Kobra S1 Combo | ✓ | ✕ |
+| Anycubic Kobra X | ✓ | ✕ |
+
+</div>
 
 **LAN mode has to be on** on a Creality, a FlashForge or a Bambu Lab in LAN
 mode: TigerSpool talks to the printer over your local network, and with it off
@@ -300,7 +361,8 @@ the printer to LAN mode to write.
 Slot names match the ones the printer and Tiger Studio use — `Ext.` plus
 `1A`–`1D` on Creality and FlashForge, `A1`–`A4` then `B1`–`B4` on Bambu,
 `E1`–`E4` on Snapmaker, `S1`–`S4` on Elegoo, `A1`–`A4` per ACE unit on
-Anycubic. The table and its two traps are in the compatibility document.
+Anycubic. An Elegoo **Combo** has the CANVAS unit and its four colours,
+`S1`–`S4`; a Centauri without it has the single `Ext.` slot. The table and its two traps are in the compatibility document.
 
 ## How many printers at once
 
@@ -308,6 +370,8 @@ Anycubic. The table and its two traps are in the compatibility document.
 connections take.** One TigerSpool has a fixed budget of **160 load slots**,
 where one load slot is one kilobyte of the chip's internal RAM, and each printer
 takes what its connection costs:
+
+<div align="center">
 
 | Printer | Load slots |
 |---|---|
@@ -320,6 +384,8 @@ takes what its connection costs:
 | Elegoo | 3 |
 | FlashForge | 2 |
 
+</div>
+
 The difference is encryption: a Bambu or an Anycubic talks over TLS, which is
 what memory goes on; the others do not. So ten Elegoos fit where three LAN
 Bambus do not.
@@ -331,6 +397,8 @@ for 160, and what the budget does not account for are in
 **[docs/CONNECTION-BUDGET.md](docs/CONNECTION-BUDGET.md)**.
 
 ## Documentation
+
+<div align="center">
 
 | | |
 |---|---|
@@ -345,6 +413,8 @@ for 160, and what the budget does not account for are in
 | [PRESENCE.md](docs/PRESENCE.md) | How a box declares itself to the account, so Tiger Studio can list it |
 | [WIRING.md](docs/WIRING.md) | The four wires |
 | [ROADMAP.md](docs/ROADMAP.md) | What is deliberately not done yet, and what has to be decided first |
+
+</div>
 
 Contributors and agents start at **[AGENTS.md](AGENTS.md)** and
 **[CODEMAP.md](CODEMAP.md)**.

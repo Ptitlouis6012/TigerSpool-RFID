@@ -36,13 +36,18 @@ message, and reset it to this header.
   politicians and every `source_file` path (`C:\Users\Admin\Desktop\...`)
   were removed from the 3MFs; the `.f3d` was unpacked and scanned, clean.
 - README: new "The case" section (desktop stand as the base model, printer
-  integrations for the K2, Creator 5, A1/A2 and Kobra 3), MakerWorld links
+  integrations for the K2, Creator 5, A1/A2L and Kobra 3), MakerWorld links
   for the four published pages, device screens in `assets/screens/` and the
   two stand renders side by side above the TigerSystem hero, LAN mode and the FlashForge × TigerSystem
   firmware under printer support. `Model3D/` README, the desktop, K2 and
   Creator 5 READMEs and the Creality and FlashForge brand tables carry the
   MakerWorld links; the Creator 5 README explains the firmware;
   PRINTER-COMPATIBILITY.md mentions it under LAN mode.
+- README printer support: every model Tiger Studio Manager offers, plus the
+  Kobra 3 Max V2 and the four Elegoo Centauri, one per row with LAN and Cloud
+  columns (Cloud: Bambu Lab only, read only); every README table centred.
+  Elegoo slots: `S1`-`S4` on a Combo (CANVAS), `Ext.` alone without it. The
+  Bambu "A2" is gone - it does not exist; the case fits the A1 and the A2L.
 - `scripts/clean-3mf.py` cuts source paths to file names and lists object
   names for review; `scripts/check-models.py` (in verify.sh) enforces the
   layout, plain lower-case names and no path in a 3MF, untracked files

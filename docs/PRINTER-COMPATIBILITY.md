@@ -31,7 +31,7 @@ someone has to do work before it does.
 | **Bambu Lab** | A1, A1 mini, A2L | ⚙️ | MQTT/TLS `:8883` | 🟢 proven on hardware | **LAN mode on**, plus the serial and the 8-character access code from the printer screen. Imported automatically from your account. |
 | **Snapmaker** | Artisan, J1, J1s, U1 | ⚙️ | Moonraker WebSocket `:7125` | 🟢 proven on hardware | Nothing — Moonraker needs no authentication on the LAN. The printer's IP is all it takes. |
 | **Bambu Lab (cloud)** | X1, P1, and any printer not on your LAN | 🧪 | MQTT/TLS to Bambu's broker, one session shared by every cloud printer on the account | 🟢 **reading** proven on hardware (A1, X1C) · writing not supported | **Read only**: slots are shown, a tag cannot be written - Bambu's cloud does not take the command. Depends on a Bambu session token that **Tiger Studio** obtains and stores in your account; the device never signs in to Bambu itself. The token expires roughly every three months and has to be renewed in Studio. |
-| **Elegoo** | Centauri Carbon 2 and others | ⚙️ | MQTT `:1883` (plain TCP) | 🟢 **reading** proven on hardware (Centauri Carbon 2) · writing not yet confirmed on a printer | Serial number and the MQTT password (an "Access Code" on the printer). Imported automatically from your account. |
+| **Elegoo** | Centauri 2, Centauri 2 Combo, Centauri Carbon 2, Centauri Carbon 2 Combo | ⚙️ | MQTT `:1883` (plain TCP) | 🟢 **reading** proven on hardware (Centauri Carbon 2 Combo, with and without its CANVAS - every Centauri runs the same firmware) · writing not yet confirmed on a printer | Serial number and the MQTT password (an "Access Code" on the printer). Imported automatically from your account. |
 | **Anycubic** | Kobra 3 V2, Kobra X, ACE units | ⚙️ | MQTT/TLS `:9883` | 🟢 **reading** proven on hardware (Kobra X) · writing not yet confirmed on a printer | **LAN mode**, and **the printer must be paired in AnycubicSlicerNext at least once** — its broker credentials exist nowhere else. Tiger Studio reads them from there into your account. |
 | **Anycubic (cloud)** | any Anycubic not in LAN mode | 🧪 | signed REST + MQTT to Anycubic's cloud | 🔵 protocol documented, firmware not written | Nothing on the printer — but it is a **second, heavier code path** than LAN, and whether it belongs in v1 is undecided. |
 
@@ -175,7 +175,7 @@ These are taken from Tiger Studio's renderers, which are the reference:
 | **Bambu Lab** | `Ext.` | `A1`–`A4` for the first AMS, `B1`–`B4` for the second, and so on. An **AMS HT** is one heated slot and is labelled `HT1`, `HT2`… — the printer reports those units as id 128 and up, not as a fifth AMS |
 | **Creality** | `Ext.` | `1A`–`1D` for the first CFS box, `2A`–`2D` for the second |
 | **FlashForge** | `Ext.` | `1A`–`1D` for the material station. `T1`–`T4` are something else: the Creator 5 Pro's tool-changer nozzles, not station slots. |
-| **Elegoo** | `Ext.` | `S1`–`S4` |
+| **Elegoo** | `Ext.` | `S1`–`S4` on a Combo - the CANVAS unit and its four colours. A Centauri without CANVAS has `Ext.` only. |
 | **Snapmaker** | — | `E1`–`E4`, one per extruder |
 | **Anycubic** | see below | `A1`–`A4`, `B1`–`B4`, … one row per ACE unit |
 

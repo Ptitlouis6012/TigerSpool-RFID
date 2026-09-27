@@ -15,7 +15,7 @@ printer's own screen.
 | Desktop stand, spool on the right | base, any printer | [print it](https://makerworld.com/models/3360619-tigerspool-desktop-stand-spool-on-the-right) | [`0.Desktop/`](0.Desktop/) |
 | Creality K2, K2 Pro | integration, clips onto the screen | [print it](https://makerworld.com/models/3361291-tigerspool-for-creality-k2-and-k2-pro) | [`2.Creality/K2-K2Pro/`](2.Creality/K2-K2Pro/) |
 | FlashForge Creator 5, 5 Pro | integration, clips onto the screen | [print it](https://makerworld.com/models/3361301-tigerspool-rfid-for-flashforge-creator-5-and-5-pro) | [`4.FlashForge/Creator5-5Pro/`](4.FlashForge/Creator5-5Pro/) |
-| Bambu Lab A1, A2, A2L | integration, clips onto the screen | not yet | [`1.BambuLab/A1-A2/`](1.BambuLab/A1-A2/) |
+| Bambu Lab A1, A2L | integration, clips onto the screen | not yet | [`1.BambuLab/A1-A2/`](1.BambuLab/A1-A2/) |
 | Anycubic Kobra 3, every model | integration, clips onto the screen | not yet | [`6.Anycubic/Kobra3-Series/`](6.Anycubic/Kobra3-Series/) |
 
 Each brand directory lists its models. On MakerWorld every page carries the
