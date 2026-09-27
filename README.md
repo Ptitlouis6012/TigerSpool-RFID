@@ -93,7 +93,7 @@ supports.
 
 | Spool on the left | Spool on the right |
 |---|---|
-| <img src="Model3D/0.Desktop/Images/Left/tigerspool-desk-left-photo-front.jpg" alt="The desktop stand, spool on the left" width="320"> | <img src="Model3D/0.Desktop/Images/Right/tigerspool-desk-right-photo-front.jpg" alt="The desktop stand, spool on the right" width="320"> |
+| <img src="Model3D/0.Desktop/Images/Left/tigerspool-desk-left-render.png" alt="The desktop stand, spool on the left" width="260"> | <img src="Model3D/0.Desktop/Images/Right/tigerspool-desk-right-render.png" alt="The desktop stand, spool on the right" width="260"> |
 | **[Print it from MakerWorld](https://makerworld.com/models/3360492-tigerspool-desktop-stand-spool-on-the-left)** · [files](Model3D/0.Desktop/) | **[Print it from MakerWorld](https://makerworld.com/models/3360619-tigerspool-desktop-stand-spool-on-the-right)** · [files](Model3D/0.Desktop/) |
 
 **The printer integrations** are the same TigerSpool - same board, same reader,
@@ -103,7 +103,7 @@ lives where the spools are loaded.
 | Printer | | Print it |
 |---|---|---|
 | **Creality K2**<br>**Creality K2 Pro** | <img src="Model3D/2.Creality/K2-K2Pro/Images/tigerspool-k2-photo-side.jpg" alt="TigerSpool on a K2 Pro, the RFID reader and its logo on the side" width="240"> | **[MakerWorld](https://makerworld.com/models/3361291-tigerspool-for-creality-k2-and-k2-pro)** · [files](Model3D/2.Creality/K2-K2Pro/) |
-| **FlashForge Creator 5**<br>**FlashForge Creator 5 Pro** | <img src="Model3D/4.FlashForge/Creator5-5Pro/Images/tigerspool-creator5-closeup.jpg" alt="TigerSpool clipped onto a Creator 5 Pro, its screen on and the RFID logo on the side" width="240"> | **[MakerWorld](https://makerworld.com/models/3361301-tigerspool-rfid-for-flashforge-creator-5-and-5-pro)** · [files](Model3D/4.FlashForge/Creator5-5Pro/) |
+| **FlashForge Creator 5**<br>**FlashForge Creator 5 Pro** | <img src="Model3D/4.FlashForge/Creator5-5Pro/Images/tigerspool-creator5-closeup.jpg" alt="TigerSpool clipped onto a Creator 5 Pro, its screen on and the RFID logo on the side" width="240"> | **[MakerWorld](https://makerworld.com/models/3361301-tigerspool-rfid-for-flashforge-creator-5-and-5-pro)** · [files](Model3D/4.FlashForge/Creator5-5Pro/)<br>**[LAN + Cloud firmware, FlashForge × TigerTag](https://tigertag-project.github.io/FlashForge-TigerTag-Creator5-Firmware-Lan-and-Cloud/download/creator5/)** - recommended |
 | **Bambu Lab A1**<br>**Bambu Lab A2**<br>**Bambu Lab A2L** | <img src="Model3D/1.BambuLab/A1-A2/Images/tigerspool-a1-a2-bambu-studio-plate.png" alt="The A1 and A2 case on the slicer plate" width="160"> | [files](Model3D/1.BambuLab/A1-A2/) - not on MakerWorld yet |
 | **Anycubic Kobra 3**<br>**Anycubic Kobra 3 Combo**<br>**Anycubic Kobra 3 Max**<br>**Anycubic Kobra 3 V2** | <img src="Model3D/6.Anycubic/Kobra3-Series/Images/tigerspool-kobra3-bambu-studio-plate.png" alt="The Kobra 3 case on the slicer plate" width="160"> | [files](Model3D/6.Anycubic/Kobra3-Series/) - not on MakerWorld yet |
 
@@ -148,6 +148,15 @@ the box at the next sync.
 
 The same is true for the details: the access code, the IP address, the brand and
 model all come from there. TigerSpool reads that list; it does not build it.
+
+<p align="center">
+  <img src="assets/tiger-studio-manager.png" alt="Tiger Studio Manager showing a filament library and a printer's slots" width="680">
+</p>
+
+<p align="center">
+  <sub>Tiger Studio Manager. Your filaments and your printers live here — the box
+  reads this list, it does not build it.</sub>
+</p>
 
 > **In short:** Tiger Studio Manager → create an account → add your printers →
 > *then* set up the box.
