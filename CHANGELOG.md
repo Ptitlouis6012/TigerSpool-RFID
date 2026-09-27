@@ -18,6 +18,10 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Lab A1, A2 and A2L, the FlashForge Creator 5 and Creator 5 Pro, and every Anycubic
   Kobra 3 - each a frame, a cover and a reader holder, with slicer projects
   and the Fusion source where there is one.
+- **The README shows the device and where to print it.** The desktop stand as
+  the base model, the printer integrations beside it, a MakerWorld link for
+  every published model, the screens you tap through, and the FlashForge ×
+  TigerSystem firmware that keeps Cloud and LAN on together on a Creator 5.
 
 ## [1.67.0] - 2026-09-23
 

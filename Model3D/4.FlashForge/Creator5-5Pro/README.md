@@ -2,8 +2,38 @@
 
 <img src="Images/tigerspool-creator5-photo-front.jpg" alt="The case on a Creator 5 Pro, clipped onto its screen" width="360"> <img src="Images/tigerspool-creator5-closeup.jpg" alt="Close-up of the case on the printer" width="400">
 
-A TigerSpool case made for the FlashForge Creator 5 and Creator 5 Pro. It
-clips onto the printer's screen.
+**Print it from MakerWorld:
+[TigerSpool for FlashForge Creator 5 and 5 Pro](https://makerworld.com/models/3361301-tigerspool-rfid-for-flashforge-creator-5-and-5-pro)**
+
+A printer integration of the [desktop stand](../../0.Desktop/) for the
+FlashForge Creator 5 and Creator 5 Pro: the same TigerSpool, in a case that
+clips onto the printer's screen, with the TigerSpool screen and the reader
+beside it - where the spools go into slots 1A to 1D.
+
+## Recommended: the FlashForge × TigerSystem firmware
+
+TigerSpool talks to the printer over your local network. With FlashForge's
+standard firmware, **turning LAN mode on turns FlashForge Cloud off**. The
+FlashForge × TigerSystem firmware - an official FlashForge build, developed by
+their engineering team at TigerTag's request - keeps both on at once. It is
+free.
+
+| | Standard firmware | FlashForge × TigerSystem |
+|---|---|---|
+| FlashForge Cloud - app, remote access | ✓ | ✓ |
+| LAN - local tools on your network | ✓ | ✓ |
+| Both at the same time | ✕ | ✓ |
+| Tiger Studio, Tiger NFC Connect and TigerSpool with Cloud on | ✕ | ✓ |
+
+Download: [Creator 5](https://tigertag-project.github.io/FlashForge-TigerTag-Creator5-Firmware-Lan-and-Cloud/download/creator5/) ·
+[Creator 5 Pro](https://tigertag-project.github.io/FlashForge-TigerTag-Creator5-Firmware-Lan-and-Cloud/download/creator5pro/).
+It installs from a FAT32 USB drive, the file at its root, printer off; switch
+on and it installs itself. Then turn LAN mode on. **Do not accept the printer's
+own online update afterwards** - it puts the standard firmware back, and Cloud
++ LAN with it; reinstall from USB if it happened.
+
+Thank you, FlashForge: opening a printer to an ecosystem that is not your own
+is a rare decision.
 
 ## Parts
 

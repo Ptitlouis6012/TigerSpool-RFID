@@ -5,8 +5,15 @@
 | <img src="Images/Left/tigerspool-desk-left-photo-front.jpg" alt="The desktop stand, spool on the left" width="320"> | <img src="Images/Right/tigerspool-desk-right-photo-front.jpg" alt="The desktop stand, spool on the right" width="320"> |
 | <img src="Images/Left/tigerspool-desk-left-photo-side.jpg" alt="Spool on the left, from the side" width="320"> | <img src="Images/Right/tigerspool-desk-right-photo-side.jpg" alt="Spool on the right, from the side" width="320"> |
 
+**Print it from MakerWorld:**
+[spool on the left](https://makerworld.com/models/3360492-tigerspool-desktop-stand-spool-on-the-left) ·
+[spool on the right](https://makerworld.com/models/3360619-tigerspool-desktop-stand-spool-on-the-right)
+
 A free-standing stand for the bench or the desk. It is not attached to any
-printer, so it fits every one of them - the universal TigerSpool.
+printer, so it fits every one of them - the base TigerSpool, which the
+[printer integrations](../README.md) build on.
+
+<img src="Images/Left/tigerspool-desk-left-render.png" alt="The stand with a spool resting against the reader" width="280">
 
 It comes in two mirrored versions: the spool rests **on the left** of the
 screen, or **on the right**. Pick the one that suits where it sits.

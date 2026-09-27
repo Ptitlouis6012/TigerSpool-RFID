@@ -1,10 +1,26 @@
 # 3D-printable cases
 
-> **Status:** the universal [desktop stand](0.Desktop/), and cases for the
-> [Bambu Lab A1, A2 and A2L](1.BambuLab/A1-A2/), the
-> [Creality K2 and K2 Pro](2.Creality/K2-K2Pro/), the
-> [FlashForge Creator 5 and 5 Pro](4.FlashForge/Creator5-5Pro/) and the
-> [Anycubic Kobra 3 series](6.Anycubic/Kobra3-Series/). Each brand directory lists its models.
+**The [desktop stand](0.Desktop/) is the base model.** It stands beside any
+printer, and it is the one to print if you are not sure. Every other model is a
+**printer integration**: the same TigerSpool in a shell that clips onto one
+printer's own screen.
+
+<p align="center">
+  <img src="../assets/tigerspool-desk-render.png" alt="TigerSpool on its desktop stand, with a spool" width="260">
+</p>
+
+| Model | Kind | MakerWorld | Files |
+|---|---|---|---|
+| Desktop stand, spool on the left | base, any printer | [print it](https://makerworld.com/models/3360492-tigerspool-desktop-stand-spool-on-the-left) | [`0.Desktop/`](0.Desktop/) |
+| Desktop stand, spool on the right | base, any printer | [print it](https://makerworld.com/models/3360619-tigerspool-desktop-stand-spool-on-the-right) | [`0.Desktop/`](0.Desktop/) |
+| Creality K2, K2 Pro | integration, clips onto the screen | [print it](https://makerworld.com/models/3361291-tigerspool-for-creality-k2-and-k2-pro) | [`2.Creality/K2-K2Pro/`](2.Creality/K2-K2Pro/) |
+| FlashForge Creator 5, 5 Pro | integration, clips onto the screen | [print it](https://makerworld.com/models/3361301-tigerspool-rfid-for-flashforge-creator-5-and-5-pro) | [`4.FlashForge/Creator5-5Pro/`](4.FlashForge/Creator5-5Pro/) |
+| Bambu Lab A1, A2, A2L | integration, clips onto the screen | not yet | [`1.BambuLab/A1-A2/`](1.BambuLab/A1-A2/) |
+| Anycubic Kobra 3, every model | integration, clips onto the screen | not yet | [`6.Anycubic/Kobra3-Series/`](6.Anycubic/Kobra3-Series/) |
+
+Each brand directory lists its models. On MakerWorld every page carries the
+full Bambu Studio project and the whole build guide; the bare parts, the other
+slicers' projects and the Fusion sources are here.
 
 ---
 

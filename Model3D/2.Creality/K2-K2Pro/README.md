@@ -1,10 +1,18 @@
 # Creality K2 and K2 Pro
 
-<img src="Images/tigerspool-k2-photo-front.jpg" alt="The case on a K2 Pro, around its touchscreen" width="360"> <img src="Images/tigerspool-k2-photo-side.jpg" alt="The case from the side, with the reader" width="360">
+<img src="Images/tigerspool-k2-photo-front.jpg" alt="The case on a K2 Pro, clipped onto its touchscreen" width="360"> <img src="Images/tigerspool-k2-photo-side.jpg" alt="The case from the side, with the reader" width="360">
 
-A TigerSpool case made for the Creality K2 and K2 Pro. It clips onto the
-printer's own touchscreen, with the TigerSpool screen beside it and the reader
-on the side.
+**Print it from MakerWorld:
+[TigerSpool for Creality K2 and K2 Pro](https://makerworld.com/models/3361291-tigerspool-for-creality-k2-and-k2-pro)**
+
+A printer integration of the [desktop stand](../../0.Desktop/) for the Creality
+K2 and K2 Pro: the same TigerSpool, in a case that clips onto the printer's own
+touchscreen, with the TigerSpool screen beside it and the reader on the side -
+right above the CFS.
+
+**Turn LAN mode on** in the K2's network settings. TigerSpool reaches the
+printer over your local network, and with LAN mode off the printer refuses the
+connection.
 
 <img src="Images/tigerspool-k2-photo-front-left.jpg" alt="The case on the printer, from the front left" width="360">
 

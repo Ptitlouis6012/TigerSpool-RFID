@@ -8,6 +8,6 @@ are in [../README.md](../README.md); a new model starts from
 Until one fits your printer, the [desktop stand](../0.Desktop/) works beside any
 of them.
 
-| Model | Fits | Directory |
-|---|---|---|
-| [K2 and K2 Pro](K2-K2Pro/) | Creality K2, K2 Pro | `K2-K2Pro/` |
+| Model | Fits | MakerWorld | Directory |
+|---|---|---|---|
+| [K2 and K2 Pro](K2-K2Pro/) | Creality K2, K2 Pro - clips onto the screen | [print it](https://makerworld.com/models/3361291-tigerspool-for-creality-k2-and-k2-pro) | `K2-K2Pro/` |

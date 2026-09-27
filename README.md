@@ -30,6 +30,8 @@
 <p align="center">
   <a href="#what-it-is">What it is</a>
   &nbsp;&middot;&nbsp;
+  <a href="#the-case-a-desktop-stand-or-built-into-your-printer">Print the case</a>
+  &nbsp;&middot;&nbsp;
   <a href="#before-you-start">Before you start</a>
   &nbsp;&middot;&nbsp;
   <a href="#quick-start">Quick start</a>
@@ -63,6 +65,20 @@ MIT licensed. Built with PlatformIO for the ESP32-S3.
 Your printer already has a slot list. Your filament already carries its own
 identity. TigerSpool is the thirty centimetres between them.
 
+<p align="center">
+  <img src="assets/tigerspool-desk-render.png" alt="TigerSpool on its desktop stand, a spool resting beside it" width="300">
+</p>
+
+<p align="center">
+  <img src="assets/screens/screen-grid.png" alt="A printer's slots on the TigerSpool screen" width="200">
+  <img src="assets/screens/screen-scan.png" alt="Hold the spool against the box" width="200">
+  <img src="assets/screens/screen-result.png" alt="Sent to the printer: insert the spool in its slot" width="200">
+</p>
+
+<p align="center">
+  <sub>1. Tap a slot · 2. Hold the spool against the box · 3. Sent - load it where the box says.</sub>
+</p>
+
 - **Tap a slot, present the spool, done.** There is nothing to confirm: the
   assignment leaves for the printer as soon as the tag is read, over the
   printer's own protocol, and the box tells you which slot to load.
@@ -75,6 +91,32 @@ identity. TigerSpool is the thirty centimetres between them.
 - **It speaks nine languages** - English, French, German, Spanish, Italian,
   Polish, both Portuguese and Chinese - and asks which one before anything else.
 - **It updates itself.** Over the air, verified, from this repository's releases.
+
+## The case: a desktop stand, or built into your printer
+
+**The desktop stand is TigerSpool.** It stands beside any printer, holds the
+spool against the reader while you tap, and is the one to print if you are not
+sure. It comes in two mirrored versions, the spool on the left of the screen or
+on the right. No screws, no inserts: it is 100 % printed, and it prints without
+supports.
+
+| Spool on the left | Spool on the right |
+|---|---|
+| <img src="Model3D/0.Desktop/Images/Left/tigerspool-desk-left-photo-front.jpg" alt="The desktop stand, spool on the left" width="320"> | <img src="Model3D/0.Desktop/Images/Right/tigerspool-desk-right-photo-front.jpg" alt="The desktop stand, spool on the right" width="320"> |
+| **[Print it from MakerWorld](https://makerworld.com/models/3360492-tigerspool-desktop-stand-spool-on-the-left)** · [files](Model3D/0.Desktop/) | **[Print it from MakerWorld](https://makerworld.com/models/3360619-tigerspool-desktop-stand-spool-on-the-right)** · [files](Model3D/0.Desktop/) |
+
+**The printer integrations** are the same TigerSpool - same board, same reader,
+same firmware - in a shell that clips onto a printer's own screen, so the box
+lives where the spools are loaded.
+
+| Printer | | Print it |
+|---|---|---|
+| **Creality K2, K2 Pro** | <img src="Model3D/2.Creality/K2-K2Pro/Images/tigerspool-k2-photo-front.jpg" alt="TigerSpool clipped onto a K2 Pro's touchscreen" width="240"> | **[MakerWorld](https://makerworld.com/models/3361291-tigerspool-for-creality-k2-and-k2-pro)** · [files](Model3D/2.Creality/K2-K2Pro/) |
+| **FlashForge Creator 5, Creator 5 Pro** | <img src="Model3D/4.FlashForge/Creator5-5Pro/Images/tigerspool-creator5-photo-front.jpg" alt="TigerSpool clipped onto a Creator 5 Pro's screen" width="240"> | **[MakerWorld](https://makerworld.com/models/3361301-tigerspool-rfid-for-flashforge-creator-5-and-5-pro)** · [files](Model3D/4.FlashForge/Creator5-5Pro/) |
+| **Bambu Lab A1, A2, A2L** | <img src="Model3D/1.BambuLab/A1-A2/Images/tigerspool-a1-a2-bambu-studio-plate.png" alt="The A1 and A2 case on the slicer plate" width="160"> | [files](Model3D/1.BambuLab/A1-A2/) - not on MakerWorld yet |
+| **Anycubic Kobra 3, every model** | <img src="Model3D/6.Anycubic/Kobra3-Series/Images/tigerspool-kobra3-bambu-studio-plate.png" alt="The Kobra 3 case on the slicer plate" width="160"> | [files](Model3D/6.Anycubic/Kobra3-Series/) - not on MakerWorld yet |
+
+Every model, its print settings and how to add one: **[Model3D/](Model3D/)**.
 
 ## Before you start
 
@@ -143,6 +185,13 @@ failing quietly.
    who is signed in, lists those printers with a switch for each, syncs them
    again, and signs out - all from a phone.
 
+<p align="center">
+  <img src="assets/screens/screen-lang.png" alt="Pick your language" width="160">
+  <img src="assets/screens/screen-wifi.png" alt="Join Wi-Fi from your phone by scanning a QR code" width="160">
+  <img src="assets/screens/screen-signin.png" alt="Sign in to your TigerTag account" width="160">
+  <img src="assets/screens/screen-main.png" alt="Ready: your printers, from your account" width="160">
+</p>
+
 Then tap the slot you want and hold a tagged spool against the box. It is sent
 to the printer as soon as it is read - there is nothing to confirm - and the
 box then tells you where to put it.
@@ -180,7 +229,7 @@ printer brand — only the 3D-printed shell changes.
 | 1 | PN532 **V3** NFC module — DIP switches, set to **HSU (UART)**: both switches `0` / OFF, not I²C, not SPI | [buy](https://link.amazon/B0iJgHVtP) |
 | 1 | USB-C to USB-A cable **that carries data** — a charge-only cable makes a working board look dead: no serial port ever appears | [buy](https://link.amazon/B00Xg3WT4) |
 | — | Four jumper wires — 3V3, GND, TX, RX | ships with the PN532 |
-| 1 | 3D-printed case — the universal desktop stand, or one made for your printer | [Model3D/](Model3D/) |
+| 1 | 3D-printed case — the desktop stand, or the integration made for your printer ([above](#the-case-a-desktop-stand-or-built-into-your-printer)) | [MakerWorld](https://makerworld.com/@TigerTag) · [Model3D/](Model3D/) |
 | *opt.* | Magnetic USB connector — the port is the one part handled every day; the cable lets go instead of the socket | [buy](https://link.amazon/B0bWVIBa0) |
 | *opt.* | 3.7 V 1000 mAh LiPo cell, PH1.25 — charged over USB, and the box runs from it with the cable out. Optional: declare it in **Settings › Battery**, since the board cannot detect it. **Check the polarity** | [buy](https://link.amazon/B0fL0jjf3) |
 
@@ -222,6 +271,19 @@ which grades each on three levels — ✅ automatic, ⚙️ one setup step,
 | **Snapmaker** | ✅ implemented, proven on hardware | Moonraker over WebSocket |
 | **Elegoo** | ✅ implemented, reading proven on hardware | MQTT |
 | **Anycubic** | ✅ implemented, reading proven on hardware - LAN mode | MQTT over TLS |
+
+**LAN mode has to be on** on a Creality, a FlashForge or a Bambu Lab in LAN
+mode: TigerSpool talks to the printer over your local network, and with it off
+the printer refuses the connection.
+
+**FlashForge Creator 5 and 5 Pro: use the official FlashForge × TigerSystem
+firmware.** With FlashForge's standard firmware, turning LAN mode on turns
+FlashForge Cloud off. The FlashForge × TigerSystem build - an official
+FlashForge firmware, made by their engineering team at TigerTag's request -
+keeps Cloud and LAN on together. Free, installed from a USB drive:
+**[download it for the Creator 5 or the Creator 5 Pro](https://tigertag-project.github.io/FlashForge-TigerTag-Creator5-Firmware-Lan-and-Cloud/download/creator5/)**.
+Do not accept the printer's own online update afterwards: it puts the standard
+firmware back. Thank you, FlashForge.
 
 A Bambu Lab printer in **cloud mode** is read-only: its spools are shown, but a
 tag cannot be written to it - Bambu's cloud does not accept the command. Switch

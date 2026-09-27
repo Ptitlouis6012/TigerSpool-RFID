@@ -261,7 +261,10 @@ notice and owe nobody compatibility. A printer that worked last month can stop.
 
 **LAN mode.** Creality, FlashForge and Bambu Lab all gate their local APIs behind
 a mode that is off by default. This is the single most common reason a correctly
-configured printer shows as offline.
+configured printer shows as offline. On a FlashForge Creator 5 or 5 Pro with
+FlashForge's standard firmware, LAN mode also turns FlashForge Cloud off; the
+official [FlashForge × TigerSystem firmware](https://tigertag-project.github.io/FlashForge-TigerTag-Creator5-Firmware-Lan-and-Cloud/download/creator5/)
+keeps both on.
 
 **Network segmentation.** Guest networks, VLANs and client isolation on the
 access point will all prevent TigerSpool from reaching a printer that is

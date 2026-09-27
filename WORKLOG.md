@@ -35,6 +35,14 @@ message, and reset it to this header.
   projects, bare parts, Fusion source, previews taken from the projects). Before publishing, object names referring to
   politicians and every `source_file` path (`C:\Users\Admin\Desktop\...`)
   were removed from the 3MFs; the `.f3d` was unpacked and scanned, clean.
+- README: new "The case" section (desktop stand as the base model, printer
+  integrations for the K2, Creator 5, A1/A2 and Kobra 3), MakerWorld links
+  for the four published pages, device screens in `assets/screens/` and the
+  stand render in `assets/`, LAN mode and the FlashForge × TigerSystem
+  firmware under printer support. `Model3D/` README, the desktop, K2 and
+  Creator 5 READMEs and the Creality and FlashForge brand tables carry the
+  MakerWorld links; the Creator 5 README explains the firmware;
+  PRINTER-COMPATIBILITY.md mentions it under LAN mode.
 - `scripts/clean-3mf.py` cuts source paths to file names and lists object
   names for review; `scripts/check-models.py` (in verify.sh) enforces the
   layout, plain lower-case names and no path in a 3MF, untracked files
