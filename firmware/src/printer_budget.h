@@ -72,12 +72,20 @@ namespace budget {
 
 constexpr uint16_t LOAD_SLOTS = 160;
 
-// Load slots for one printer. `sharesCloud` is true when a cloud Bambu has
-// already been counted, so this one rides on its session.
+// Load slots for one printer. `sharesCloud` is true when a cloud printer of the
+// same brand has already been counted, so this one rides on its session.
 inline uint16_t loadSlotsFor(const PrinterCfg& p, bool sharesCloud) {
     switch (p.type) {
         case PT_BAMBU:     return p.cloud ? (sharesCloud ? 4 : 50) : 50;
-        case PT_ANYCUBIC:  return 41;
+        // Like Bambu, every cloud Anycubic of an account shares one session -
+        // the broker allows one per account - so only the first pays for it.
+        // The first cloud one measured 51 KB on the bench (a client
+        // certificate on top of the TLS session), so it is charged as the
+        // first cloud Bambu is. The 4 for each further one is NOT measured:
+        // no bench account has had two Anycubics in cloud mode, so it is the
+        // cloud Bambu's measured figure, taken on the reasoning that a further
+        // printer only adds a subscription. Replace it with a reading.
+        case PT_ANYCUBIC:  return p.cloud ? (sharesCloud ? 4 : 50) : 41;
         case PT_SNAPMAKER: return 5;
         case PT_CREALITY:  return 6;
         case PT_ELEGOO:    return 3;
@@ -93,14 +101,16 @@ inline uint16_t loadSlotsFor(const PrinterCfg& p, bool sharesCloud) {
 // before it is allowed to move. -1 for the current state.
 inline uint16_t used(const PrinterCfg* p, int n, int selected, int flip = -1) {
     uint16_t sum = 0;
-    bool cloudCounted = false;
+    // One flag per brand: a Bambu cloud session carries no Anycubic.
+    bool bambuCloud = false, acuCloud = false;
     for (int i = 0; i < n; i++) {
         if (p[i].type == PT_NONE) continue;
         bool on = p[i].visible;
         if (i == flip) on = !on;
         if (!on && i != selected) continue;
-        sum += loadSlotsFor(p[i], cloudCounted);
-        if (p[i].type == PT_BAMBU && p[i].cloud) cloudCounted = true;
+        const bool isAcu = p[i].type == PT_ANYCUBIC;
+        sum += loadSlotsFor(p[i], isAcu ? acuCloud : bambuCloud);
+        if (p[i].cloud) (isAcu ? acuCloud : bambuCloud) = true;
     }
     return sum;
 }

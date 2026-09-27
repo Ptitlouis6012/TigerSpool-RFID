@@ -36,6 +36,7 @@
 #include "webcfg.h"
 #include "net/ota.h"
 #include "bambu_cloud.h"
+#include "anycubic_cloud.h"
 #include "printer_budget.h"
 #include "product_api.h"
 #include <esp_task_wdt.h>
@@ -870,6 +871,10 @@ static void defer(int pi) { linkDeferUntil[pi] = millis() + LINK_DEFER_MS; }
 // printers the shared session was built to let in.
 static uint32_t priceOf(const PrinterCfg& p, bool foreground) {
     if (p.type == PT_BAMBU && p.cloud && bambu_cloud::active()) return 4000;
+    // Not measured for Anycubic: no bench has had a second cloud Anycubic. It is
+    // the cloud Bambu's figure - see printer_budget.h.
+    if (p.type == PT_ANYCUBIC && p.cloud && anycubic_cloud::active()) return 4000;
+    if (p.type == PT_ANYCUBIC && p.cloud) return 56000;   // 51 KB measured
     return linkCost(p.type, foreground);
 }
 static bool roomFor(const PrinterCfg& p, bool foreground) {
@@ -2849,7 +2854,7 @@ void loop() {
         screen_slots::show(printers[selectedPrinter].name.c_str(), backend,
                            selSlot, nfcReady, (int)linkState,
                            linkTries, linkBudget, ttcloud::asyncBusy(),
-                           printers[selectedPrinter].cloud);
+                           readOnly(printers[selectedPrinter]));
         lvgl_port::loop();
 
         if (screen_slots::takeCancelLink()) {
@@ -2869,7 +2874,7 @@ void loop() {
             // A cloud printer is read here and written nowhere. The tap is
             // answered with why, instead of opening a scan whose Send could
             // never land.
-            if (printers[selectedPrinter].cloud) {
+            if (readOnly(printers[selectedPrinter])) {
                 screen_slots::invalidate();
                 state = ST_CLOUD_SLOT; stateSince = millis();
             } else {

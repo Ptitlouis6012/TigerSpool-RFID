@@ -15,8 +15,11 @@
 // never paired in that slicer cannot be reached by anything here.
 //
 // A printer is in LAN mode OR cloud mode, never both, and a cloud-mode printer
-// opens no local port at all. This backend is the LAN half; the cloud half is a
-// different service with signed requests and a different broker.
+// opens no local port at all. This backend speaks to both: the same
+// multiColorBox messages on the same topic shapes, over its own broker on the
+// LAN, or over Anycubic's cloud broker through the one session every cloud
+// printer of the account shares (anycubic_cloud.h). In cloud mode the device id
+// is the printer's broker key and the model is its machine type.
 //
 // Slots are discovered from the printer's own layout report. Box -1 is the
 // external unit and is NOT one spool - an ACE Pro 2 reports it with four slots
@@ -47,6 +50,7 @@ private:
     void applyLayout(JsonArrayConst boxes);
     void onMqtt(uint8_t* payload, unsigned int len);
     String envelope(const char* action, const String& data);
+    bool   send(const String& body);
 
     WiFiClientSecure net_;          // one TLS session per printer
     PubSubClient     mqtt_{net_};
@@ -57,6 +61,7 @@ private:
     String    host_, devId_, user_, pass_, model_;
     String    topCmd_, topReport_;
     bool      connected_ = false;
+    bool      cloud_ = false;        // reached through anycubic_cloud, not the LAN
     String    status_ = "Anycubic: connecting...";
     uint32_t  lastTry_ = 0, lastPoll_ = 0, msg_ = 0;
     // Set only when all four credentials are present and the client is

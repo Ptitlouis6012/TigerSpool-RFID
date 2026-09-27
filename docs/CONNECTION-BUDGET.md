@@ -73,6 +73,8 @@ reserve above.
 | **Each further Bambu Lab in cloud mode** | 3.6 KB | **4** | only subscribes to the shared session |
 | **Bambu Lab in LAN mode** | *not measured* | **50** | its own broker, its own TLS session |
 | **Anycubic** | 40.4 KB | **41** | TLS |
+| **First Anycubic in cloud mode** | 51 KB | **50** | opens the TLS session, with a client certificate, every cloud Anycubic on the account shares |
+| **Each further Anycubic in cloud mode** | *not measured* ([#19](https://github.com/TigerTag-Project/TigerSpool-RFID/issues/19)) | **4** | only subscribes to the shared session - charged as a further cloud Bambu |
 | **Creality** | 5.6 KB | **6** | WebSocket |
 | **Snapmaker** | 4.9 KB | **5** | WebSocket |
 | **Elegoo** | 2.5 KB | **3** | plain MQTT, no TLS |
@@ -86,7 +88,8 @@ replace it.
 
 ### Per connection, not per printer
 
-Only the cloud Bambu depends on what else is open. Every Bambu in cloud mode on
+Only the cloud printers depend on what else is open - Bambu and Anycubic
+alike, each with a session of its own brand. Every Bambu in cloud mode on
 one account talks to the same regional broker with the same credentials, so
 they share **one** TLS session ([`bambu_cloud.cpp`](../firmware/src/bambu_cloud.cpp)):
 the first pays for it, each further one is a subscription on it.

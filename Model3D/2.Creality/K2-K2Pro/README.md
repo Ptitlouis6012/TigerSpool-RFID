@@ -10,9 +10,8 @@ K2 and K2 Pro: the same TigerSpool, in a case that clips onto the printer's own
 touchscreen, with the TigerSpool screen beside it and the reader on the side -
 right above the CFS.
 
-**Turn LAN mode on** in the K2's network settings. TigerSpool reaches the
-printer over your local network, and with LAN mode off the printer refuses the
-connection.
+Nothing to switch on: the K2 accepts TigerSpool's local requests while it stays
+on Creality Cloud.
 
 <img src="Images/tigerspool-k2-photo-front-left.jpg" alt="The case on the printer, from the front left" width="360">
 

@@ -18,6 +18,8 @@ message, and reset it to this header.
 
 ## Unreleased
 
+## 2026-09-27 - Anycubic cloud mode, printable cases and a README that shows them (released in 1.68.0)
+
 ### Added
 
 - Printer-mounted cases: `2.Creality/K2-K2Pro/` (Creality Print projects for
@@ -43,6 +45,18 @@ message, and reset it to this header.
   Creator 5 READMEs and the Creality and FlashForge brand tables carry the
   MakerWorld links; the Creator 5 README explains the firmware;
   PRINTER-COMPATIBILITY.md mentions it under LAN mode.
+- Anycubic cloud mode: `anycubic_cloud.cpp` (one MQTT/TLS session to
+  `mqtt-universe.anycubic.com:8883` per account, signed in as `web` beside Tiger
+  Studio's `pcf`; getInfo/setInfo published on it as on the LAN) and
+  `net/legacy_tls_client.cpp` (the broker's certificate is SHA-1 signed and it
+  wants mutual TLS). Token, email and client certificate read from the cloud
+  printer's account document, held in RAM only: NVS silently failed to store
+  the 238-character token. Measured on a Kobra X: connect, read, six writes;
+  51 KB for the session (budget 50 / 4). Tiger Studio's REST orders were tried
+  and dropped - a second TLS session ran the device out of memory and wedged
+  its network.
+- Anycubic grid kept one slot after a set: a report smaller than the known
+  grid now updates it in place instead of rebuilding it (LAN and cloud).
 - README printer support: every model Tiger Studio Manager offers, plus the
   Kobra 3 Max V2 and the four Elegoo Centauri, one per row with LAN and Cloud
   columns (Cloud: Bambu Lab only, read only); every README table centred.

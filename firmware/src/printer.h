@@ -64,6 +64,11 @@ struct PrinterCfg {
     bool visible = true;
 };
 
+// A printer this device can read and must not write: a Bambu Lab in cloud mode,
+// whose broker refuses the tray commands. An Anycubic in cloud mode is not one
+// of them - its cloud broker takes the same writes as its LAN one.
+inline bool readOnly(const PrinterCfg& p) { return p.cloud && p.type == PT_BAMBU; }
+
 // What the printer says is currently in one slot.
 struct SlotState {
     bool    known = false;           // has the printer reported this slot yet?

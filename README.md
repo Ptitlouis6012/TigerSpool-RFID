@@ -285,74 +285,27 @@ which grades each on three levels — ✅ automatic, ⚙️ one setup step,
 | **Bambu Lab** | ✅ implemented, proven on hardware - LAN and cloud mode | MQTT over TLS |
 | **Snapmaker** | ✅ implemented, proven on hardware | Moonraker over WebSocket |
 | **Elegoo** | ✅ implemented, reading proven on hardware | MQTT |
-| **Anycubic** | ✅ implemented, reading proven on hardware - LAN mode | MQTT over TLS |
+| **Anycubic** | ✅ implemented, proven on hardware - LAN and cloud mode | MQTT over TLS |
 
 </div>
 
-**Every model, and how TigerSpool reaches it.** LAN is the printer on your own
-network; Cloud is the printer reached through its maker's servers, with no LAN
-mode.
+**How TigerSpool reaches each printer, and what to switch on first.** A
+**Combo** is the same printer with its AMS, CFS, ACE or CANVAS attached, and
+works the same way.
 
 <div align="center">
 
-| Printer | LAN | Cloud |
-|---|:---:|:---:|
-| Creality K1 | ✓ | ✕ |
-| Creality K1C | ✓ | ✕ |
-| Creality K1 SE | ✓ | ✕ |
-| Creality K1 Max | ✓ | ✕ |
-| Creality K2 | ✓ | ✕ |
-| Creality K2 SE | ✓ | ✕ |
-| Creality K2 Pro | ✓ | ✕ |
-| Creality K2 Plus | ✓ | ✕ |
-| Creality Hi | ✓ | ✕ |
-| Creality Ender-3 V4 | ✓ | ✕ |
-| Creality SparkX i7 | ✓ | ✕ |
-| FlashForge Creator 5 | ✓ | ✕ |
-| FlashForge Creator 5 Pro | ✓ | ✕ |
-| FlashForge AD5X | ✓ | ✕ |
-| FlashForge Adventurer 5M | ✓ | ✕ |
-| FlashForge Adventurer 5M Pro | ✓ | ✕ |
-| FlashForge A5 | ✓ | ✕ |
-| Bambu Lab A1 mini | ✓ | ✓ read only |
-| Bambu Lab A1 | ✓ | ✓ read only |
-| Bambu Lab A2L | ✓ | ✓ read only |
-| Bambu Lab P1P | ✓ | ✓ read only |
-| Bambu Lab P1S | ✓ | ✓ read only |
-| Bambu Lab P2S | ✓ | ✓ read only |
-| Bambu Lab X1C | ✓ | ✓ read only |
-| Bambu Lab X1E | ✓ | ✓ read only |
-| Bambu Lab X2D | ✓ | ✓ read only |
-| Bambu Lab H2D | ✓ | ✓ read only |
-| Bambu Lab H2D Pro | ✓ | ✓ read only |
-| Bambu Lab H2S | ✓ | ✓ read only |
-| Bambu Lab H2C | ✓ | ✓ read only |
-| Snapmaker U1 | ✓ | ✕ |
-| Elegoo Centauri 2 | ✓ | ✕ |
-| Elegoo Centauri 2 Combo | ✓ | ✕ |
-| Elegoo Centauri Carbon 2 | ✓ | ✕ |
-| Elegoo Centauri Carbon 2 Combo | ✓ | ✕ |
-| Anycubic Kobra 3 Combo | ✓ | ✕ |
-| Anycubic Kobra 3 V2 | ✓ | ✕ |
-| Anycubic Kobra 3 Max | ✓ | ✕ |
-| Anycubic Kobra 3 Max V2 | ✓ | ✕ |
-| Anycubic Kobra S1 Combo | ✓ | ✕ |
-| Anycubic Kobra X | ✓ | ✕ |
+| Printer | Mode | What to do on the printer |
+|---|:---:|---|
+| **Bambu Lab**<br>Bambu Lab A1 mini<br>Bambu Lab A1<br>Bambu Lab A2L<br>Bambu Lab P1P<br>Bambu Lab P1S<br>Bambu Lab P2S<br>Bambu Lab X1C<br>Bambu Lab X1E<br>Bambu Lab X2D<br>Bambu Lab H2D<br>Bambu Lab H2D Pro<br>Bambu Lab H2S<br>Bambu Lab H2C | LAN<br>Cloud, read only | LAN: turn on **LAN mode and Developer mode** on the printer. Cloud: nothing on the printer - the spools are shown, but a tag cannot be written to the slot. |
+| **Creality**<br>Creality K1<br>Creality K1C<br>Creality K1 SE<br>Creality K1 Max<br>Creality K2<br>Creality K2 SE<br>Creality K2 Pro<br>Creality K2 Plus<br>Creality Hi<br>Creality Ender-3 V4<br>Creality SparkX i7 | LAN | Nothing: the printer accepts local requests while it stays on Creality Cloud. |
+| **FlashForge**<br>FlashForge Creator 5<br>FlashForge Creator 5 Pro | LAN | Either turn **LAN mode** on - which disconnects FlashForge Cloud - or install the [FlashForge × TigerTag firmware](https://tigertag-project.github.io/FlashForge-TigerTag-Creator5-Firmware-Lan-and-Cloud/download/creator5/), which keeps LAN and Cloud on together. |
+| **FlashForge**<br>FlashForge AD5X<br>FlashForge Adventurer 5M<br>FlashForge Adventurer 5M Pro<br>FlashForge A5 | LAN | Turn **LAN mode** on. It disconnects FlashForge Cloud. |
+| **Anycubic**<br>Anycubic Kobra 3<br>Anycubic Kobra 3 V2<br>Anycubic Kobra 3 Max<br>Anycubic Kobra 3 Max V2<br>Anycubic Kobra S1<br>Anycubic Kobra X | LAN<br>Cloud | Your choice. **LAN mode**: pair the printer once in AnycubicSlicerNext - its credentials come from there, through Tiger Studio. **Anycubic Cloud**: add it to Tiger Studio in cloud mode; TigerSpool connects beside Tiger Studio without taking its place. |
+| **Elegoo**<br>Elegoo Centauri 2<br>Elegoo Centauri 2 Combo<br>Elegoo Centauri Carbon 2<br>Elegoo Centauri Carbon 2 Combo | LAN | Nothing: the access code comes from your account. |
+| **Snapmaker**<br>Snapmaker U1 | LAN | Nothing. |
 
 </div>
-
-**LAN mode has to be on** on a Creality, a FlashForge or a Bambu Lab in LAN
-mode: TigerSpool talks to the printer over your local network, and with it off
-the printer refuses the connection.
-
-**FlashForge Creator 5 and 5 Pro: use the official FlashForge × TigerSystem
-firmware.** With FlashForge's standard firmware, turning LAN mode on turns
-FlashForge Cloud off. The FlashForge × TigerSystem build - an official
-FlashForge firmware, made by their engineering team at TigerTag's request -
-keeps Cloud and LAN on together. Free, installed from a USB drive:
-**[download it for the Creator 5 or the Creator 5 Pro](https://tigertag-project.github.io/FlashForge-TigerTag-Creator5-Firmware-Lan-and-Cloud/download/creator5/)**.
-Do not accept the printer's own online update afterwards: it puts the standard
-firmware back. Thank you, FlashForge.
 
 A Bambu Lab printer in **cloud mode** is read-only: its spools are shown, but a
 tag cannot be written to it - Bambu's cloud does not accept the command. Switch
@@ -378,7 +331,9 @@ takes what its connection costs:
 | First Bambu Lab in cloud mode | 50 |
 | Each further Bambu Lab in cloud mode | 4 - they share one connection |
 | Bambu Lab in LAN mode | 50 |
-| Anycubic | 41 |
+| Anycubic in LAN mode | 41 |
+| First Anycubic in cloud mode | 50 |
+| Each further Anycubic in cloud mode | 4 - they share one connection |
 | Creality | 6 |
 | Snapmaker | 5 |
 | Elegoo | 3 |
@@ -428,7 +383,8 @@ Written down rather than discovered.
   produced the image. The reasoning and the condition for changing that are in
   [docs/OTA.md](docs/OTA.md).
 - **At most three printers that use TLS at once** - Bambu Lab in LAN mode and
-  Anycubic, with every cloud Bambu on an account counting as one. It is the
+  Anycubic, with every cloud Bambu on an account counting as one and every
+  cloud Anycubic as one more. It is the
   chip's internal RAM, and the load budget enforces it; see
   [docs/CONNECTION-BUDGET.md](docs/CONNECTION-BUDGET.md). The two ways past it
   are in [docs/ROADMAP.md](docs/ROADMAP.md).
@@ -436,7 +392,6 @@ Written down rather than discovered.
   whether a cell is on its connector - no sense line, and the two indirect
   signals were each measured wrong on real hardware - so it asks instead of
   guessing. Until someone answers, it reports no battery.
-- **Anycubic in cloud mode is not supported**, only LAN mode.
 - **A printer is identified by its position in your account's list.** Reordering
   it in Tiger Studio can move a per-printer setting to the wrong machine. Tracked
   in [docs/reviews/](docs/reviews/).

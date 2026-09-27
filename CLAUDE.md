@@ -12,7 +12,7 @@ are settled. This file adds what a Claude session needs on top of it.
 | Touch | CST816S capacitive, on the same board |
 | Reader | PN532 over HSU (UART1) at 115200 — **GPIO44 RX, GPIO43 TX** |
 | UI | LVGL 8 over LovyanGFX. DMA draw buffers in internal RAM, LVGL heap in PSRAM |
-| Printers | One backend object per printer behind `printer.h`; Bambu MQTT/TLS (cloud Bambus share one session, `bambu_cloud.cpp`), Anycubic MQTT/TLS, Elegoo MQTT, Creality/Snapmaker WebSocket, FlashForge HTTP. How many at once: `printer_budget.h`, `docs/CONNECTION-BUDGET.md` |
+| Printers | One backend object per printer behind `printer.h`; Bambu MQTT/TLS (cloud Bambus share one session, `bambu_cloud.cpp`), Anycubic MQTT/TLS (cloud Anycubics share one session, `anycubic_cloud.cpp`), Elegoo MQTT, Creality/Snapmaker WebSocket, FlashForge HTTP. How many at once: `printer_budget.h`, `docs/CONNECTION-BUDGET.md` |
 | Account | TigerTag Firebase — email/password, or code-and-QR pairing for Google |
 | Build | PlatformIO, one environment: `tigerspool`. `cd firmware && pio run -e tigerspool` |
 | Flash | Two 4 MB OTA slots, NVS at `0x9000` — `firmware/partitions.csv` |

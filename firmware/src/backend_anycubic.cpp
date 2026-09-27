@@ -1,5 +1,6 @@
 #include "backend_anycubic.h"
 #include "i18n.h"
+#include "anycubic_cloud.h"
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <PubSubClient.h>
@@ -34,7 +35,16 @@ int AnycubicBackend::findSlot(int box, int index) const {
 }
 
 void AnycubicBackend::applyLayout(JsonArrayConst boxes) {
-    rebuild(boxes);
+    // A report can describe the whole layout or only part of it: the answer to
+    // a setInfo carries just the slot that was set. Rebuilt from that, the grid
+    // kept one slot of four. So only a report with at least as many slots as
+    // the grid already knows reshapes it; a smaller one updates in place.
+    int inReport = 0;
+    for (JsonObjectConst b : boxes) {
+        JsonArrayConst sl = b["slots"];
+        if (!sl.isNull()) inReport += sl.size();
+    }
+    if (nSlots_ == 0 || inReport >= nSlots_) rebuild(boxes);
     for (JsonObjectConst b : boxes) {
         if (!b["id"].is<int>()) continue;
         const int id = b["id"];
@@ -91,6 +101,24 @@ void AnycubicBackend::begin(const PrinterCfg& cfg) {
     nSlots_ = 0;
     connected_ = false;
     ready_ = false;
+    cloud_ = cfg.cloud;
+
+    if (cloud_) {
+        // The broker key and machine type are the printer's; the account's
+        // email and token reach the cloud session from the sync
+        // (anycubic_cloud::setAccount), which says so itself if they are missing.
+        if (devId_.isEmpty() || model_.isEmpty()) {
+            status_ = "Anycubic Cloud: not added in Tiger Studio";
+            Serial.printf("[anycubic] cloud printer incomplete -%s%s\n",
+                          devId_.isEmpty() ? " key" : "", model_.isEmpty() ? " machineType" : "");
+            return;
+        }
+        ready_ = anycubic_cloud::attach(devId_, model_, user_, pass_,
+                                        [this](uint8_t* p, unsigned l) { onMqtt(p, l); });
+        status_ = ready_ ? "Anycubic Cloud: connecting..." : "Anycubic Cloud: too many cloud printers";
+        lastTry_ = 0;
+        return;
+    }
 
     if (devId_.isEmpty() || user_.isEmpty() || model_.isEmpty()) {
         // Said once, plainly, rather than discovered as a connection that never
@@ -138,6 +166,23 @@ void AnycubicBackend::begin(const PrinterCfg& cfg) {
 
 void AnycubicBackend::loop() {
     if (!ready_) return;                       // nothing to connect to
+    if (cloud_) {
+        anycubic_cloud::loop();
+        const bool up = anycubic_cloud::connected(devId_);
+        if (up && !connected_) {
+            connected_ = true;
+            status_ = "Anycubic Cloud: connected";
+            Serial.println("[anycubic] cloud session up - asking for the layout");
+            refresh();
+        } else if (!up) {
+            connected_ = false;
+            status_ = anycubic_cloud::why();
+        }
+        // A getInfo is one publish on the session already open; the printer
+        // also reports on its own after every set.
+        if (up && millis() - lastPoll_ > 60000) { lastPoll_ = millis(); refresh(); }
+        return;
+    }
     if (!mqtt_.connected()) {
         if (connected_)
             Serial.printf("[anycubic] session lost, state %d\n", mqtt_.state());
@@ -165,6 +210,12 @@ void AnycubicBackend::loop() {
 }
 
 void AnycubicBackend::stop() {
+    if (cloud_) {
+        anycubic_cloud::detach(devId_);
+        connected_ = false;
+        status_ = "Anycubic Cloud: stopped";
+        return;
+    }
     mqtt_.disconnect();
     connected_ = false;
     status_ = "Anycubic: stopped";
@@ -184,13 +235,20 @@ const SlotState& AnycubicBackend::slot(int i) {
     return slots_[(i >= 0 && i < AMAX) ? i : 0];
 }
 
+// One path out for both transports, so a command cannot be built one way for
+// the LAN and another way for the cloud.
+bool AnycubicBackend::send(const String& body) {
+    if (cloud_) return anycubic_cloud::publish(devId_, body);
+    return mqtt_.connected() && mqtt_.publish(topCmd_.c_str(), body.c_str());
+}
+
 void AnycubicBackend::refresh() {
-    if (!mqtt_.connected()) return;
-    mqtt_.publish(topCmd_.c_str(), envelope("getInfo", "").c_str());
+    if (!connected_) return;
+    send(envelope("getInfo", ""));
 }
 
 bool AnycubicBackend::assign(int idx, const TagInfo& t) {
-    if (idx < 0 || idx >= nSlots_ || !mqtt_.connected()) return false;
+    if (idx < 0 || idx >= nSlots_ || !connected_) return false;
 
     // The printer honours only index, type and colour. Richer fields are
     // accepted with code 200 and silently dropped, so sending them would make
@@ -212,9 +270,9 @@ bool AnycubicBackend::assign(int idx, const TagInfo& t) {
     String data; serializeJson(d, data);
     const String out = envelope("setInfo", data);
     Serial.printf("[anycubic] -> %s\n", out.c_str());
-    if (!mqtt_.publish(topCmd_.c_str(), out.c_str())) return false;
+    if (!send(out)) return false;
 
-    status_ = String("Anycubic: sent -> ") + slotLabel(idx);
+    status_ = String(cloud_ ? "Anycubic Cloud: sent -> " : "Anycubic: sent -> ") + slotLabel(idx);
     // There is no per-command acknowledgement. A getInfo round-trip is the only
     // thing that says what actually landed.
     refresh();

@@ -7,21 +7,38 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.68.0] - 2026-09-27
+
 ### Added
 
+- **Anycubic printers in cloud mode**, read and written. Tiger Studio writes
+  the account's token and Anycubic's shared client certificate on the cloud
+  printer's document; the device opens one session to Anycubic's broker for
+  every cloud Anycubic on the account, and signs in as a web client so Tiger
+  Studio and the slicer stay connected beside it. Proven on a Kobra X:
+  connect, read and six writes. The first cloud Anycubic costs 50 load slots,
+  each further one 4 - that second figure is not measured yet (#19).
 - **The first printable case: a desktop stand** that fits beside any printer,
   with the spool on the left of the screen or on the right. Bambu Studio and
-  Creality Print projects, every part on its own, and the Fusion source. The printable cases now live
-  in `Model3D/`: the universal stand in `0.Desktop/`, then one directory per
-  brand and one per printer model inside it ([Model3D/README.md](Model3D/README.md)).
-- **Cases that mount on the printer**: the Creality K2 and K2 Pro, the Bambu
-  Lab A1 and A2L, the FlashForge Creator 5 and Creator 5 Pro, and every Anycubic
-  Kobra 3 - each a frame, a cover and a reader holder, with slicer projects
-  and the Fusion source where there is one.
-- **The README shows the device and where to print it.** The desktop stand as
+  Creality Print projects, every part on its own, and the Fusion source. The
+  printable cases now live in `Model3D/`: the universal stand in `0.Desktop/`,
+  then one directory per brand and one per printer model inside it
+  ([Model3D/README.md](Model3D/README.md)).
+- **Cases that clip onto the printer's screen**: the Creality K2 and K2 Pro,
+  the Bambu Lab A1 and A2L, the FlashForge Creator 5 and Creator 5 Pro, and
+  every Anycubic Kobra 3 - each a frame, a cover and a reader holder, with
+  slicer projects and the Fusion source where there is one.
+- **The README shows the device and where to print it**: the desktop stand as
   the base model, the printer integrations beside it, a MakerWorld link for
-  every published model, the screens you tap through, and the FlashForge ×
-  TigerSystem firmware that keeps Cloud and LAN on together on a Creator 5.
+  every published model, the screens you tap through, every compatible
+  printer with what to switch on first, and the FlashForge × TigerTag firmware
+  that keeps Cloud and LAN on together on a Creator 5.
+
+### Fixed
+
+- **An Anycubic's grid no longer drops to one slot after a spool is sent.** The
+  printer answers a set with a report carrying only the slot that was set, and
+  the grid was rebuilt from it. LAN and cloud alike.
 
 ## [1.67.0] - 2026-09-23
 

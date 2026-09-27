@@ -1,4 +1,5 @@
 #include "tigertag_cloud.h"
+#include "anycubic_cloud.h"
 
 #include <memory>
 #include "printer.h"
@@ -529,6 +530,10 @@ bool ttcloud::syncNow(String& summary) {
         "serial", "serialNumber", "sn", "deviceId",
         "password", "dev_access_code", "accessCode", "access_code", "checkCode",
         "mqttPassword", "username", "acuModelId",
+        // An Anycubic in cloud mode: its broker key and machine type, and the
+        // Anycubic account's email and workbench token that sign the session.
+        "key", "machineType", "cloudPrinterId", "cloudEmail", "cloudToken",
+        "acuCloudCaDerB64", "acuCloudClientCertPem", "acuCloudClientKeyPem",
         "discovery.method", "discovery.transport", "discovery.ip",
         "discovery.deviceSn", "discovery.hostName", "discovery.acuModelId"
     };
@@ -649,15 +654,16 @@ bool ttcloud::syncNow(String& summary) {
             // Cloud printers used to be dropped here. They are imported now -
             // a printer the user owns should appear on the device even when
             // the device cannot write to it, and being told why is better than
-            // wondering where it went. Only Bambu Lab, though: it is the one
-            // maker whose cloud this firmware can read.
+            // wondering where it went. Bambu Lab's cloud is read here, and
+            // Anycubic's is read AND written; the other makers' are not reached.
             if (cloud) {
                 cloudN++;
-                if (t != PT_BAMBU) {
+                if (t != PT_BAMBU && t != PT_ANYCUBIC) {
                     Serial.println("[account]     ignored: cloud mode, no reader for this brand");
                     ignored++; continue;
                 }
-                Serial.println("[account]     cloud mode: imported read-only");
+                Serial.println(t == PT_BAMBU ? "[account]     cloud mode: imported read-only"
+                                             : "[account]     cloud mode: imported");
             }
             if (t == PT_NONE) {
                 Serial.printf("[account]     skipped: %s has no backend / unsupported model\n", brand);
@@ -700,11 +706,34 @@ bool ttcloud::syncNow(String& summary) {
                     // numeric model and half of every topic, the second is the
                     // TigerTag catalogue id that chose this backend. Confusing
                     // them connects to a broker that answers nothing.
-                    p.devId = fsStr(f, "deviceId");
-                    p.user  = fsStr(f, "username");
-                    p.model = fsAny(f, { "acuModelId" });
-                    Serial.printf("[account]     anycubic devId='%s' user='%s' acuModel='%s'\n",
-                                  p.devId.c_str(), p.user.c_str(), p.model.c_str());
+                    if (cloud) {
+                        // The same four fields, filled from the cloud document:
+                        // the broker key is the device id of the topics, the
+                        // machine type is their model, and the session signs in
+                        // with the Anycubic account's email and token. The
+                        // token is never logged - it is a live credential.
+                        p.devId = fsStr(f, "key");
+                        p.model = fsAny(f, { "machineType", "acuModelId" });
+                        p.user  = fsStr(f, "cloudEmail");
+                        // The token goes to the cloud session, in RAM, and not
+                        // into p.cc: the printer's NVS keys cannot hold it.
+                        const String tok = fsStr(f, "cloudToken");
+                        anycubic_cloud::setAccount(p.user, tok);
+                        anycubic_cloud::setIdentity(fsStr(f, "acuCloudCaDerB64"),
+                                                    fsStr(f, "acuCloudClientCertPem"),
+                                                    fsStr(f, "acuCloudClientKeyPem"));
+                        const String cid = fsStr(f, "cloudPrinterId");
+                        if (cid.length()) p.sn = cid;
+                        Serial.printf("[account]     anycubic cloud key='%s' machineType='%s' printer=%s token=%s\n",
+                                      p.devId.c_str(), p.model.c_str(), p.sn.c_str(),
+                                      tok.length() ? "present" : "MISSING");
+                    } else {
+                        p.devId = fsStr(f, "deviceId");
+                        p.user  = fsStr(f, "username");
+                        p.model = fsAny(f, { "acuModelId" });
+                        Serial.printf("[account]     anycubic devId='%s' user='%s' acuModel='%s'\n",
+                                      p.devId.c_str(), p.user.c_str(), p.model.c_str());
+                    }
                 }
             }
             // The same printer can appear twice in an account - two FlashForge
