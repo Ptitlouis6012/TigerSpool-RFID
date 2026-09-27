@@ -2,8 +2,14 @@
 
 ![The parts on the Bambu Studio plate](Images/tigerspool-kobra3-bambu-studio-plate.png)
 
-A TigerSpool case made for every Anycubic Kobra 3 model. It clips onto the
-printer's screen.
+A printer integration of the [desktop stand](../../0.Desktop/) for every
+Anycubic Kobra 3 model: the same TigerSpool, in a case that clips onto the
+printer's screen. It fits:
+
+- Anycubic Kobra 3
+- Anycubic Kobra 3 V2
+- Anycubic Kobra 3 Max
+- Anycubic Kobra 3 Max V2
 
 ## Parts
 

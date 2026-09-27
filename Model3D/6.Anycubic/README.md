@@ -10,4 +10,4 @@ of them.
 
 | Model | Fits | Directory |
 |---|---|---|
-| [Kobra 3 series](Kobra3-Series/) | Every Anycubic Kobra 3 model - clips onto the screen | `Kobra3-Series/` |
+| [Kobra 3 series](Kobra3-Series/) | Anycubic Kobra 3, Kobra 3 V2, Kobra 3 Max, Kobra 3 Max V2 - clips onto the screen | `Kobra3-Series/` |
