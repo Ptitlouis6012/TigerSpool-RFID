@@ -2,7 +2,7 @@
 
 <img src="Images/tigerspool-k2-photo-front.jpg" alt="The case on a K2 Pro, around its touchscreen" width="360"> <img src="Images/tigerspool-k2-photo-side.jpg" alt="The case from the side, with the reader" width="360">
 
-A TigerSpool case made for the Creality K2 and K2 Pro. It sits around the
+A TigerSpool case made for the Creality K2 and K2 Pro. It clips onto the
 printer's own touchscreen, with the TigerSpool screen beside it and the reader
 on the side.
 
