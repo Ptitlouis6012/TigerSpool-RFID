@@ -91,14 +91,20 @@ sure. It comes in two mirrored versions, the spool on the left of the screen or
 on the right. No screws, no inserts: it is 100 % printed, and it prints without
 supports.
 
+<div align="center">
+
 | Spool on the left | Spool on the right |
 |---|---|
 | <img src="Model3D/0.Desktop/Images/Left/tigerspool-desk-left-render.png" alt="The desktop stand, spool on the left" width="260"> | <img src="Model3D/0.Desktop/Images/Right/tigerspool-desk-right-render.png" alt="The desktop stand, spool on the right" width="260"> |
 | **[Print it from MakerWorld](https://makerworld.com/models/3360492-tigerspool-desktop-stand-spool-on-the-left)** · [files](Model3D/0.Desktop/) | **[Print it from MakerWorld](https://makerworld.com/models/3360619-tigerspool-desktop-stand-spool-on-the-right)** · [files](Model3D/0.Desktop/) |
 
+</div>
+
 **The printer integrations** are the same TigerSpool - same board, same reader,
 same firmware - in a shell that clips onto a printer's own screen, so the box
 lives where the spools are loaded.
+
+<div align="center">
 
 | Printer | | Print it |
 |---|---|---|
@@ -106,6 +112,8 @@ lives where the spools are loaded.
 | **FlashForge Creator 5**<br>**FlashForge Creator 5 Pro** | <img src="Model3D/4.FlashForge/Creator5-5Pro/Images/tigerspool-creator5-closeup.jpg" alt="TigerSpool clipped onto a Creator 5 Pro, its screen on and the RFID logo on the side" width="240"> | **[MakerWorld](https://makerworld.com/models/3361301-tigerspool-rfid-for-flashforge-creator-5-and-5-pro)** · [files](Model3D/4.FlashForge/Creator5-5Pro/)<br><br>**[Firmware "FlashForge × TigerTag"](https://tigertag-project.github.io/FlashForge-TigerTag-Creator5-Firmware-Lan-and-Cloud/download/creator5/)**<br>LAN + Cloud<br>Recommended |
 | **Bambu Lab A1**<br>**Bambu Lab A2**<br>**Bambu Lab A2L** | <img src="Model3D/1.BambuLab/A1-A2/Images/tigerspool-a1-a2-bambu-studio-plate.png" alt="The A1 and A2 case on the slicer plate" width="160"> | [files](Model3D/1.BambuLab/A1-A2/) - not on MakerWorld yet |
 | **Anycubic Kobra 3**<br>**Anycubic Kobra 3 V2**<br>**Anycubic Kobra 3 Max**<br>**Anycubic Kobra 3 Max V2** | <img src="Model3D/6.Anycubic/Kobra3-Series/Images/tigerspool-kobra3-bambu-studio-plate.png" alt="The Kobra 3 case on the slicer plate" width="160"> | [files](Model3D/6.Anycubic/Kobra3-Series/) - not on MakerWorld yet |
+
+</div>
 
 Every model, its print settings and how to add one: **[Model3D/](Model3D/)**.
 
