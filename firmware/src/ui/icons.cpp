@@ -275,6 +275,7 @@ lv_obj_t* build(lv_obj_t* parent, Id id, uint32_t c, int scale) {
     case WIFI:    return symbol(parent, LV_SYMBOL_WIFI, c);
     case UPDATE:  return symbol(parent, LV_SYMBOL_DOWNLOAD, c);
     case RESTART: return symbol(parent, LV_SYMBOL_REFRESH, c);
+    case POWER:   return symbol(parent, LV_SYMBOL_POWER, c);
     case ERASE:   return symbol(parent, LV_SYMBOL_TRASH, c);
     // Text, so it tints through text_color like any other glyph - unlike the
     // drawn icons below, which tint through border_color or bg_color. No face

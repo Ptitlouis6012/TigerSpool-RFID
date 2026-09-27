@@ -196,6 +196,9 @@ static const Row STR[S_COUNT] = {
 /* S_SIG_FAIR       */ {{ "Fair", "Moyen", "Mittel", "Media", "Medio", "Średni", "Médio", "Médio", "一般" }},
 /* S_SIG_WEAK       */ {{ "Weak", "Faible", "Schwach", "Débil", "Debole", "Słaby", "Fraco", "Fraco", "较弱" }},
 /* S_CHANNEL        */ {{ "Channel", "Canal", "Kanal", "Canal", "Canale", "Kanał", "Canal", "Canal", "信道" }},
+/* S_POWER_OFF      */ {{ "Turn off", "Éteindre", "Ausschalten", "Apagar", "Spegni", "Wyłącz", "Desligar", "Desligar", "关机" }},
+/* S_POWER_OFF_Q    */ {{ "Turn the TigerSpool off?", "Éteindre la TigerSpool ?", "TigerSpool ausschalten?", "Apagar la TigerSpool?", "Spegnere la TigerSpool?", "Wyłączyć TigerSpool?", "Desligar o TigerSpool?", "Desligar o TigerSpool?", "关闭 TigerSpool?" }},
+/* S_POWER_OFF_HINT */ {{ "To turn it back on, unplug the USB cable and plug it back in.", "Pour la rallumer, débranchez le câble USB puis rebranchez-le.", "Zum Einschalten das USB-Kabel ab- und wieder anstecken.", "Para encenderla, desconecte el cable USB y vuelva a conectarlo.", "Per riaccenderla, scollega il cavo USB e ricollegalo.", "Aby włączyć, odłącz kabel USB i podłącz go ponownie.", "Para ligar de novo, desconecte o cabo USB e conecte-o novamente.", "Para voltar a ligar, desligue o cabo USB e volte a ligá-lo.", "重新插拔 USB 线即可开机。" }},
 };
 
 // A mismatch here is silent at runtime and reads as garbled text on screen, so

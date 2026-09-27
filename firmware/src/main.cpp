@@ -37,6 +37,8 @@
 #include "net/ota.h"
 #include "bambu_cloud.h"
 #include "anycubic_cloud.h"
+#include <esp_sleep.h>
+#include <driver/gpio.h>
 #include "printer_budget.h"
 #include "product_api.h"
 #include <esp_task_wdt.h>
@@ -114,7 +116,7 @@ static bool wifiReasonIsAuthFailure(uint8_t reason);   // likewise
 static const char* wifiReasonStr(uint8_t reason);      // likewise
 
 enum State { ST_LANG, ST_WIFI, ST_AP, ST_ACCOUNT, ST_MAIN, ST_READ, ST_SETTINGS, ST_PICK, ST_SET_WIFI, ST_SET_ACCOUNT, ST_SET_SCREEN,
-             ST_SET_UPDATE, ST_SET_RESTART, ST_SET_FACTORY, ST_PRINTER, ST_GRID, ST_SCAN, ST_SENDING, ST_RESULT,
+             ST_SET_UPDATE, ST_SET_POWER_OFF, ST_SET_RESTART, ST_SET_FACTORY, ST_PRINTER, ST_GRID, ST_SCAN, ST_SENDING, ST_RESULT,
              ST_WEB_PAIR, ST_UPDATE_NOTICE, ST_SET_READER, ST_SET_BATTERY, ST_SYNCING, ST_CLOUD_SLOT, ST_CHOOSE_PRINTERS, ST_SET_READER_HEX };
 State   state = ST_LANG;
 // Which screen the gear was pressed on. Settings is reachable from both faces
@@ -1693,7 +1695,82 @@ static void roamCheck() {
 }
 
 
+// "Off", on a board with no power switch: deep sleep, the panel dark, and the
+// one way back is the USB cable - unplug it, plug it back in. RESET works too.
+// No button wakes it: off means off, not a button brushed in a bag.
+//
+// WITHOUT a battery that is simply what happens: unplugging cuts the power and
+// plugging in boots it.
+//
+// WITH a battery - declared or not - it is not: the cell keeps the board powered, so plugging in
+// does not reset anything and the device would stay "off" for ever. The cable
+// is seen instead the way battery.cpp sees it - the charger lifts the voltage
+// on the battery pin by 20-40 mV the moment it is connected. So the device
+// wakes every OFF_CHECK_S seconds, reads that pin without lighting anything,
+// and boots only when it has risen past the lowest it has read since going
+// off. Tracking the lowest, not the first, is what lets it turn off WHILE
+// plugged in: unplugging then lowers the floor, and plugging back in rises
+// above it. Each check is a few milliseconds of a sleeping device.
+//
+// The backlight pin is driven low and HELD: GPIO pads float in deep sleep, and
+// a floating backlight line lights the panel of a device that says it is off.
+// setup() releases the hold only when it is really booting.
+//
+static const uint32_t OFF_MAGIC   = 0x0FF0FF00u;
+static const int      OFF_CHECK_S = 3;
+static const int      OFF_STEP_MV = 6;     // battery.cpp's STEP_MV, plus a margin
+RTC_DATA_ATTR static uint32_t s_offMagic  = 0;
+RTC_DATA_ATTR static int      s_offFloorMv = 0;
+
+static int batteryPinMv() {
+    uint32_t sum = 0;
+    for (int i = 0; i < 8; i++) sum += analogReadMilliVolts(BATTERY_ADC_PIN);
+    return (int)(sum / 8);
+}
+
+// Called first thing in setup(). Returns only if the device should boot.
+static void stayOffUnlessPlugged() {
+    if (s_offMagic != OFF_MAGIC) return;
+    if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_TIMER) {
+        const int mv = batteryPinMv();
+        if (mv < s_offFloorMv + OFF_STEP_MV) {
+            if (mv < s_offFloorMv) s_offFloorMv = mv;
+            esp_sleep_enable_timer_wakeup((uint64_t)OFF_CHECK_S * 1000000ULL);
+            esp_deep_sleep_start();
+        }
+    }
+    s_offMagic = 0;      // plugged in, or a reset: boot
+}
+
+static void powerOff() {
+    Serial.println("[ui] turning off on request");
+    Serial.flush();
+    WiFi.disconnect(true);
+    WiFi.mode(WIFI_OFF);
+    lcd.setBrightness(0);
+    lcd.sleep();
+    pinMode(1, OUTPUT);
+    digitalWrite(1, LOW);
+    gpio_hold_en(GPIO_NUM_1);
+    gpio_deep_sleep_hold_en();
+    // Always, whether a battery is DECLARED or not: a cell that is fitted but
+    // never declared keeps the board just as powered, and a device that
+    // trusted the declaration here stayed off for good on the bench. Without a
+    // cell the check costs nothing - unplugging ends it with the power.
+    s_offMagic = OFF_MAGIC;
+    s_offFloorMv = batteryPinMv();
+    esp_sleep_enable_timer_wakeup((uint64_t)OFF_CHECK_S * 1000000ULL);
+    delay(50);
+    esp_deep_sleep_start();
+}
+
 void setup() {
+    // Turned off with a battery fitted: go straight back to sleep unless the
+    // USB cable has just been plugged in. See powerOff().
+    stayOffUnlessPlugged();
+    // Coming back from "off": the backlight line is still held low - let the
+    // panel have it again.
+    gpio_hold_dis(GPIO_NUM_1);
     Serial.begin(115200);
     delay(150);
     esp_task_wdt_init(LOOP_WDT_S, true);     // reconfigures the running TWDT
@@ -2502,6 +2579,9 @@ void loop() {
                 // offline case and for a retry.
                 ota::checkAsync();
                 state = ST_SET_UPDATE; stateSince = millis(); break;
+            case screen_settings::E_POWER_OFF:
+                screen_settings::invalidate();
+                state = ST_SET_POWER_OFF; stateSince = millis(); break;
             case screen_settings::E_RESTART:
                 screen_settings::invalidate();
                 state = ST_SET_RESTART; stateSince = millis(); break;
@@ -2820,6 +2900,14 @@ void loop() {
             screen_settings::invalidate();
             state = ST_PRINTER; stateSince = millis();
         }
+        break;
+    }
+
+    case ST_SET_POWER_OFF: {
+        screen_settings::showPowerOff();
+        lvgl_port::loop();
+        BACK_TO_SETTINGS();
+        if (screen_settings::takeAction() == screen_settings::A_POWER_OFF) powerOff();
         break;
     }
 

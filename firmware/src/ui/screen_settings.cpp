@@ -284,6 +284,8 @@ void showMenu(const MenuState& st) {
         { E_UPDATE,   i18n::T(S_UPDATE),    vals[3], icons::UPDATE,  tints[3] },
         { E_RESTART,  i18n::T(S_RESTART),    "",
           icons::RESTART, theme::WARN },
+        { E_POWER_OFF, i18n::T(S_POWER_OFF), "",
+          icons::POWER,   theme::WARN },
         { E_FACTORY,  i18n::T(S_FACTORY),    "",
           icons::ERASE,   theme::DANGER },
     };
@@ -1861,6 +1863,27 @@ void showRestart() {
     lv_obj_set_size(spacer, 1, 22);
 
     confirmPair(body, i18n::T(S_CONFIRM), 3, []() { s_action = A_RESTART; });
+}
+
+void showPowerOff() {
+    lvgl_port::Lock lvglGuard;   // LVGL is not reentrant - see lvgl_port.h
+    if (sameView((const void*)showPowerOff, 0xD1000000u)) return;
+    claimView((const void*)showPowerOff, 0xD1000000u);
+
+    lv_obj_t* body = frame::build(i18n::T(S_POWER_OFF), onBack);
+    lv_obj_set_flex_align(body, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+
+    // The question, then how to undo it. A box with no power switch that goes
+    // dark and says nothing about waking up is a box someone thinks is broken.
+    frame::caption(i18n::T(S_POWER_OFF_Q), theme::TEXT, &font_ui_14);
+    frame::caption(i18n::T(S_POWER_OFF_HINT), theme::TEXT_DIM, &font_ui_12);
+
+    lv_obj_t* spacer = lv_obj_create(body);
+    lv_obj_remove_style_all(spacer);
+    lv_obj_set_size(spacer, 1, 16);
+
+    confirmPair(body, i18n::T(S_CONFIRM), 3, []() { s_action = A_POWER_OFF; });
 }
 
 void showFactory() {

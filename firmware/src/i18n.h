@@ -196,6 +196,9 @@ enum StrId : uint8_t {
     S_SIG_FAIR,
     S_SIG_WEAK,
     S_CHANNEL,
+    S_POWER_OFF,
+    S_POWER_OFF_Q,
+    S_POWER_OFF_HINT,
     S_COUNT
 };
 

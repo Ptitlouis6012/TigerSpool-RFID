@@ -18,6 +18,24 @@ message, and reset it to this header.
 
 ## Unreleased
 
+## 2026-09-28 - Settings > Turn off, woken by the USB cable (released in 1.69.0)
+
+### Added
+
+- Settings > Turn off (`E_POWER_OFF`, `showPowerOff()`, `powerOff()` in
+  main.cpp): Wi-Fi off, panel asleep, backlight pin held low through deep sleep
+  (a floating pad would light it); setup() releases the hold. No button wakes
+  it. Without a battery, USB out and back in is a power-on. With one, the cell
+  keeps it powered, so it wakes every 3 s, reads the battery pin without
+  lighting anything, and boots when the pin rises 6 mV above the lowest it read
+  since going off (`stayOffUnlessPlugged()`). Measured with a full cell: 1411
+  mV plugged, 1397-1401 unplugged, 1425 replugged. The check is armed whether
+  or not a battery is DECLARED - a fitted, undeclared cell kept a first version
+  off for good. Verified end to end on the bench, declared and undeclared: off,
+  cable out, cable in, back up. Three strings in nine languages; the CJK subset regenerated
+  for the new characters. Verified on the bench: off, silent on the network,
+  back after a reset.
+
 ## 2026-09-27 - Anycubic cloud mode, printable cases and a README that shows them (released in 1.68.0)
 
 ### Added

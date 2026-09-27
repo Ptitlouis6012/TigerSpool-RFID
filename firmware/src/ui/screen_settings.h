@@ -20,6 +20,7 @@ enum Entry {
     E_BATTERY,
     E_UPDATE,
     E_RESTART,
+    E_POWER_OFF,
     E_FACTORY,
     E_COUNT
 };
@@ -73,7 +74,7 @@ int  takeToggled();          // index whose switch was flipped, or -1
 // Each one answers a question and offers at most one action. A settings screen
 // that lists five things you could do is a screen nobody reads.
 enum Action { A_NONE = 0, A_CHANGE_WIFI, A_SIGN_OUT, A_RESTART, A_FACTORY, A_CHECK_UPDATE,
-              A_INSTALL_NOW, A_LATER };
+              A_INSTALL_NOW, A_LATER, A_POWER_OFF };
 Action takeAction();
 
 void showWifi(const char* ssid, const char* ip, const char* mac, bool connected, int channel,
@@ -117,6 +118,9 @@ bool takeHex();
 void showReader(bool ready, const char* err, const TagInfo* tag);
 
 void showRestart();
+// Turning off, and how to turn it back on: this board has no power switch, so
+// the answer to the second is not obvious and belongs on the same screen.
+void showPowerOff();
 void showFactory();
 
 }  // namespace screen_settings

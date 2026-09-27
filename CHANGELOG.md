@@ -7,6 +7,17 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.69.0] - 2026-09-28
+
+### Added
+
+- **Settings > Turn off.** The board has no power switch, so "off" is deep
+  sleep with the panel dark and Wi-Fi down, and no button wakes it. Unplugging
+  the USB cable and plugging it back in turns it on again, and the screen says
+  so - with a battery fitted too, declared in Settings or not: the device then
+  checks the battery pin every 3 s and boots when the charger lifts it (28 mV
+  measured, full cell). In Settings it sits under Restart.
+
 ## [1.68.0] - 2026-09-27
 
 ### Added
