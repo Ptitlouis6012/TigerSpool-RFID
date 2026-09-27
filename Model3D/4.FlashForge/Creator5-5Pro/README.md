@@ -1,6 +1,6 @@
 # FlashForge Creator 5 and Creator 5 Pro
 
-![The parts on the Bambu Studio plate](Images/tigerspool-creator5-bambu-studio-plate.png)
+<img src="Images/tigerspool-creator5-photo-front.jpg" alt="The case on a Creator 5 Pro, clipped onto its screen" width="360"> <img src="Images/tigerspool-creator5-closeup.jpg" alt="Close-up of the case on the printer" width="400">
 
 A TigerSpool case made for the FlashForge Creator 5 and Creator 5 Pro. It
 clips onto the printer's screen.
@@ -17,6 +17,8 @@ clips onto the printer's screen.
 The bare parts carry geometry only, for any slicer - FlashForge Orca included;
 the Bambu Studio project carries the orientation, the supports and the
 settings below.
+
+<img src="Images/tigerspool-creator5-bambu-studio-plate.png" alt="The parts on the Bambu Studio plate" width="360">
 
 ## Print settings
 
