@@ -40,12 +40,7 @@
 </p>
 
 <p align="center">
-  <img src="assets/Hero-TigerSystem-ecosystem.png" alt="The TigerTag system: a TigerPOD reader, Tiger Studio Manager on a desktop, and the TigerTag app on a phone" width="720">
-</p>
-
-<p align="center">
-  <sub>The TigerTag system. A TigerSpool is the device that takes a spool's
-  identity and puts it into a printer's slot.</sub>
+  <img src="assets/tigerspool-desk-left-right.png" alt="Two TigerSpool desktop stands side by side: spool on the left, and spool on the right" width="560">
 </p>
 
 ---
@@ -64,10 +59,6 @@ MIT licensed. Built with PlatformIO for the ESP32-S3.
 
 Your printer already has a slot list. Your filament already carries its own
 identity. TigerSpool is the thirty centimetres between them.
-
-<p align="center">
-  <img src="assets/tigerspool-desk-render.png" alt="TigerSpool on its desktop stand, a spool resting beside it" width="300">
-</p>
 
 <p align="center">
   <img src="assets/screens/screen-grid.png" alt="A printer's slots on the TigerSpool screen" width="200">
@@ -111,10 +102,10 @@ lives where the spools are loaded.
 
 | Printer | | Print it |
 |---|---|---|
-| **Creality K2, K2 Pro** | <img src="Model3D/2.Creality/K2-K2Pro/Images/tigerspool-k2-photo-front.jpg" alt="TigerSpool clipped onto a K2 Pro's touchscreen" width="240"> | **[MakerWorld](https://makerworld.com/models/3361291-tigerspool-for-creality-k2-and-k2-pro)** · [files](Model3D/2.Creality/K2-K2Pro/) |
-| **FlashForge Creator 5, Creator 5 Pro** | <img src="Model3D/4.FlashForge/Creator5-5Pro/Images/tigerspool-creator5-photo-front.jpg" alt="TigerSpool clipped onto a Creator 5 Pro's screen" width="240"> | **[MakerWorld](https://makerworld.com/models/3361301-tigerspool-rfid-for-flashforge-creator-5-and-5-pro)** · [files](Model3D/4.FlashForge/Creator5-5Pro/) |
-| **Bambu Lab A1, A2, A2L** | <img src="Model3D/1.BambuLab/A1-A2/Images/tigerspool-a1-a2-bambu-studio-plate.png" alt="The A1 and A2 case on the slicer plate" width="160"> | [files](Model3D/1.BambuLab/A1-A2/) - not on MakerWorld yet |
-| **Anycubic Kobra 3, every model** | <img src="Model3D/6.Anycubic/Kobra3-Series/Images/tigerspool-kobra3-bambu-studio-plate.png" alt="The Kobra 3 case on the slicer plate" width="160"> | [files](Model3D/6.Anycubic/Kobra3-Series/) - not on MakerWorld yet |
+| **Creality K2**<br>**Creality K2 Pro** | <img src="Model3D/2.Creality/K2-K2Pro/Images/tigerspool-k2-photo-side.jpg" alt="TigerSpool on a K2 Pro, the RFID reader and its logo on the side" width="240"> | **[MakerWorld](https://makerworld.com/models/3361291-tigerspool-for-creality-k2-and-k2-pro)** · [files](Model3D/2.Creality/K2-K2Pro/) |
+| **FlashForge Creator 5**<br>**FlashForge Creator 5 Pro** | <img src="Model3D/4.FlashForge/Creator5-5Pro/Images/tigerspool-creator5-closeup.jpg" alt="TigerSpool clipped onto a Creator 5 Pro, its screen on and the RFID logo on the side" width="240"> | **[MakerWorld](https://makerworld.com/models/3361301-tigerspool-rfid-for-flashforge-creator-5-and-5-pro)** · [files](Model3D/4.FlashForge/Creator5-5Pro/) |
+| **Bambu Lab A1**<br>**Bambu Lab A2**<br>**Bambu Lab A2L** | <img src="Model3D/1.BambuLab/A1-A2/Images/tigerspool-a1-a2-bambu-studio-plate.png" alt="The A1 and A2 case on the slicer plate" width="160"> | [files](Model3D/1.BambuLab/A1-A2/) - not on MakerWorld yet |
+| **Anycubic Kobra 3**<br>**Anycubic Kobra 3 Combo**<br>**Anycubic Kobra 3 Max**<br>**Anycubic Kobra 3 V2** | <img src="Model3D/6.Anycubic/Kobra3-Series/Images/tigerspool-kobra3-bambu-studio-plate.png" alt="The Kobra 3 case on the slicer plate" width="160"> | [files](Model3D/6.Anycubic/Kobra3-Series/) - not on MakerWorld yet |
 
 Every model, its print settings and how to add one: **[Model3D/](Model3D/)**.
 
@@ -137,12 +128,12 @@ Without an account, the box gets through Wi-Fi setup and then has nothing to
 sign in to.
 
 <p align="center">
-  <img src="assets/tiger-studio-manager.png" alt="Tiger Studio Manager showing a filament library and a printer's slots" width="680">
+  <img src="assets/Hero-TigerSystem-ecosystem.png" alt="The TigerTag system: a TigerPOD reader, Tiger Studio Manager on a desktop, and the TigerTag app on a phone" width="720">
 </p>
 
 <p align="center">
-  <sub>Tiger Studio Manager. Your filaments and your printers live here — the box
-  reads this list, it does not build it.</sub>
+  <sub>The TigerTag system: one account, shared by Tiger Studio Manager, the
+  TigerTag app and every device - TigerSpool included.</sub>
 </p>
 
 ### 2. Your printers, added in Tiger Studio Manager

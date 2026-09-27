@@ -38,7 +38,7 @@ message, and reset it to this header.
 - README: new "The case" section (desktop stand as the base model, printer
   integrations for the K2, Creator 5, A1/A2 and Kobra 3), MakerWorld links
   for the four published pages, device screens in `assets/screens/` and the
-  stand render in `assets/`, LAN mode and the FlashForge × TigerSystem
+  two stand renders side by side above the TigerSystem hero, LAN mode and the FlashForge × TigerSystem
   firmware under printer support. `Model3D/` README, the desktop, K2 and
   Creator 5 READMEs and the Creality and FlashForge brand tables carry the
   MakerWorld links; the Creator 5 README explains the firmware;

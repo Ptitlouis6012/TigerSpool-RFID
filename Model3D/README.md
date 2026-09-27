@@ -6,7 +6,7 @@ printer, and it is the one to print if you are not sure. Every other model is a
 printer's own screen.
 
 <p align="center">
-  <img src="../assets/tigerspool-desk-render.png" alt="TigerSpool on its desktop stand, with a spool" width="260">
+  <img src="../assets/tigerspool-desk-left-right.png" alt="The desktop stand, spool on the left and spool on the right" width="420">
 </p>
 
 | Model | Kind | MakerWorld | Files |
