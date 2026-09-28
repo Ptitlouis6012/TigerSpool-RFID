@@ -256,11 +256,11 @@ Wiring: **[docs/WIRING.md](docs/WIRING.md)** and **[hardware/pinout.md](hardware
 
 <p align="center">
   <a href="docs/WIRING.md">
-    <img src="assets/wiring-diagram.jpg" alt="Wiring diagram: ESP32-S3-Touch-LCD-2 to PN532 — 3V3, GND, TX to SDA, RX to SCL" width="600">
+    <img src="assets/wiring-diagram.jpg" alt="Wiring diagram: ESP32-S3-Touch-LCD-2 to PN532 — 3V3 to VCC, G to GND, TX to SCL, RX to SDA, and the optional 3.7 V battery on the BAT connector" width="600">
   </a>
 </p>
 <p align="center">
-  <sub><a href="https://app.cirkitdesigner.com/project/7a6c0887-8e44-4303-81b3-be51aab4b40a">Interactive schematic in Cirkit Designer</a></sub>
+  <sub><a href="https://app.cirkitdesigner.com/project/5b546f4e-70b8-4735-afff-be6bd36bc10c">Interactive schematic in Cirkit Designer</a></sub>
 </p>
 
 > **The reader goes on GPIO43/44.** Not GPIO6/7 — that pair is an I²C bus with

@@ -18,6 +18,13 @@ message, and reset it to this header.
 
 ## Unreleased
 
+### Changed
+
+- New wiring diagram (Cirkit Designer project 5b546f4e): board, PN532 and the
+  optional 3.7 V battery on the BAT connector. `assets/wiring-diagram.jpg`
+  replaced and the link updated in README.md and docs/WIRING.md; the README's
+  alt text said "TX to SDA, RX to SCL", the reverse of the table - fixed.
+
 ## 2026-09-28 - A faster, steadier screen, and the certified mark at send time (released in 1.70.0)
 
 ### Changed

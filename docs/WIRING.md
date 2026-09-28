@@ -21,12 +21,12 @@ octal PSRAM, 2.0" 240×320 IPS with a CST816S capacitive touch panel.
 > Four wires. They come with the PN532 module, so there is nothing to buy.
 
 <p align="center">
-  <a href="https://app.cirkitdesigner.com/project/7a6c0887-8e44-4303-81b3-be51aab4b40a">
+  <a href="https://app.cirkitdesigner.com/project/5b546f4e-70b8-4735-afff-be6bd36bc10c">
     <img src="../assets/wiring-diagram.jpg" alt="Wiring diagram: PN532 to ESP32-S3-Touch-LCD-2 — VCC to 3V3, GND to GND, TXD to GPIO44, RXD to GPIO43" width="600">
   </a>
 </p>
 <p align="center">
-  <sub><a href="https://app.cirkitdesigner.com/project/7a6c0887-8e44-4303-81b3-be51aab4b40a">Interactive schematic in Cirkit Designer</a></sub>
+  <sub><a href="https://app.cirkitdesigner.com/project/5b546f4e-70b8-4735-afff-be6bd36bc10c">Interactive schematic in Cirkit Designer</a></sub>
 </p>
 
 | PN532 pin | ESP32-S3 | Direction | Notes |
