@@ -14,7 +14,7 @@ are settled. This file adds what a Claude session needs on top of it.
 | UI | LVGL 8 over LovyanGFX. DMA draw buffers in internal RAM, LVGL heap in PSRAM |
 | Printers | One backend object per printer behind `printer.h`; Bambu MQTT/TLS (cloud Bambus share one session, `bambu_cloud.cpp`), Anycubic MQTT/TLS (cloud Anycubics share one session, `anycubic_cloud.cpp`), Elegoo MQTT, Creality/Snapmaker WebSocket, FlashForge HTTP. How many at once: `printer_budget.h`, `docs/CONNECTION-BUDGET.md` |
 | Account | TigerTag Firebase — email/password, or code-and-QR pairing for Google |
-| Build | PlatformIO, one environment: `tigerspool`. `cd firmware && pio run -e tigerspool` |
+| Build | PlatformIO: `tigerspool`, the one CI builds and releases (`cd firmware && pio run -e tigerspool`), and `tigerspool-bench`, the same plus `TIGERSPOOL_BENCH` for diagnostics that must not ship (`src/bench.h`) |
 | Flash | Two 4 MB OTA slots, NVS at `0x9000` — `firmware/partitions.csv` |
 | Version | One macro, `TIGERSPOOL_FW_VERSION`, in `firmware/include/version.h` |
 
@@ -28,6 +28,7 @@ are settled. This file adds what a Claude session needs on top of it.
 | If a merged factory image is ever produced, it is **never** flashed at `0x0000` on a provisioned device. | A merged image spans from `0x0` and therefore covers `nvs` at `0x9000`. That region holds the saved Wi-Fi credentials, the TigerTag session and the imported printers. Writing it wipes the user's entire setup with no warning and no undo. |
 | `firmware/include/tigertag_db.h` is never hand-edited. | It is generated from `firmware/tools/tigertag_db/*.json`. A hand edit survives exactly until the next regeneration, which reverts it silently — and until then the committed file and its stated source disagree. |
 | `firmware/tools/tigertag_db/*.json` is never hand-edited either. | It mirrors the public TigerTag API. `python3 firmware/tools/tigertag_db/db_update.py` refreshes it and regenerates the header; anything typed in by hand is overwritten the next time it runs. A wrong label is fixed in the TigerTag database, not here. |
+| Bench-only code goes inside `#if TIGERSPOOL_BENCH` or through `BENCH_LOG()`, never loose. | A diagnostic left in the release build - a payload dump, a counter, a log kept or sent - runs on every device in the field, on a board where a few kilobytes decide whether a third TLS session fits. `check-bench-code.py` fails on a `BENCH:` / `TEMP:` / `DO NOT SHIP` marker outside such a block. |
 | `bash scripts/verify.sh` passes before you report a code change done. | It is what CI runs, and it compiles. `--quick` skips the build: use it as the fast loop while working, not as the thing you report on. A push is not what should tell you an index drifted. |
 
 ## Hardware facts that bite
@@ -121,6 +122,7 @@ the regeneration checked locally too.
 | `has no release notes` | The version being built was never described. Write them from `WORKLOG.md`, which exists so they are not written from memory at tag time. |
 | any guard exiting `2` | Not a violation: the guard could not run. Its input set was empty or its anchor moved, so it is checking nothing. Fix the guard before trusting the tree. |
 | `keeps the path ... run scripts/clean-3mf.py` | A slicer project records where each object was imported from - a user name and a folder layout. `python3 scripts/clean-3mf.py <file>` cuts it to a file name and lists the object names: read them before committing. The layout and naming rules for `Model3D/` are in its README. |
+| `bench marker outside #if TIGERSPOOL_BENCH` | Code labelled as bench-only is in the release build. Wrap it in `#if TIGERSPOOL_BENCH ... #endif` (or use `BENCH_LOG()`), or delete it. Never remove the marker to make the check pass. |
 | `broken link -> …` | A relative link in a tracked `.md` points at a file that does not exist. Fix the link or add the file. |
 | `GPIO6/7 presented as a PN532 wiring instruction` | A document gives those pins as reader connections. Warning against them is fine; prescribing them is not. See the pin row under Hardware facts. |
 | Build fails only in CI | The PlatformIO cache is keyed on `firmware/platformio.ini`. If dependencies moved, the local `.pio` may be ahead of CI's. Delete `firmware/.pio` and rebuild locally before blaming CI. |

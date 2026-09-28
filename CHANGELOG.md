@@ -7,6 +7,33 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.70.0] - 2026-09-28
+
+### Changed
+
+- **Reading a spool is more than twice as fast** - about 250 ms instead of 585.
+  The chip's signature is still read and checked on every scan, never cached,
+  but the ECDSA check runs in the background: the spool is sent, and the
+  screen drawn, while it works.
+- **The send result shows whether the spool is certified**, as the reader
+  screen does - for brands that sign their spools, at the moment the spool is
+  used.
+- **A spool whose signature does not verify reads "Not certified"**, in plain
+  grey, instead of a red "does not match".
+
+### Added
+
+- **A bench build** (`tigerspool-bench`) for diagnostics that must never ship:
+  they sit inside `#if TIGERSPOOL_BENCH`, the release build does not compile
+  them, and a check fails if one is left outside.
+
+### Fixed
+
+- **The screen no longer freezes for 1.5 s every thirty seconds.** The device
+  reported itself to the account from the main loop - a TLS request that
+  stopped the screen drawing and answering, in the middle of a scan or a send.
+  It runs in the background now.
+
 ## [1.69.1] - 2026-09-28
 
 ### Fixed

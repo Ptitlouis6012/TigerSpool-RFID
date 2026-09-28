@@ -80,8 +80,10 @@ twenty.
 **The rule, implied:** the reference project builds several environments, and CI
 covers them.
 
-**Why not here:** there is one board, one environment, `tigerspool`. A matrix of
-one is a matrix-shaped way of writing a single build.
+**Why not here:** there is one board and one environment that ships,
+`tigerspool`. `tigerspool-bench` only adds bench diagnostics and is never
+released; building it in CI would test code no user runs. A matrix of one is a
+matrix-shaped way of writing a single build.
 
 ### `docs/release-notes/vX.Y.Z.md`
 

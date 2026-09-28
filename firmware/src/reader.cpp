@@ -1,4 +1,5 @@
 #include "reader.h"
+#include "bench.h"
 #include "config.h"
 #include "i18n.h"
 #include <mbedtls/pk.h>
@@ -128,7 +129,34 @@ static uint8_t verifySignature(const uint8_t* uid, uint8_t uidLen,
     return status;
 }
 
-bool reader::read(TagInfo& out) {
+// The background verification: one at a time, answered by job number. Nothing
+// is kept past the job - see reader.h for why no verdict is remembered.
+namespace {
+volatile bool     s_vBusy = false;
+volatile uint32_t s_vJob = 0, s_vDoneJob = 0;
+volatile uint8_t  s_vDoneSig = TagInfo::SIG_UNREAD;
+uint8_t           s_vUid[7], s_vLen = 0, s_vPayload[144];
+uint32_t          s_vNext = 0;
+
+void verifyTaskFn(void*) {
+    const uint8_t sig = verifySignature(s_vUid, s_vLen, s_vPayload);
+    s_vDoneSig = sig;
+    s_vDoneJob = s_vJob;
+    s_vBusy = false;
+    vTaskDelete(nullptr);
+}
+}  // namespace
+
+uint8_t reader::signatureOf(const TagInfo& t) {
+    if (t.signature != TagInfo::SIG_PENDING) return t.signature;
+    return (s_vDoneJob == t.sigJob) ? (uint8_t)s_vDoneSig : (uint8_t)TagInfo::SIG_PENDING;
+}
+
+bool reader::read(TagInfo& out, bool background) {
+#if TIGERSPOOL_BENCH
+    const uint32_t tb0 = millis();
+    uint32_t tbId = 0, tbPages = 0;
+#endif
     out = TagInfo{};
     // Pages 0x04..0x27, the whole of an NTAG213's user memory.
     //
@@ -156,6 +184,9 @@ bool reader::read(TagInfo& out) {
     for (int attempt = 0; attempt < 20 && !win; attempt++) {
         if ((int32_t)(millis() - deadline) >= 0) break;
         if (!nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &ul, 150)) { delay(8); continue; }
+#if TIGERSPOOL_BENCH
+        tbId = millis();
+#endif
         delay(5);                    // let the tag settle in the field
 
         bool got;
@@ -173,6 +204,9 @@ bool reader::read(TagInfo& out) {
                 got = nfc.mifareultralight_ReadPage(0x04 + i, payload + i * 4);
         }
         if (!got) { delay(8); continue; }
+#if TIGERSPOOL_BENCH
+        tbPages = millis();
+#endif
         okReads++;
 
         // Count zero bytes over the FIRST EIGHT PAGES only. The four that were
@@ -255,6 +289,9 @@ bool reader::read(TagInfo& out) {
     }
     out.message.trim();
 
+#if TIGERSPOOL_BENCH
+    const uint32_t tbLookup = millis();
+#endif
     const char* m = tt_db::material(out.idMaterial);
     const char* br = tt_db::brand(out.idBrand);
     out.material = m ? String(m) : (String("MAT#") + out.idMaterial);
@@ -290,7 +327,26 @@ bool reader::read(TagInfo& out) {
     bool sigGot = true;
     for (uint8_t p = 0; p < 4 && sigGot; p++)
         sigGot = nfc.mifareultralight_ReadPage16(0x18 + p * 4, payload + 80 + p * 16);
-    out.signature = sigGot ? verifySignature(uid, ul, payload) : TagInfo::SIG_UNREAD;
+    if (!sigGot) {
+        out.signature = TagInfo::SIG_UNREAD;
+    } else if (background && !s_vBusy) {
+        memcpy(s_vUid, uid, ul > 7 ? 7 : ul); s_vLen = ul;
+        memcpy(s_vPayload, payload, sizeof(s_vPayload));
+        out.sigJob = ++s_vNext;
+        s_vJob = out.sigJob;
+        s_vBusy = true;
+        // Core 0, like every other background job: the interface keeps core 1.
+        if (xTaskCreatePinnedToCore(verifyTaskFn, "tagSig", 8192, nullptr, 1, nullptr, 0) == pdPASS) {
+            out.signature = TagInfo::SIG_PENDING;
+        } else {
+            s_vBusy = false;
+            out.signature = verifySignature(uid, ul, payload);
+        }
+    } else {
+        // In the foreground - asked for, or the task is still busy with the
+        // previous chip.
+        out.signature = verifySignature(uid, ul, payload);
+    }
     out.ok = true;
     Serial.printf("[reader] %s / %s  #%02X%02X%02X  nozzle %u-%u  bed %u-%u\n"
                   "          %s %s mm  aspect %s/%s  stamp %lu  dry %u C / %u h  [%s]\n",
@@ -304,6 +360,12 @@ bool reader::read(TagInfo& out) {
                   (unsigned long)out.available, (unsigned long)out.measure,
                   out.unitLabel.c_str(), out.tdRaw / 10, out.tdRaw % 10,
                   out.signature, out.message.c_str());
+#if TIGERSPOOL_BENCH
+    BENCH_LOG("[bench] read: id=%lums pages=%lums decode=%lums labels+sig-pages=%lums total=%lums\n",
+              (unsigned long)(tbId - tb0), (unsigned long)(tbPages - tbId),
+              (unsigned long)(tbLookup - tbPages), (unsigned long)(millis() - tbLookup),
+              (unsigned long)(millis() - tb0));
+#endif
     return true;
 }
 

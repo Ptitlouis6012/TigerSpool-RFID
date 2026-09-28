@@ -126,10 +126,13 @@ void showTag(const TagInfo& tag) {
     if (tag.signature == TagInfo::SIG_VALID || tag.signature == TagInfo::SIG_INVALID) {
         const bool good = tag.signature == TagInfo::SIG_VALID;
         lv_obj_t* mark = lv_label_create(frame::header());
-        lv_label_set_text_fmt(mark, "%s %s", good ? LV_SYMBOL_OK : LV_SYMBOL_WARNING,
-                              i18n::T(good ? S_SIG_VALID : S_SIG_INVALID));
+        // Not certified is a fact about the chip, not a fault: plain grey
+        // text, no warning sign and no red - most spools in the world carry
+        // no signature at all, and none of them is an error.
+        if (good) lv_label_set_text_fmt(mark, "%s %s", LV_SYMBOL_OK, i18n::T(S_SIG_VALID));
+        else      lv_label_set_text(mark, i18n::T(S_SIG_INVALID));
         lv_obj_set_style_text_font(mark, &font_ui_12, 0);
-        lv_obj_set_style_text_color(mark, lv_color_hex(good ? theme::OK : theme::DANGER), 0);
+        lv_obj_set_style_text_color(mark, lv_color_hex(good ? theme::OK : theme::TEXT_DIM), 0);
         lv_obj_align(mark, LV_ALIGN_RIGHT_MID, -10, 0);
     }
 

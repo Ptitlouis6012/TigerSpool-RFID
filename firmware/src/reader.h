@@ -68,8 +68,13 @@ struct TagInfo {
 
     // ECDSA-P256 over SHA-256(uid + id_tigertag + id_product), against the
     // public key that ships with the protocol version. Offline, no server.
-    enum Sig : uint8_t { SIG_UNREAD = 0, SIG_NONE, SIG_VALID, SIG_INVALID, SIG_NO_KEY };
+    // SIG_PENDING: the signature pages were read and the verification is
+    // running on a background task - see reader::read(). Last, so every value
+    // already stored keeps its number.
+    enum Sig : uint8_t { SIG_UNREAD = 0, SIG_NONE, SIG_VALID, SIG_INVALID, SIG_NO_KEY,
+                         SIG_PENDING };
     uint8_t  signature = SIG_UNREAD;
+    uint32_t sigJob    = 0;          // which background verification answers for it
     String   material;               // resolved label, e.g. "PETG"
     String   brand;                  // resolved label, e.g. "Polymaker"
     String   uid;                    // the chip's own serial, hex, no separators
@@ -106,7 +111,19 @@ namespace reader {
 
     // Reads and decodes. Makes several attempts: one successful read is not
     // evidence of a good read on a link this marginal. See docs/WIRING.md.
-    bool read(TagInfo& out);
+    //
+    // The signature is checked on EVERY read - a chip can be rewritten at any
+    // moment under the same UID, so no verdict is ever remembered. What
+    // `background` changes is when: the four signature pages are read here
+    // either way, but the ECDSA verification - about 335 ms of a 585 ms read,
+    // measured - runs on a task, so the spool can be sent and the screen drawn
+    // while it works. The tag then says SIG_PENDING, and signatureOf() gives
+    // the verdict once it is in.
+    bool read(TagInfo& out, bool background = false);
+
+    // The verdict for a tag read with `background`: SIG_PENDING until the
+    // task is done, then what it found. Anything else passes through unchanged.
+    uint8_t signatureOf(const TagInfo& t);
 
     // Written for the user, not the developer: "move the spool closer" rather
     // than "read error".

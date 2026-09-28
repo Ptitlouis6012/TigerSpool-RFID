@@ -37,6 +37,7 @@
 #include "net/ota.h"
 #include "bambu_cloud.h"
 #include "anycubic_cloud.h"
+#include "bench.h"
 #include <esp_sleep.h>
 #include <driver/gpio.h>
 #include "printer_budget.h"
@@ -1556,6 +1557,30 @@ static bool     presenceUsed  = false;   // a spool was written since the last b
 static uint32_t presenceHold  = 0;       // millis until which beats are held off
 
 static void presenceTick() {
+    // The outcome of the last beat, sent from its own task - see
+    // ttcloud::startAsyncHeartbeat(). Handled here, on the loop that owns the
+    // state it changes.
+    {
+        bool ok = false, full = false; String err;
+        if (ttcloud::takeHeartbeat(ok, full, err)) {
+            static int fails = 0;
+            if (ok) {
+                if (full) Serial.printf("[presence] registered as %s\n",
+                                        ttcloud::deviceId().c_str());
+                // A failed full beat STAYS full: half a document in Studio is
+                // worse than a document that appears thirty seconds later.
+                if (full) presenceFull = false;
+                fails = 0;
+            } else if (++fails >= 3) {
+                // Three refusals in a row is not a passing fault. Hold off for
+                // five minutes so a misconfigured account costs a beat now and
+                // then rather than a TLS handshake every thirty seconds.
+                presenceHold = millis() + 300000UL;
+                if (fails == 3) Serial.printf("[presence] holding off 5 min: %s\n", err.c_str());
+            }
+        }
+    }
+    if (ttcloud::heartbeatBusy()) return;
     if (!ttcloud::haveSession() || WiFi.status() != WL_CONNECTED) return;
     // One TLS session at a time. The account sync, the product endpoint and
     // this all want the same 16 KB contiguous block, and two of them at once
@@ -1604,28 +1629,18 @@ static void presenceTick() {
     p.printerIds     = ids;
     p.printerIdCount = nIds;
 
-    String err;
-    const bool ok = ttcloud::heartbeat(p, presenceFull, err);
+    // Off the main loop: the beat is a TLS request of about a second and a
+    // half, and on the loop it froze the screen that long every thirty seconds.
+    if (!ttcloud::startAsyncHeartbeat(p, presenceFull)) return;
     presenceAt = millis();
     // The force flag is spent whatever happens. Left set on a failure it
     // bypasses the rate limit on the very next pass, and a device whose
     // account refuses the write - wrong rules, expired token - hammers it
     // several times a second instead of once every thirty.
     presenceForce = false;
-    static int fails = 0;
-    if (ok) {
-        if (presenceFull) Serial.printf("[presence] registered as %s\n",
-                                        ttcloud::deviceId().c_str());
-        // A failed full beat STAYS full: half a document in Studio is worse
-        // than a document that appears thirty seconds later.
-        presenceFull = false; presenceUsed = false; fails = 0;
-    } else if (++fails >= 3) {
-        // Three refusals in a row is not a passing fault. Hold off for five
-        // minutes so a misconfigured account costs a beat now and then rather
-        // than a TLS handshake every thirty seconds, for ever.
-        presenceHold = millis() + 300000UL;
-        if (fails == 3) Serial.printf("[presence] holding off 5 min: %s\n", err.c_str());
-    }
+    // "Used" is reported by this beat; a spool written from now on belongs to
+    // the next one.
+    presenceUsed = false;
 }
 
 // Anything a person performs and then looks for. Called every pass; it only
@@ -1866,6 +1881,7 @@ void loop() {
     static bool watched = false;
     if (!watched) { esp_task_wdt_add(nullptr); watched = true; }
     esp_task_wdt_reset();                    // one feed per pass - see LOOP_WDT_S
+    BENCH_BEGIN();
 
     // The config page belongs to the network, not to a screen: as soon as there
     // is an address, http://tigerspool.local answers. That also means the setup
@@ -1932,6 +1948,7 @@ void loop() {
     const bool inSetup = (state == ST_LANG || state == ST_WIFI || state == ST_AP
                        || state == ST_ACCOUNT || state == ST_WEB_PAIR);
     lvgl_port::sleepTick(inSetup ? 0 : screenSleepSec, screenBrightness);
+    BENCH_MARK("wifi+imu+sleep");
 
     // A heartbeat for the heap, every thirty seconds.
     //
@@ -1971,6 +1988,7 @@ void loop() {
     // freshness the header reports is a fact about the network and not about
     // where the user happens to be standing.
     if (!s_memtest && ttcloud::due() && !ttcloud::asyncBusy()) ttcloud::startAsyncSync();
+    BENCH_MARK("sync-start");
 
 
     // Every open link, not only the selected one. A connection nobody is
@@ -2012,10 +2030,13 @@ void loop() {
         }
     }
     linkTick();                  // keep the printer links up, everywhere
+    BENCH_MARK("links");
     battery::loop();             // one ADC read every two seconds
     presenceWatch();             // notice what deserves an immediate beat
     presenceTick();              // and tell the account this device is here
+    BENCH_MARK("batt+presence");
     if (webStarted || webcfg::apActive()) webcfg::loop();
+    BENCH_MARK("web");
     {
         // The account page's switch, through the device's own - one budget,
         // one owner. It asks for a state, so a double request cannot flip twice.
@@ -2120,6 +2141,7 @@ void loop() {
         if (nfcReady) Serial.println("[reader] PN532 OK (retry)");
     }
 
+    BENCH_MARK("pre-state");
     switch (state) {
 
     case ST_LANG: {
@@ -2410,7 +2432,7 @@ void loop() {
             if (reader::present(uid, &ul)
                 && (!seen.ok || ul != seenLen || memcmp(uid, seenUid, ul) != 0)) {
                 TagInfo t;
-                if (reader::read(t)) {
+                if (reader::read(t, true)) {
                     seen = t;
                     memcpy(seenUid, uid, ul > 7 ? 7 : ul);
                     seenLen = ul;
@@ -2418,6 +2440,7 @@ void loop() {
                 }
             }
         }
+        if (seen.ok) seen.signature = reader::signatureOf(seen);
         if (seen.ok) screen_read::showTag(seen);
         else         screen_read::showWaiting();
         lvgl_port::loop();
@@ -3013,7 +3036,9 @@ void loop() {
         if (millis() - lastScanPoll > 300) {
             lastScanPoll = millis();
             if (reader::present()) {
-                if (reader::read(tag) && tag.ok) {
+                // Signature checked in the background: the send does not wait
+                // for it, and the result screen shows it when it is in.
+                if (reader::read(tag, true) && tag.ok) {
                     // A TigerTag+ going to a printer that uses the product
                     // answer - a Creality, or a Bambu it can write to: ask
                     // TigerTag about the product now, while the review is on
@@ -3043,7 +3068,9 @@ void loop() {
         // write is short, and a screen that appears and vanishes inside a
         // second reads as a fault rather than as progress.
         screen_scan::showScan(backend ? backend->slotLabel(selSlot) : "?");
+        BENCH_MARK("send:draw");
         lvgl_port::loop();
+        BENCH_MARK("send:lvgl");
 
         // The chevron still works, and it is the only way out: it cancels
         // while the product answer is still being waited for. Once the write
@@ -3060,6 +3087,7 @@ void loop() {
         if (sendWaiting && !product_api::waiting(tag.idProduct)) {
             sendWaiting = false;
             sendOk = backend && backend->connected() && backend->assign(selSlot, tag);
+            BENCH_MARK("send:assign");
             char m[48];
             if (sendOk) snprintf(m, sizeof(m), i18n::T(S_UPDATED), backend->slotLabel(selSlot));
             else        snprintf(m, sizeof(m), "%s",
@@ -3073,6 +3101,7 @@ void loop() {
             // acknowledge a command they ignored, so the colour that actually
             // landed is the only thing worth showing.
             if (sendOk) backend->refresh();
+            BENCH_MARK("send:refresh");
             state = ST_RESULT; stateSince = millis();
         }
         break;
@@ -3085,10 +3114,13 @@ void loop() {
         // say that it is going away.
         const uint32_t RESULT_MS = 5000;
         const uint32_t since = millis() - stateSince;
+        tag.signature = reader::signatureOf(tag);
         screen_scan::showResult(backend ? backend->slotLabel(selSlot) : "?",
                                 sendOk, resultMsg.c_str(), tag,
                                 since >= RESULT_MS ? 0 : RESULT_MS - since);
+        BENCH_MARK("result:draw");
         lvgl_port::loop();
+        BENCH_MARK("result:lvgl");
 
         // A failure still waits to be read: there is no countdown on it,
         // because taking in what went wrong takes longer than five seconds.
@@ -3107,6 +3139,8 @@ void loop() {
     // frame in three for nothing. lv_timer_handler() returns the time it is
     // happy to wait; 15 ms remains the ceiling, so an idle device costs the
     // same as before.
+    BENCH_MARK("state");
+    BENCH_PASS((int)state);
     {
         uint32_t want = lvgl_port::idleMs();
         if (want > 15) want = 15;

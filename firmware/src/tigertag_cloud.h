@@ -145,4 +145,13 @@ namespace ttcloud {
     // identity block and reads display_name before writing it, so a name typed
     // in Studio is never trampled. Fields outside the mask are untouched.
     bool heartbeat(const Presence& p, bool full, String& err);
+
+    // The same, on a background task. Measured on the bench, the beat cost the
+    // main loop 1.5-1.6 s every thirty seconds - a screen that stops drawing
+    // and answering in the middle of a scan or a send. `p` is copied; false if
+    // a beat or an account sync is already running (they share the token and
+    // never overlap). takeHeartbeat() hands the outcome back once, when done.
+    bool startAsyncHeartbeat(const Presence& p, bool full);
+    bool heartbeatBusy();
+    bool takeHeartbeat(bool& ok, bool& full, String& err);
 }

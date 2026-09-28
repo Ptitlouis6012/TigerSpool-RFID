@@ -1031,7 +1031,8 @@ static const uint32_t SYNC_STACK = 16384;
 bool ttcloud::needsRoom() { return g_wantRoom; }
 
 bool ttcloud::startAsyncSync() {
-    if (g_asyncBusy) return false;
+    // A presence beat on its own task shares the session token: one at a time.
+    if (g_asyncBusy || ttcloud::heartbeatBusy()) return false;
 
     // Ask for the room BEFORE trying, not after failing.
     //
@@ -1314,4 +1315,51 @@ bool ttcloud::heartbeat(const Presence& p, bool full, String& err) {
 
 String ttcloud::printerDocId(int i) {
     return (i >= 0 && i < MAX_PRINTERS) ? g_docIds[i] : String();
+}
+
+// ---------------------------------------------------------------- presence beat
+namespace {
+volatile bool       g_hbBusy = false;
+volatile bool       g_hbDone = false;
+ttcloud::Presence   g_hbP;
+String              g_hbIds[MAX_PRINTERS];
+bool                g_hbFull = false, g_hbOk = false;
+String              g_hbErr;
+
+void heartbeatTaskFn(void*) {
+    String err;
+    const bool ok = ttcloud::heartbeat(g_hbP, g_hbFull, err);
+    g_hbOk = ok;
+    g_hbErr = err;
+    g_hbDone = true;
+    g_hbBusy = false;
+    vTaskDelete(nullptr);
+}
+}  // namespace
+
+bool ttcloud::startAsyncHeartbeat(const Presence& p, bool full) {
+    if (g_hbBusy || g_hbDone || g_asyncBusy) return false;
+    g_hbP = p;
+    const int n = p.printerIdCount < MAX_PRINTERS ? p.printerIdCount : MAX_PRINTERS;
+    for (int i = 0; i < n; i++) g_hbIds[i] = p.printerIds[i];
+    g_hbP.printerIds = g_hbIds;
+    g_hbP.printerIdCount = n;
+    g_hbFull = full;
+    g_hbBusy = true;
+    // 16 KB on core 0, as the account sync: a TLS handshake on this stack, and
+    // the interface keeps core 1.
+    if (xTaskCreatePinnedToCore(heartbeatTaskFn, "ttBeat", 16384, nullptr, 1, nullptr, 0) != pdPASS) {
+        g_hbBusy = false;
+        return false;
+    }
+    return true;
+}
+
+bool ttcloud::heartbeatBusy() { return g_hbBusy; }
+
+bool ttcloud::takeHeartbeat(bool& ok, bool& full, String& err) {
+    if (!g_hbDone) return false;
+    ok = g_hbOk; full = g_hbFull; err = g_hbErr;
+    g_hbDone = false;
+    return true;
 }

@@ -106,7 +106,7 @@ static const Row STR[S_COUNT] = {
 /* S_TAG_MESSAGE    */ {{ "Message", "Message", "Nachricht", "Mensaje", "Messaggio", "Wiadomosc", "Mensagem", "Mensagem", "留言" }},
 /* S_TAG_SIG        */ {{ "Signature", "Signature", "Signatur", "Firma", "Firma", "Podpis", "Assinatura", "Assinatura", "签名" }},
 /* S_SIG_VALID      */ {{ "Certified", "Certifié", "Zertifiziert", "Certificado", "Certificato", "Certyfikowany", "Certificado", "Certificado", "已认证" }},
-/* S_SIG_INVALID    */ {{ "does not match", "ne correspond pas", "passt nicht", "no coincide", "non corrisponde", "nie pasuje", "nao corresponde", "nao corresponde", "不匹配" }},
+/* S_SIG_INVALID    */ {{ "Not certified", "Non certifié", "Nicht zertifiziert", "No certificado", "Non certificato", "Niecertyfikowany", "Não certificado", "Não certificado", "未认证" }},
 /* S_SIG_NONE       */ {{ "not signed", "non signée", "nicht signiert", "sin firmar", "non firmata", "niepodpisany", "sem assinatura", "sem assinatura", "未签名" }},
 /* S_SIG_NOKEY      */ {{ "no public key", "pas de clé publique", "kein Schlussel", "sin clave publica", "nessuna chiave", "brak klucza", "sem chave publica", "sem chave publica", "无公钥" }},
 /* S_SIG_UNREAD     */ {{ "not read", "non lue", "nicht gelesen", "no leida", "non letta", "nieodczytany", "nao lida", "nao lida", "未读取" }},

@@ -89,7 +89,7 @@ void showResult(const char* slotLabel, bool ok, const char* message,
     // msLeft is NOT in the signature: it changes on every pass, and rebuilding
     // this screen sixty times a second is how a device stops answering taps.
     uint32_t sig = hashStr(message) ^ (uint32_t)ok ^ hashStr(slotLabel)
-                 ^ hashStr(tag.material.c_str());
+                 ^ hashStr(tag.material.c_str()) ^ ((uint32_t)tag.signature << 24);
     if (s_which == RESULT && sig == s_sig) {
         if (s_timerFill) {
             const lv_coord_t full = theme::SCREEN_W - 2 * theme::PAD;
@@ -120,6 +120,23 @@ void showResult(const char* slotLabel, bool ok, const char* message,
     lv_obj_add_event_cb(body, dismissCb, LV_EVENT_CLICKED, nullptr);
     lv_obj_add_flag(frame::header(), LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(frame::header(), dismissCb, LV_EVENT_CLICKED, nullptr);
+
+    // Genuine or not, in the header as on the reader screen. The verification
+    // runs while this screen is up (reader.h), so the mark arrives a moment
+    // after the screen does; a brand that signs its spools wants it seen at
+    // the moment the spool is used, not only on the reader screen.
+    if (tag.signature == TagInfo::SIG_VALID || tag.signature == TagInfo::SIG_INVALID) {
+        const bool good = tag.signature == TagInfo::SIG_VALID;
+        lv_obj_t* mark = lv_label_create(frame::header());
+        // Not certified is a fact about the chip, not a fault: plain grey
+        // text, no warning sign and no red - most spools in the world carry
+        // no signature at all, and none of them is an error.
+        if (good) lv_label_set_text_fmt(mark, "%s %s", LV_SYMBOL_OK, i18n::T(S_SIG_VALID));
+        else      lv_label_set_text(mark, i18n::T(S_SIG_INVALID));
+        lv_obj_set_style_text_font(mark, &font_ui_12, 0);
+        lv_obj_set_style_text_color(mark, lv_color_hex(good ? theme::OK : theme::TEXT_DIM), 0);
+        lv_obj_align(mark, LV_ALIGN_RIGHT_MID, -10, 0);
+    }
 
 
     if (!ok) {

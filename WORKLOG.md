@@ -18,6 +18,33 @@ message, and reset it to this header.
 
 ## Unreleased
 
+## 2026-09-28 - A faster, steadier screen, and the certified mark at send time (released in 1.70.0)
+
+### Changed
+
+- `reader::read(tag, background)`: the four signature pages are read on every
+  read; with `background` the ECDSA verification runs on a core-0 task
+  (`tagSig`) and the tag says `SIG_PENDING` until `reader::signatureOf()` has
+  the verdict. No verdict is ever cached - a chip can be rewritten under the
+  same UID. Measured: read 585 ms -> 247 ms. Send path and reader mode use it;
+  the NFC tester stays in the foreground. Result screen shows the certified
+  mark; `S_SIG_INVALID` is now "Not certified" in grey, no warning sign.
+
+### Fixed
+
+- Presence heartbeat off the main loop (`ttcloud::startAsyncHeartbeat`, task
+  `ttBeat`, never overlapping an account sync): measured 1.5-1.6 s of frozen
+  loop every 30 s, 10.5 s on the first beat after boot.
+
+### Added
+
+- Bench-only code has a switch: `TIGERSPOOL_BENCH` (`src/bench.h`, 0 by
+  default, `BENCH_LOG()`), on only in the new `tigerspool-bench` environment.
+  `scripts/check-bench-code.py` (in verify.sh) fails on a `BENCH:` / `TEMP:` /
+  `DO NOT SHIP` marker outside `#if TIGERSPOOL_BENCH`, and on the switch turned
+  on for `[env:tigerspool]`. Self-tested: a marker in a bench block passes, one
+  outside or in its `#else` fails, the switch in the production env fails.
+
 ## 2026-09-28 - An update no longer stalls beside a cloud Anycubic (released in 1.69.1)
 
 ### Fixed

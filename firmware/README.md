@@ -1,7 +1,9 @@
 # firmware/
 
-The TigerSpool firmware: one PlatformIO project, one environment, `tigerspool`,
-for the Waveshare ESP32-S3-Touch-LCD-2 with a PN532 reader.
+The TigerSpool firmware: one PlatformIO project for the Waveshare
+ESP32-S3-Touch-LCD-2 with a PN532 reader. `tigerspool` is the build CI makes and
+releases; `tigerspool-bench` is the same plus the diagnostics kept inside
+`#if TIGERSPOOL_BENCH` (`src/bench.h`), and is never released.
 
 ## Layout
 
