@@ -7,6 +7,17 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.69.1] - 2026-09-28
+
+### Fixed
+
+- **A firmware update no longer stalls when the selected printer is an
+  Anycubic in cloud mode.** The selected printer kept its connection during the
+  download, and a cloud Anycubic's session beside it stalled the download at
+  442 KB and left the device without a network until it restarted. A download
+  now closes every printer connection, the selected one too, and the cloud
+  session listens only for the slot reports it uses.
+
 ## [1.69.0] - 2026-09-28
 
 ### Added

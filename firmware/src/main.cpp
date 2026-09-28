@@ -1083,6 +1083,7 @@ static void tickLink(Link& l) {
 //
 // The selected printer keeps its link: that is the screen someone is looking
 // at, and one connection is not what stands between the heap and a handshake.
+// Except during a firmware download - see standDownForTls().
 static bool needsTheNetwork() {
     const ota::State o = ota::state();
     return ttcloud::asyncBusy() || o == ota::CHECKING || o == ota::DOWNLOADING
@@ -1106,8 +1107,12 @@ static bool needsTheRoom() {
 
 static void standDownForTls() {
     static bool wasQuiet = false;
+    static bool wasDownloading = false;
     const bool quiet = needsTheRoom();
-    if (quiet && !wasQuiet) {
+    // A download starts from a check, which is already quiet: entering it is
+    // its own trigger, or the rule below for the selected link never runs.
+    const bool downloading = ota::state() == ota::DOWNLOADING;
+    if (quiet && (!wasQuiet || (downloading && !wasDownloading))) {
         // A cloud Bambu frees nothing by leaving while the shared session stays
         // open - and it stays open as long as the selected printer is a cloud
         // Bambu too. Closing one then cost an unsubscribe, a resubscribe and a
@@ -1115,10 +1120,18 @@ static void standDownForTls() {
         // printer republishing its whole state after every account sync.
         const PrinterCfg* sel = (selectedPrinter >= 0) ? &printers[selectedPrinter] : nullptr;
         const bool sessionStays = sel && sel->type == PT_BAMBU && sel->cloud;
+        // A firmware download takes EVERY link down, the selected printer's
+        // too. It is two megabytes over one TLS session for a minute or more,
+        // with the update screen in front of the user - nobody is using the
+        // printer. Keeping the selected link was how an update died on the
+        // bench: a cloud Anycubic's session stayed up beside the download, the
+        // download stalled at 442 KB, and the network did not come back.
+        const bool everything = downloading;
         int freed = 0;
         const uint32_t t0 = millis();
         for (int i = 0; i < MAX_LINKS; i++) {
-            if (links[i].printer < 0 || links[i].printer == selectedPrinter) continue;
+            if (links[i].printer < 0) continue;
+            if (!everything && links[i].printer == selectedPrinter) continue;
             const PrinterCfg& p = printers[links[i].printer];
             if (sessionStays && p.type == PT_BAMBU && p.cloud) continue;
             dropLink(links[i]);              // no deferral: they come straight back
@@ -1133,6 +1146,7 @@ static void standDownForTls() {
         Serial.printf("[link] network free again, largest block %u\n",
                       (unsigned)ESP.getMaxAllocHeap());
     wasQuiet = quiet;
+    wasDownloading = downloading;
 }
 
 // ---------------------------------------------------------------------------

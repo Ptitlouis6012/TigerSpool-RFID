@@ -18,6 +18,18 @@ message, and reset it to this header.
 
 ## Unreleased
 
+## 2026-09-28 - An update no longer stalls beside a cloud Anycubic (released in 1.69.1)
+
+### Fixed
+
+- OTA with a cloud Anycubic selected: `standDownForTls()` now drops the
+  selected printer's link too while `ota::DOWNLOADING` (and triggers on
+  entering the download, which follows an already-quiet check); the Anycubic
+  cloud subscription narrowed from `.../<key>/#` to `.../<key>/multiColorBox/#`.
+  Bench, same device and printer: before, stalled at 442260 of 2291936 bytes and
+  the network wedged; after, slot written and verified, rebooted into 1.69.0,
+  the cloud session back by itself.
+
 ## 2026-09-28 - Settings > Turn off, woken by the USB cable (released in 1.69.0)
 
 ### Added

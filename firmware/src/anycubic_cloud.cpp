@@ -37,7 +37,7 @@ const int MAX_SUBS = 8;
 struct Sub {
     String key;
     String mt;
-    String topic;           // what is subscribed: ...v1/+/public/<mt>/<key>/#
+    String topic;           // what is subscribed: ...v1/+/public/<mt>/<key>/multiColorBox/#
     String prefix;          // the /public/<mt>/<key>/ part every report carries
     anycubic_cloud::Sink sink;
     bool   subscribed = false;
@@ -214,9 +214,12 @@ bool anycubic_cloud::attach(const String& key, const String& mt,
     Sub& s = s_subs[s_n++];
     s.key = key;
     s.mt  = mt;
-    // The wildcard Tiger Studio subscribes to. The report's first segment is
-    // not always "printer", so a narrower topic missed the layout entirely.
-    s.topic  = String("anycubic/anycubicCloud/v1/+/public/") + mt + "/" + key + "/#";
+    // Only the multiColorBox topics, with a wildcard for the first segment -
+    // it is not always "printer", and naming it missed the layout entirely.
+    // Not Tiger Studio's "/#": that is every print-progress and temperature
+    // report as well, a steady stream this device reads only to throw away,
+    // and it filled the network buffers enough to stall a firmware download.
+    s.topic  = String("anycubic/anycubicCloud/v1/+/public/") + mt + "/" + key + "/multiColorBox/#";
     s.prefix = String("/public/") + mt + "/" + key + "/";
     s.sink = sink;
     s.subscribed = false;
